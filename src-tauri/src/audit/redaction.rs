@@ -7,7 +7,8 @@ use regex::Regex;
 
 /// TMDb API Key 模式
 static TMDB_KEY_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"(?i)(tmdb[_-]?api[_-]?key|tmdbkey)\s*[:=]\s*['"]?([a-zA-Z0-9]{32})['"]?"#).unwrap()
+    Regex::new(r#"(?i)(tmdb[_-]?api[_-]?key|tmdbkey)\s*[:=]\s*['"]?([a-zA-Z0-9]{32})['"]?"#)
+        .unwrap()
 });
 
 /// 通用 API Key 模式
@@ -26,13 +27,13 @@ static SECRET_RE: Lazy<Regex> = Lazy::new(|| {
 });
 
 /// URL Query 参数中的 key
-static URL_KEY_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)([?&])(api_key|apikey|key|token)=([^&\s]+)").unwrap()
-});
+static URL_KEY_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?i)([?&])(api_key|apikey|key|token)=([^&\s]+)").unwrap());
 
 /// JSON 字段中的敏感值
 static JSON_SENSITIVE_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"(?i)"(api_key|apikey|token|secret|password|tmdb_api_key)"\s*:\s*"([^"]+)""#).unwrap()
+    Regex::new(r#"(?i)"(api_key|apikey|token|secret|password|tmdb_api_key)"\s*:\s*"([^"]+)""#)
+        .unwrap()
 });
 
 /// 脱敏替换标记
@@ -176,7 +177,9 @@ mod tests {
 
     #[test]
     fn test_contains_sensitive_true() {
-        assert!(contains_sensitive("tmdb_api_key: abcdef1234567890abcdef1234567890"));
+        assert!(contains_sensitive(
+            "tmdb_api_key: abcdef1234567890abcdef1234567890"
+        ));
         assert!(contains_sensitive("api_key=abcdefghijklmnop"));
     }
 

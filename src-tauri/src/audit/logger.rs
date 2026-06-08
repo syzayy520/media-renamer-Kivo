@@ -19,7 +19,12 @@ impl<'a> AuditLogger<'a> {
     }
 
     /// 写入普通事件
-    pub fn log_event(&self, task_id: Option<&str>, event_type: &str, message: &str) -> Result<AuditLogEntry, rusqlite::Error> {
+    pub fn log_event(
+        &self,
+        task_id: Option<&str>,
+        event_type: &str,
+        message: &str,
+    ) -> Result<AuditLogEntry, rusqlite::Error> {
         let redacted_message = redact_text(message);
         let entry = db::create_log_entry(task_id, event_type, &redacted_message);
         db::insert_log(self.conn, &entry)?;
@@ -27,7 +32,11 @@ impl<'a> AuditLogger<'a> {
     }
 
     /// 写入失败事件
-    pub fn log_failure(&self, task_id: Option<&str>, error: &str) -> Result<AuditLogEntry, rusqlite::Error> {
+    pub fn log_failure(
+        &self,
+        task_id: Option<&str>,
+        error: &str,
+    ) -> Result<AuditLogEntry, rusqlite::Error> {
         let redacted_error = redact_text(error);
         let entry = db::create_log_entry(task_id, "failure", &redacted_error);
         db::insert_log(self.conn, &entry)?;
@@ -35,7 +44,11 @@ impl<'a> AuditLogger<'a> {
     }
 
     /// 写入 preview 事件
-    pub fn log_preview(&self, task_id: &str, file_count: u32) -> Result<AuditLogEntry, rusqlite::Error> {
+    pub fn log_preview(
+        &self,
+        task_id: &str,
+        file_count: u32,
+    ) -> Result<AuditLogEntry, rusqlite::Error> {
         let message = format!("Preview generated for {} files", file_count);
         let entry = db::create_log_entry(Some(task_id), "preview", &message);
         db::insert_log(self.conn, &entry)?;
@@ -43,7 +56,11 @@ impl<'a> AuditLogger<'a> {
     }
 
     /// 写入任务创建事件
-    pub fn log_task_created(&self, task_id: &str, template: &str) -> Result<AuditLogEntry, rusqlite::Error> {
+    pub fn log_task_created(
+        &self,
+        task_id: &str,
+        template: &str,
+    ) -> Result<AuditLogEntry, rusqlite::Error> {
         let redacted_template = redact_text(template);
         let message = format!("Task created with template: {}", redacted_template);
         let entry = db::create_log_entry(Some(task_id), "task_created", &message);
@@ -52,7 +69,11 @@ impl<'a> AuditLogger<'a> {
     }
 
     /// 写入执行计划事件
-    pub fn log_execution_plan(&self, task_id: &str, file_count: u32) -> Result<AuditLogEntry, rusqlite::Error> {
+    pub fn log_execution_plan(
+        &self,
+        task_id: &str,
+        file_count: u32,
+    ) -> Result<AuditLogEntry, rusqlite::Error> {
         let message = format!("Execution plan: {} files to rename", file_count);
         let entry = db::create_log_entry(Some(task_id), "execution_plan", &message);
         db::insert_log(self.conn, &entry)?;
@@ -134,7 +155,9 @@ mod tests {
         let conn = setup();
         let logger = AuditLogger::new(&conn);
 
-        let entry = logger.log_task_created("task-456", "{Title} ({Year})").unwrap();
+        let entry = logger
+            .log_task_created("task-456", "{Title} ({Year})")
+            .unwrap();
         assert_eq!(entry.event_type, "task_created");
         assert!(entry.message.contains("Task created"));
         assert!(entry.message.contains("{Title}"));

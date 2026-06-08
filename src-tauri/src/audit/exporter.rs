@@ -34,7 +34,10 @@ impl<'a> JsonlExporter<'a> {
     }
 
     /// 将日志条目导出为 JSONL 格式
-    fn export_entries(&self, entries: &[AuditLogEntry]) -> Result<String, Box<dyn std::error::Error>> {
+    fn export_entries(
+        &self,
+        entries: &[AuditLogEntry],
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let mut lines = Vec::with_capacity(entries.len());
 
         for entry in entries {
@@ -60,7 +63,7 @@ pub fn entry_to_json(entry: &AuditLogEntry) -> Result<String, serde_json::Error>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::audit::db::{init_tables, create_log_entry, insert_log};
+    use crate::audit::db::{create_log_entry, init_tables, insert_log};
 
     fn setup() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
