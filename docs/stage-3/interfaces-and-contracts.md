@@ -253,7 +253,9 @@ pub struct ScanProgress {
 
 ```rust
 // parse/classifier.rs
-pub fn classify(media_item: &MediaItem) -> MediaType
+pub fn classify(filename: &str) -> MediaType
+pub fn classify_special(filename: &str) -> SpecialType
+pub fn classify_and_parse(filename: &str) -> Option<ParsedMediaInfo>
 
 // parse/movie_parser.rs
 pub fn parse_movie(filename: &str) -> Option<ParsedMediaInfo>
@@ -268,7 +270,24 @@ pub fn parse_anime(filename: &str) -> Option<ParsedMediaInfo>
 pub fn parse_special(filename: &str) -> Option<ParsedMediaInfo>
 
 // parse/confidence.rs
-pub fn calculate_score(info: &ParsedMediaInfo) -> u8
+pub fn evaluate_confidence(info: &mut ParsedMediaInfo) -> ConfidenceResult
+pub fn adjust_confidence(info: &mut ParsedMediaInfo)
+pub fn needs_review(info: &ParsedMediaInfo, threshold: u8) -> bool
+
+// parse/confidence.rs - 数据结构
+pub struct RuleMatchEvidence {
+    pub rule_name: String,
+    pub matched_pattern: String,
+    pub confidence_delta: i16,
+}
+
+pub struct ConfidenceResult {
+    pub score: u8,
+    pub evidences: Vec<RuleMatchEvidence>,
+    pub needs_review: bool,
+}
+
+pub const DEFAULT_CONFIDENCE_THRESHOLD: u8 = 70
 ```
 
 ### 2.3 rename 模块

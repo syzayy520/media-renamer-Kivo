@@ -250,14 +250,14 @@
 
 ## 测试覆盖矩阵
 
-| 测试类型 | 覆盖模块 | 任务 ID |
-|----------|----------|---------|
-| Rust 单测 | shared | T-TEST-001 |
-| Rust 单测 | config | T-TEST-001 |
-| Rust 单测 | config/secret | T-TEST-001 |
-| Rust 单测 | config/user_settings | T-TEST-001 |
-| Rust 单测 | scan | T-TEST-001 |
-| Rust 单测 | parse | T-TEST-001 |
+| 测试类型 | 覆盖模块 | 任务 ID | 状态 |
+|----------|----------|---------|------|
+| Rust 单测 | shared | T-TEST-001 | |
+| Rust 单测 | config | T-TEST-001 | |
+| Rust 单测 | config/secret | T-TEST-001 | |
+| Rust 单测 | config/user_settings | T-TEST-001 | |
+| Rust 单测 | scan | T-TEST-001 | |
+| Rust 单测 | parse (53 tests) | T-TEST-001 | ✅ 已完成 |
 | Rust 单测 | rename | T-TEST-001 |
 | Rust 单测 | rollback | T-TEST-001 |
 | Rust 单测 | audit | T-TEST-001 |
@@ -275,6 +275,54 @@
 | Fixture | 测试数据 | T-TEST-005 |
 | 安全测试 | API Key 安全存储 | T-TEST-001 |
 | 安全测试 | 数据脱敏 | T-TEST-001 |
+
+---
+
+## Parse 模块测试映射（Stage 5 补充）
+
+> 日期：2026-06-08
+> 验证：cargo test 74/74 PASS, clippy PASS
+
+### F-002 文件名解析 → T-RUST-004 → 单元测试映射
+
+| 需求 ID | 解析器 | 测试用例 | 覆盖场景 |
+|---------|--------|----------|----------|
+| F-002-01 | movie_parser | test_parse_movie_basic | 标题提取 |
+| F-002-02 | movie_parser | test_parse_movie_basic | 年份提取 |
+| F-002-06 | movie_parser | test_parse_movie_basic | 分辨率提取 |
+| F-002-07 | movie_parser | test_parse_movie_basic | 来源提取 |
+| F-002-08 | movie_parser | test_parse_movie_h264 | 视频编码提取 |
+| F-002-09 | movie_parser | test_parse_movie_basic | 音频编码提取 |
+| F-002-01 | series_parser | test_parse_series_basic | 标题提取 |
+| F-002-03 | series_parser | test_parse_series_basic | 季号提取 |
+| F-002-04 | series_parser | test_parse_series_basic | 集号提取 |
+| F-002-05 | series_parser | test_parse_series_multi_episode | 多集标识 |
+| F-002-10 | anime_parser | test_parse_anime_group_with_codec | 编码组提取 |
+| F-002-11 | special_parser | test_parse_special_ncop | NCOP 特殊标记 |
+| F-002-12 | confidence | test_evaluate_movie_with_year | 置信度评分 |
+| F-002-13 | confidence | test_evaluate_movie_no_year | 电影无年份低置信度 |
+| F-002-15 | confidence | test_evidence_contains_rule_name_and_delta | 规则命中来源 |
+
+### F-003 分类识别 → T-RUST-004 → 单元测试映射
+
+| 需求 ID | 分类器/解析器 | 测试用例 | 覆盖场景 |
+|---------|--------------|----------|----------|
+| F-003-01 | classifier | test_classify_movie / test_classify_and_parse_movie | 电影识别 |
+| F-003-02 | classifier | test_classify_series / test_classify_and_parse_series | 剧集识别 |
+| F-003-03 | classifier | test_classify_anime_with_group / test_classify_and_parse_anime | 动漫识别 |
+| F-003-04 | classifier | test_classify_sp / test_classify_s00_special | 特别篇/SP 识别 |
+| F-003-05 | classifier | test_classify_ova | OVA 识别 |
+| F-003-06 | classifier | test_classify_ncop_nced | NCOP/NCED 识别 |
+| F-003-07 | classifier | test_classify_extras | Extras 识别 |
+| F-003-08 | classifier | test_classify_unknown / test_classify_and_parse_unknown | 未识别标记 |
+| F-003-09 | anime_parser | test_parse_anime_no_match (S01E01 excluded) | 动漫与剧集边界 |
+
+### 新增领域对象测试映射
+
+| 领域对象 | 测试用例 | 说明 |
+|----------|----------|------|
+| RuleMatchEvidence | test_evidence_contains_rule_name_and_delta | 证据链完整性 |
+| ConfidenceResult | test_evaluate_movie_with_year | score + evidences + needs_review |
 
 ---
 

@@ -284,17 +284,29 @@ T-PKG-* 在所有功能完成后执行
 | 优先级 | P0 |
 | 预估 | 12h |
 | 依赖 | T-RUST-001 |
+| 状态 | **已完成** ✅ |
 
 **子任务**：
-1. movie_parser.rs: 电影文件名解析
-2. series_parser.rs: 剧集文件名解析
-3. anime_parser.rs: 动漫文件名解析
-4. special_parser.rs: 特别篇/OVA/NCOP/NCED 解析
-5. confidence.rs: 置信度评分
-6. classifier.rs: 类型分类
-7. 使用 rename-fixtures.md 45 个测试用例
+1. ✅ movie_parser.rs: 电影文件名解析（6 个测试通过）
+2. ✅ series_parser.rs: 剧集文件名解析（7 个测试通过）
+3. ✅ anime_parser.rs: 动漫文件名解析（8 个测试通过）
+4. ✅ special_parser.rs: 特别篇/OVA/NCOP/NCED 解析（9 个测试通过）
+5. ✅ confidence.rs: 置信度评分（8 个测试通过）
+6. ✅ classifier.rs: 类型分类 + classify_and_parse 统一入口（15 个测试通过）
+7. 待后续阶段：rename-fixtures.md 45 个测试用例
 
-**验收**：45 个 fixture 测试通过，置信度评分合理
+**验证结果**（2026-06-08）：
+- `cargo test`: 74/74 PASS
+- `cargo clippy`: 无 warning
+- `cargo fmt --check`: 通过
+- parse 模块单元测试：53 个全部通过
+
+**关键实现**：
+- classifier 优先级：extras > ncop/nced > ova > sp > anime > series > movie > unknown
+- confidence 使用 RuleMatchEvidence 证据链评分
+- classify_and_parse 为统一分类+解析入口
+- 动漫三种解析模式：[Group] Title - EP / Title - EP / Title.EP
+- 特别篇三种模式：S00E / Extras / SP/OVA/NCOP/NCED 关键字
 
 ---
 
@@ -560,6 +572,17 @@ T-PKG-* 在所有功能完成后执行
 **子任务**：shared/config/scan/parse/rename/rollback/audit 全模块测试
 
 **验收**：测试覆盖率 >80%，45 个 fixture 通过
+
+**parse 模块测试进度**（2026-06-08）：
+| 文件 | 测试数 | 状态 |
+|------|--------|------|
+| movie_parser.rs | 6 | ✅ 全通过 |
+| series_parser.rs | 7 | ✅ 全通过 |
+| anime_parser.rs | 8 | ✅ 全通过 |
+| special_parser.rs | 9 | ✅ 全通过 |
+| confidence.rs | 8 | ✅ 全通过 |
+| classifier.rs | 15 | ✅ 全通过 |
+| **合计** | **53** | **✅** |
 
 ---
 

@@ -38,14 +38,22 @@
 
 ### 解析功能族 (parse/)
 
-| 子族 | 文件 | 职责 | 依赖 |
-|------|------|------|------|
-| 电影解析 | movie_parser.rs | 解析电影文件名 | shared/result_types |
-| 剧集解析 | series_parser.rs | 解析剧集文件名 | shared/result_types |
-| 动漫解析 | anime_parser.rs | 解析动漫文件名 | shared/result_types |
-| 特别篇解析 | special_parser.rs | 解析特别篇文件名 | shared/result_types |
-| 置信度 | confidence.rs | 置信度评分 | 无 |
-| 分类器 | classifier.rs | 类型分类 | 各解析器 |
+| 子族 | 文件 | 职责 | 依赖 | 测试数 |
+|------|------|------|------|:------:|
+| 核心类型 | movie_parser.rs | MediaType / ParsedMediaInfo / SpecialType 定义 + 电影解析 | shared/result_types | 6 |
+| 剧集解析 | series_parser.rs | 解析剧集文件名（S01E01 格式） | movie_parser (类型) | 7 |
+| 动漫解析 | anime_parser.rs | 解析动漫文件名（三种模式） | movie_parser (类型) | 8 |
+| 特别篇解析 | special_parser.rs | 解析 SP/OVA/NCOP/NCED/Extras | movie_parser (类型) | 9 |
+| 置信度 | confidence.rs | RuleMatchEvidence 证据链评分 | movie_parser (类型) | 8 |
+| 分类器 | classifier.rs | classify 快速分类 + classify_and_parse 统一入口 | 各解析器 | 15 |
+
+**架构说明**：
+- movie_parser.rs 承载 ParsedMediaInfo、MediaType、SpecialType 核心类型定义（最小职责原则的例外：类型定义跟首个消费者同文件）
+- classifier.rs 是统一入口：classify() 快速判断类型，classify_and_parse() 返回完整解析结果
+- 分类优先级：extras > ncop/nced > ova > sp > anime > series > movie > unknown
+- 各解析器独立，互不调用；classifier 按优先级依次尝试
+- 动漫三种模式：[Group] Title - EP、Title - EP、Title.EP（排除 S01E01 格式）
+- 特别篇三种模式：S00Exx > Extras 关键字 > SP/OVA/NCOP/NCED 关键字
 
 ### 重命名功能族 (rename/)
 

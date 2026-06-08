@@ -208,7 +208,42 @@
 
 ---
 
-### 11. AuditLogEntry
+### 11. RuleMatchEvidence
+
+**含义**：置信度评分的单条证据
+
+| 字段 | 类型 | 可空 | 说明 |
+|------|------|:----:|------|
+| rule_name | String | 否 | 规则名称（如 "movie_year", "anime_group"） |
+| matched_pattern | String | 否 | 匹配到的模式描述（如 "year=1999"） |
+| confidence_delta | i16 | 否 | 置信度增量（正数加分，负数扣分） |
+
+**所属功能族**：parse/confidence.rs
+
+---
+
+### 12. ConfidenceResult
+
+**含义**：置信度评分的完整结果
+
+| 字段 | 类型 | 可空 | 说明 |
+|------|------|:----:|------|
+| score | u8 | 否 | 最终置信度 (0-100) |
+| evidences | Vec\<RuleMatchEvidence\> | 否 | 匹配证据列表 |
+| needs_review | bool | 否 | 是否需要人工确认（score < 70） |
+
+**阈值**：DEFAULT_CONFIDENCE_THRESHOLD = 70
+**评分规则**：
+- 电影：有年份 +10，无年份 -15，有分辨率 +5，有来源 +3
+- 剧集：有季集号 +10，有集标题 +5，有分辨率 +3
+- 动漫：有 Group +10，无 Group -10，有集号 +5，有分辨率 +5
+- 特别篇：S00 格式 +10，有 special_type +5
+- 通用：标题为空 -30，标题短于 3 字符 -20
+**所属功能族**：parse/confidence.rs
+
+---
+
+### 13. AuditLogEntry
 
 **含义**：审计日志条目
 
