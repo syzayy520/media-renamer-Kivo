@@ -2,18 +2,27 @@
 // 职责：registry / re-export only
 
 // Types
-export type * from './types';
+export type * from './shared/apiError';
+export type * from './session/types';
+export type * from './config/types';
+export type * from './audit/types';
 
 // Invoke wrapper
 export { invokeCommand } from './invoke';
 
-// Commands
-export { startRenameSession } from './commands/session';
+// Session
+export { startRenameSession } from './session/startRenameSession';
+
+// Config
+export { getAppConfig } from './config/getAppConfig';
+export { getAllTemplates } from './config/getAllTemplates';
+export { setTemplate } from './config/setTemplate';
 export {
-  getAppConfig,
-  getAllTemplates,
-  setTemplate,
   getConfidenceThreshold,
   setConfidenceThreshold,
-} from './commands/config';
-export { getTask, getAllTasks, getAuditLogs } from './commands/audit';
+} from './config/confidenceThreshold';
+
+// Audit
+export { getTask } from './audit/getTask';
+export { getAllTasks } from './audit/getAllTasks';
+export { getAuditLogs } from './audit/getAuditLogs';

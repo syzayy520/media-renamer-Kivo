@@ -2,7 +2,7 @@
 // 职责：包装 @tauri-apps/api/core 的 invoke，规范化错误处理
 
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-import type { ApiError } from './types';
+import type { ApiError } from './shared/apiError';
 
 /**
  * 调用 Tauri 后端命令
