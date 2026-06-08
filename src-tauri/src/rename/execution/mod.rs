@@ -2,10 +2,14 @@
 // 职责：受控重命名执行
 // mod.rs 只做 registry / alias / re-export
 
+pub mod conflict_filter;
 pub mod execution_mode;
 pub mod execution_summary;
 pub mod executor_core;
+pub mod result_recorder;
+pub mod safety_gate;
 pub mod single_rename;
+pub mod skip_filter;
 
 // 重新导出常用类型，保持向后兼容
 pub use execution_mode::ExecutionMode;
