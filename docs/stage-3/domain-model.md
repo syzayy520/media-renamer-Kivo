@@ -237,6 +237,63 @@
 
 ---
 
+### 17. ExecutionMode
+
+**含义**：执行模式
+
+| 值 | 说明 |
+|------|------|
+| DryRun | 预演模式（默认），不修改文件，返回模拟结果 |
+| Confirmed | 确认模式，必须通过安全检查，执行真实文件改名 |
+
+**所属功能族**：rename/executor.rs
+
+---
+
+### 18. RollbackReport
+
+**含义**：回滚可行性报告
+
+| 字段 | 类型 | 可空 | 说明 |
+|------|------|:----:|------|
+| can_rollback | bool | 否 | 是否可以回滚 |
+| rollbackable_results | Vec\<RenameResult\> | 否 | 可回滚的结果列表 |
+| blocked_results | Vec\<BlockedRollbackEntry\> | 否 | 被阻断的结果列表 |
+| blocking_reasons | Vec\<String\> | 否 | 阻断原因列表 |
+
+**所属功能族**：rollback/state_checker.rs
+
+---
+
+### 19. RollbackEntry
+
+**含义**：单个文件回滚结果
+
+| 字段 | 类型 | 可空 | 说明 |
+|------|------|:----:|------|
+| result_id | String | 否 | 原结果 ID |
+| before_path | String | 否 | 回滚前路径（原 afterPath） |
+| after_path | String | 否 | 回滚后路径（原 beforePath） |
+| status | RollbackStatus | 否 | 回滚状态 |
+| error | Option\<String\> | 是 | 错误信息 |
+
+**所属功能族**：rollback/rollback_executor.rs
+
+---
+
+### 20. BlockedRollbackEntry
+
+**含义**：被阻断的回滚项
+
+| 字段 | 类型 | 可空 | 说明 |
+|------|------|:----:|------|
+| result_id | String | 否 | 原结果 ID |
+| reason | String | 否 | 阻断原因 |
+
+**所属功能族**：rollback/state_checker.rs
+
+---
+
 ### 9. ScanReport
 
 **含义**：扫描报告
@@ -317,7 +374,7 @@
 | created_at | DateTime\<Utc\> | 否 | 创建时间 |
 
 **持久化**：是（SQLite audit_log 表）
-**所属功能族**：audit/db.rs, audit/logger.rs
+**所属功能族**：audit/db/log_repository.rs, audit/logger.rs
 
 ---
 
@@ -355,8 +412,13 @@ TargetExists | DuplicateTarget | PathTooLong | InvalidChars | PermissionDenied |
 
 ### RollbackStatus
 ```
-Pending | InProgress | Completed | PartialFailed | Failed
+Success | Failed | Blocked
 ```
+
+**说明**：
+- Success: 回滚成功
+- Failed: 回滚失败（afterPath 不存在、beforePath 被占用等）
+- Blocked: 被阻断（任务状态不允许回滚、已回滚等）
 
 ---
 
