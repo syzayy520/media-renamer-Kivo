@@ -149,11 +149,12 @@
 | message | String | 否 | 冲突描述 |
 | severity | Severity | 否 | 严重程度 |
 
-**冲突类型**：
-- TargetExists: 目标路径已存在
-- DuplicateTarget: 多源指向同一目标
-- PathTooLong: 路径过长
-- InvalidChars: 非法字符
+**冲突类型**（由 5 个 checker 各负一责检测）：
+- TargetExists: 目标路径已存在 → path_exists_checker.rs
+- DuplicateTarget: 多源指向同一目标 → duplicate_target_checker.rs
+- CaseConflict: Windows 大小写冲突 → case_conflict_checker.rs
+- PathTooLong: 路径过长 → path_length_checker.rs
+- InvalidChars: 非法字符 → invalid_chars_checker.rs
 - PermissionDenied: 权限不足
 - SourceNotFound: 源文件不存在
 

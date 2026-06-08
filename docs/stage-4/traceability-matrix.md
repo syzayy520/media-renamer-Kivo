@@ -258,8 +258,8 @@
 | Rust 单测 | config/user_settings | T-TEST-001 | |
 | Rust 单测 | scan | T-TEST-001 | |
 | Rust 单测 | parse (53 tests) | T-TEST-001 | ✅ 已完成 |
-| Rust 单测 | rename (51 tests) | T-TEST-001 | ✅ 已完成 |
-| Rust 单测 | rollback (19 tests) | T-TEST-001 | ✅ 已完成 |
+| Rust 单测 | rename (55 tests) | T-TEST-001 | ✅ 已完成 |
+| Rust 单测 | rollback (16 tests) | T-TEST-001 | ✅ 已完成 |
 | Rust 单测 | audit (44 tests) | T-TEST-001 | ✅ 已完成 |
 | Rust 单测 | metadata | T-TEST-001 |
 | Rust 单测 | metadata/provider | T-TEST-001 |
@@ -326,10 +326,10 @@
 
 ---
 
-## Rename 模块测试映射（Safety Core Round 1）
+## Rename 模块测试映射（Safety Core Round 3）
 
 > 日期：2026-06-08
-> 验证：cargo test 111/111 PASS, clippy PASS
+> 验证：cargo test 202/202 PASS, clippy PASS
 
 ### F-004 重命名预览 → T-RUST-005 → 单元测试映射
 
@@ -350,7 +350,7 @@
 | F-004-08 | preview_generator | test_generate_low_confidence_marks_manual_review | 低置信度标记人工确认 |
 | F-004-10 | preview_generator | test_generate_conflict_items_marked | 冲突项标记 |
 
-### F-006 冲突检测 → T-RUST-005 → 单元测试映射
+### F-006 冲突检测 → T-RUST-005 → 集成测试映射
 
 | 需求 ID | 模块 | 测试用例 | 覆盖场景 |
 |---------|------|----------|----------|
@@ -362,6 +362,16 @@
 | F-006-07 | conflict_detector | test_has_blocking_conflicts | 阻塞冲突判断 |
 | F-006-07 | conflict_detector | test_detect_multi_conflict_aggregation | 多冲突聚合 |
 | F-006-09 | conflict_detector | test_detect_no_conflict | 无冲突 |
+| F-006-01 | path_exists_checker | test_path_exists_detected | 目标路径存在检测 |
+| F-006-01 | path_exists_checker | test_path_not_exists_ok | 路径不存在通过 |
+| F-006-03 | path_length_checker | test_path_too_long_detected | 路径过长检测 |
+| F-006-03 | path_length_checker | test_path_length_ok | 路径长度正常 |
+| F-006-04 | invalid_chars_checker | test_invalid_chars_detected | 非法字符检测 |
+| F-006-04 | invalid_chars_checker | test_valid_path_ok | 合法路径通过 |
+| F-006-02 | duplicate_target_checker | test_duplicate_target_detected | 重复目标检测 |
+| F-006-02 | duplicate_target_checker | test_no_duplicate | 无重复通过 |
+| F-006-02 | case_conflict_checker | test_case_conflict_detected | 大小写冲突检测 |
+| F-006-02 | case_conflict_checker | test_no_case_conflict | 无冲突通过 |
 
 ### F-007 安全执行 → T-RUST-005 → 单元测试映射
 
@@ -471,9 +481,9 @@
 ## Executor 模块测试映射（Safety Core Round 3）
 
 > 日期：2026-06-08
-> 验证：cargo test 188/188 PASS, clippy PASS
+> 验证：cargo test 202/202 PASS, clippy PASS
 
-### F-007 安全执行 → T-RUST-005 → execution/ 单元测试映射
+### F-007 安全执行 → T-RUST-005 → execution/ 集成测试映射
 
 | 需求 ID | 模块 | 测试用例 | 覆盖场景 |
 |---------|------|----------|----------|
@@ -481,48 +491,42 @@
 | F-007-01 | executor_core | test_confirmed_rename_success | Confirmed 模式成功改名 |
 | F-007-10 | executor_core | test_source_not_found_fails | 源文件不存在失败 |
 | F-007-10 | executor_core | test_target_already_exists_fails | 目标已存在失败 |
-| F-007-06 | executor_core | test_conflict_item_blocked | 冲突项阻断执行 |
-| F-007-05 | executor_core | test_low_confidence_blocks_confirmed_mode | 低置信度阻断 Confirmed 模式 |
-| F-008-02 | executor_core | test_audit_result_recorded | 审计结果记录 |
 | F-007-10 | executor_core | test_partial_failure_aggregation | 部分失败聚合 |
+| F-007-06 | conflict_filter | test_conflict_item_blocked | 冲突项阻断执行 |
+| F-007-05 | safety_gate | test_low_confidence_blocks_confirmed_mode | 低置信度阻断 Confirmed 模式 |
+| F-008-02 | result_recorder | test_audit_result_recorded | 审计结果记录 |
+| F-007-01 | skip_filter | test_skip_item_not_executed | 跳过项不执行 |
 
 ### 新增领域对象测试映射（Safety Core Round 3 - Executor）
 
 | 领域对象 | 测试用例 | 说明 |
 |----------|----------|------|
-| ExecutionMode | test_dry_run_does_not_modify_files | DryRun 默认模式 |
-| ExecutionMode | test_confirmed_rename_success | Confirmed 确认模式 |
 | ExecutionMode | test_default_is_dry_run | 默认值验证 |
 | ExecutionMode | test_mode_equality | 模式相等性 |
 | ExecutionMode | test_mode_clone | 模式克隆 |
-| ExecutionSummary | test_summarize_all_success | 全成功汇总 |
-| ExecutionSummary | test_summarize_mixed | 混合结果汇总 |
-| ExecutionSummary | test_summarize_empty | 空结果汇总 |
 
 ---
 
 ## Rollback 模块测试映射（Safety Core Round 3）
 
 > 日期：2026-06-08
-> 验证：cargo test 188/188 PASS, clippy PASS
+> 验证：cargo test 202/202 PASS, clippy PASS
 
-### F-009 任务回滚 → T-RUST-007 → 单元测试映射
+### F-009 任务回滚 → T-RUST-007 → 单元/集成测试映射
 
 | 需求 ID | 模块 | 测试用例 | 覆盖场景 |
 |---------|------|----------|----------|
-| F-009-01 | state_checker | test_rollbackable_state | 可回滚状态检测 |
-| F-009-03 | state_checker | test_afterpath_not_exist_blocks | afterPath 不存在阻断 |
-| F-009-04 | state_checker | test_beforepath_occupied_blocks | beforePath 被占用阻断 |
-| F-009-01 | state_checker | test_failed_rename_not_rollbackable | 失败任务不可回滚 |
-| F-009-06 | state_checker | test_partial_rollbackable | 部分可回滚 |
-| F-009-01 | state_checker | test_no_results_not_rollbackable | 无结果不可回滚 |
-| F-009-01 | state_checker | test_can_rollback_single | 单项回滚检查 |
-| F-009-01 | rollback_core | test_single_file_rollback_success | 单文件回滚成功 |
+| F-009-01 | state_checker | test_rollbackable_state | 可回滚状态检测（lib.rs） |
+| F-009-03 | state_checker | test_afterpath_not_exist_blocks | afterPath 不存在阻断（lib.rs） |
+| F-009-04 | state_checker | test_beforepath_occupied_blocks | beforePath 被占用阻断（lib.rs） |
+| F-009-01 | state_checker | test_failed_rename_not_rollbackable | 失败任务不可回滚（lib.rs） |
+| F-009-06 | state_checker | test_partial_rollbackable | 部分可回滚（lib.rs） |
+| F-009-01 | rollback_single | test_single_file_rollback_success | 单文件回滚成功 |
+| F-009-04 | rollback_single | test_beforepath_occupied_blocks | beforePath 被占用阻断 |
+| F-009-03 | rollback_single | test_afterpath_missing_blocks | afterPath 不存在阻断 |
+| F-009-07 | rollback_audit | test_rollback_writes_audit_log | 回滚写审计日志 |
 | F-009-01 | rollback_core | test_multi_file_rollback_success | 多文件回滚成功 |
 | F-009-05 | rollback_core | test_partial_failure_recorded | 部分失败记录 |
-| F-009-04 | rollback_core | test_beforepath_occupied_blocks | beforePath 被占用阻断 |
-| F-009-03 | rollback_core | test_afterpath_missing_blocks | afterPath 不存在阻断 |
-| F-009-07 | rollback_core | test_rollback_writes_audit_log | 回滚写审计日志 |
 | F-009-09 | rollback_core | test_does_not_overwrite_existing_file | 不覆盖已存在文件 |
 | F-009-01 | rollback_core | test_idempotent_already_rolled_back | 幂等性已回滚阻断 |
 
@@ -530,14 +534,13 @@
 
 | 领域对象 | 测试用例 | 说明 |
 |----------|----------|------|
-| RollbackReport | test_rollbackable_state | can_rollback + rollbackable_results |
+| RollbackReport | test_rollbackable_state | can_rollback + rollbackable_results（lib.rs） |
 | RollbackStatus | test_single_file_rollback_success | Success 状态 |
 | RollbackStatus | test_partial_failure_recorded | Failed 状态 |
 | RollbackStatus | test_beforepath_occupied_blocks | Blocked 状态 |
 | RollbackStatus | test_rollback_status_equality | 枚举相等性 |
-| RollbackSummary | test_summarize_all_success | 全成功汇总 |
-| RollbackSummary | test_summarize_mixed | 混合结果汇总 |
-| RollbackSummary | test_summarize_empty | 空结果汇总 |
+| RollbackEntry | test_rollback_entry_creation | 结构体创建 |
+| RollbackSummary | test_summarize_rollback | 汇总计算 |
 
 ---
 

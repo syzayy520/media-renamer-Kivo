@@ -323,9 +323,24 @@ pub struct RenamePreviewItem {
 pub fn render(info: &ParsedMediaInfo, template: &str) -> String
 pub fn get_default_template(media_type: &MediaType) -> &str
 
-// rename/conflict_detector.rs - 冲突检测
+// rename/conflict_detector.rs - 冲突检测编排器
 pub fn detect_conflicts(preview_items: &[RenamePreviewItem]) -> Vec<RenameConflict>
 pub fn has_blocking_conflicts(conflicts: &[RenameConflict]) -> bool
+
+// rename/path_exists_checker.rs - 目标路径存在检查
+pub fn check_path_exists(target_path: &str) -> Option<RenameConflict>
+
+// rename/path_length_checker.rs - 路径长度检查
+pub fn check_path_length(path: &str) -> Option<RenameConflict>
+
+// rename/invalid_chars_checker.rs - 非法字符检查
+pub fn check_invalid_chars(path: &str) -> Option<RenameConflict>
+
+// rename/duplicate_target_checker.rs - 重复目标检查
+pub fn check_duplicate_targets(items: &[RenamePreviewItem]) -> Vec<RenameConflict>
+
+// rename/case_conflict_checker.rs - 大小写冲突检查
+pub fn check_case_conflicts(items: &[RenamePreviewItem]) -> Vec<RenameConflict>
 
 // rename/safety_checker.rs - 安全检查
 pub struct SafetyReport {
@@ -364,7 +379,20 @@ pub fn execute_single_rename(
 pub struct ExecutionSummary { pub total, pub success, pub failed, pub skipped }
 pub fn summarize(results: &[RenameResult]) -> ExecutionSummary
 
-// rename/execution/executor_core.rs
+// rename/execution/safety_gate.rs - 安全门检查
+pub fn check_safety_gate(preview_items: &[RenamePreviewItem], mode: ExecutionMode) -> AppResult<()>
+
+// rename/execution/conflict_filter.rs - 冲突过滤
+pub fn filter_non_blocking<'a>(items: &[&'a RenamePreviewItem]) -> Vec<&'a RenamePreviewItem>
+pub fn get_blocking_items<'a>(items: &[&'a RenamePreviewItem]) -> Vec<&'a RenamePreviewItem>
+
+// rename/execution/skip_filter.rs - 跳过过滤
+pub fn filter_actionable(items: &[RenamePreviewItem]) -> Vec<&RenamePreviewItem>
+
+// rename/execution/result_recorder.rs - 结果记录
+pub fn record_blocking_conflicts(task_id: &str, blocking_items: &[&RenamePreviewItem]) -> Vec<RenameResult>
+
+// rename/execution/executor_core.rs - 执行编排器
 pub fn execute(
     conn: &Connection,
     task_id: &str,
@@ -425,7 +453,20 @@ pub struct RollbackSummary {
 
 pub fn summarize_rollback(entries: &[RollbackEntry]) -> RollbackSummary
 
-// rollback/executor/rollback_core.rs
+// rollback/executor/rollback_single.rs - 单文件回滚
+pub fn rollback_single(logger: &AuditLogger, result: &RenameResult) -> RollbackEntry
+
+// rollback/executor/rollback_checker.rs - 回滚可行性检查
+pub fn check_task_rollbackable(conn: &Connection, task_id: &str) -> AppResult<()>
+
+// rollback/executor/rollback_audit.rs - 回滚审计
+pub fn update_task_status(conn: &Connection, task_id: &str, entries: &[RollbackEntry]) -> AppResult<()>
+pub fn log_rollback_audit(conn: &Connection, task_id: &str, entries: &[RollbackEntry]) -> AppResult<()>
+
+// rollback/executor/rollback_summary.rs - 回滚结果汇总
+pub fn summarize_rollback(entries: &[RollbackEntry]) -> RollbackSummary
+
+// rollback/executor/rollback_core.rs - 回滚编排器
 pub fn rollback_task(
     conn: &Connection,
     task_id: &str,
@@ -435,6 +476,7 @@ pub fn rollback_task(
 // rollback/executor/mod.rs - re-export hub
 pub use rollback_core::rollback_task;
 pub use rollback_entry::{summarize_rollback, RollbackEntry, RollbackStatus, RollbackSummary};
+pub use rollback_single::rollback_single;
 ```
 
 ### 2.5 audit 模块

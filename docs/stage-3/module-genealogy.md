@@ -60,7 +60,12 @@
 | 子族 | 文件 | 职责 | 依赖 | 测试数 |
 |------|------|------|------|:------:|
 | 模板 | template.rs | 模板渲染 + RenamePreviewItem/RenameConflict/MetadataSource 领域对象 | parse/confidence, shared/result_types | 12 |
-| 冲突检测 | conflict_detector.rs | 检测目标存在/重复目标/大小写冲突/路径过长/非法字符 | shared/path_utils | 8 |
+| 冲突编排 | conflict_detector.rs | 冲突检测编排器，委托 5 个 checker | 各 checker 子模块 | 8 |
+| 路径存在检查 | path_exists_checker.rs | 检查目标路径是否已存在 | shared/path_utils | 1 |
+| 路径长度检查 | path_length_checker.rs | 检查路径是否过长 | shared/path_utils | 1 |
+| 非法字符检查 | invalid_chars_checker.rs | 检查路径非法字符 | shared/path_utils | 1 |
+| 重复目标检查 | duplicate_target_checker.rs | 检查多源指向同一目标 | 无 | 1 |
+| 大小写冲突检查 | case_conflict_checker.rs | 检查 Windows 大小写冲突 | 无 | 1 |
 | 安全检查 | safety_checker.rs | 置信度/人工确认/冲突/非法字符/路径长度检查 | conflict_detector | 9 |
 | 预览 | preview_generator.rs | 从 ParsedMediaInfo 生成预览项 + 冲突标记 | template + conflict_detector + confidence | 8 |
 | 执行 | execution/ | DryRun/Confirmed 执行模式 + 安全检查 + 审计记录 | safety_checker, conflict_detector, audit/db | 14 |
@@ -69,10 +74,11 @@
 - template.rs 承载 RenamePreviewItem、RenameConflict、MetadataSource 领域对象定义
 - render() 支持 20+ 变量替换，自动清理空括号和多余空格
 - get_default_template() 按媒体类型返回默认模板
-- conflict_detector.rs 检测 6 种冲突：TargetExists/DuplicateTarget/CaseConflict/PathTooLong/InvalidChars/SourceNotFound
+- conflict_detector.rs 为纯编排器，委托 5 个 checker 子文件各负一责
+- 5 个 checker：path_exists / path_length / invalid_chars / duplicate_target / case_conflict
 - safety_checker.rs 输出 SafetyReport (can_execute, dry_run, checks, blocking_reasons)
 - preview_generator.rs 串联 template → confidence → conflict_detector 完整预览链
-- 本轮为 Safety Core Round 1，不执行真实文件改名
+- 本轮为 Safety Core Round 3，不执行真实文件改名
 
 #### 执行功能族 (rename/execution/)
 
@@ -81,15 +87,23 @@
 | 模式 | execution_mode.rs | ExecutionMode 枚举 (DryRun/Confirmed) | 无 | 3 |
 | 单文件执行 | single_rename.rs | 单文件重命名执行 | shared/result_types | 0 |
 | 执行摘要 | execution_summary.rs | ExecutionSummary 结构体 + summarize() | 无 | 3 |
-| 执行核心 | executor_core.rs | execute() 主函数 + 安全检查 + 审计记录 | execution_mode, single_rename, safety_checker, audit/db | 8 |
+| 安全门 | safety_gate.rs | 执行前安全门检查 | safety_checker | 1 |
+| 冲突过滤 | conflict_filter.rs | 过滤阻塞冲突项 | 无 | 3 |
+| 跳过过滤 | skip_filter.rs | 过滤应跳过项 | 无 | 2 |
+| 结果记录 | result_recorder.rs | 记录阻塞冲突失败结果 | audit/db | 3 |
+| 执行核心 | executor_core.rs | execute() 主编排器，委托各子模块 | 所有子模块 | 8 |
 | 薄入口 | mod.rs | re-export hub（无业务逻辑） | 子模块 | 0 |
 
 **架构说明**：
-- execution/ 采用整树家谱模式，4 个文件各负一责
+- execution/ 采用整树家谱模式，8 个文件各负一责
 - execution_mode.rs 定义 ExecutionMode 枚举（DryRun 默认 / Confirmed 需安全检查）
 - single_rename.rs 只负责单文件改名操作（fs::rename）
 - execution_summary.rs 负责汇总执行结果
-- executor_core.rs 串联 mode → safety_check → single_rename → audit 完整执行链
+- safety_gate.rs 只负责执行前安全门检查
+- conflict_filter.rs 只负责过滤阻塞/非阻塞冲突项
+- skip_filter.rs 只负责过滤 should_skip 项
+- result_recorder.rs 只负责记录阻塞冲突失败结果
+- executor_core.rs 为纯编排器：check_safety_gate → filter_actionable → filter_conflicts → execute_loop
 - mod.rs 为 re-export hub，下游模块无需修改 import
 
 ### 回滚功能族 (rollback/)
@@ -104,13 +118,21 @@
 | 子族 | 文件 | 职责 | 依赖 | 测试数 |
 |------|------|------|------|:------:|
 | 回滚入口 | rollback_entry.rs | RollbackEntry/RollbackStatus/RollbackSummary + summarize_rollback() | 无 | 4 |
-| 回滚核心 | rollback_core.rs | rollback_task() 主函数 + 逐文件回滚 + 审计记录 | rollback_entry, audit/db | 8 |
+| 单文件回滚 | rollback_single.rs | 单文件回滚操作（fs::rename 反向） | rollback_entry | 2 |
+| 回滚检查 | rollback_checker.rs | 检查任务是否可回滚 | audit/db | 1 |
+| 回滚审计 | rollback_audit.rs | 更新任务状态 + 写审计日志 | audit/db, audit/logger | 1 |
+| 回滚摘要 | rollback_summary.rs | 汇总回滚结果 | rollback_entry | 0 |
+| 回滚核心 | rollback_core.rs | rollback_task() 主编排器，委托各子模块 | 所有子模块 | 8 |
 | 薄入口 | mod.rs | re-export hub（无业务逻辑） | 子模块 | 0 |
 
 **架构说明**：
-- executor/ 采用整树家谱模式，2 个文件各负一责
+- executor/ 采用整树家谱模式，6 个文件各负一责
 - rollback_entry.rs 定义 RollbackEntry、RollbackStatus (Success/Failed/Blocked)、RollbackSummary
-- rollback_core.rs 串联 state_check → rollback_single → audit 完整回滚链
+- rollback_single.rs 只负责单文件回滚操作
+- rollback_checker.rs 只负责检查任务是否可回滚（状态 + 路径）
+- rollback_audit.rs 只负责更新任务状态 + 写审计日志
+- rollback_summary.rs 只负责汇总回滚结果
+- rollback_core.rs 为纯编排器：check_task_rollbackable → rollback_single → update_status → log_audit
 - mod.rs 为 re-export hub，下游模块无需修改 import
 
 ### 审计功能族 (audit/)
@@ -231,11 +253,17 @@ shared/ (path_utils, result_types)
 |------|------|
 | src-tauri/src/scan/ | src-tauri/tests/scan_tests.rs |
 | src-tauri/src/parse/ | src-tauri/tests/parse_tests.rs |
-| src-tauri/src/rename/ | src-tauri/tests/rename_tests.rs |
-| src-tauri/src/rollback/ | src-tauri/tests/rollback_tests.rs |
+| src-tauri/src/rename/conflict_detector.rs + checkers | src-tauri/tests/rename/conflict_detection/ (6 个测试文件) |
+| src-tauri/src/rename/execution/ | src-tauri/tests/rename/execution/ (6 个测试文件) |
+| src-tauri/src/rollback/executor/ | src-tauri/tests/rollback/executor/ (4 个测试文件) |
 | src/components/ | tests/components/ |
 | src/pages/ | tests/pages/ |
 | src/flows/ | tests/flows/ |
+
+**测试入口文件**：
+- `tests/rename_execution.rs` — include! 6 个 execution 测试文件（每个 mod {} 隔离）
+- `tests/rename_conflict_detection.rs` — include! 6 个 conflict_detection 测试文件
+- `tests/rollback_executor.rs` — include! 4 个 rollback executor 测试文件
 
 ---
 
