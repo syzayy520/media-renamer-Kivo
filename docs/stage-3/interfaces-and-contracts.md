@@ -349,37 +349,113 @@ pub fn generate(parsed_items: &[ParsedMediaInfo], template_str: &str) -> Vec<Ren
 pub fn generate_with_default_template(parsed_items: &[ParsedMediaInfo]) -> Vec<RenamePreviewItem>
 pub fn sanitize_proposed_name(name: &str) -> String
 
-// rename/executor.rs - 待实现
-pub fn execute_single(item: &RenamePreviewItem) -> RenameResult
-pub fn execute_batch(items: &[RenamePreviewItem], app_handle: &AppHandle) -> Vec<RenameResult>
+// rename/executor.rs - Controlled Rename Execution
+pub enum ExecutionMode { DryRun, Confirmed }
+
+pub fn execute(
+    conn: &Connection,
+    task_id: &str,
+    preview_items: &[RenamePreviewItem],
+    mode: ExecutionMode,
+) -> AppResult<Vec<RenameResult>>
+
+pub fn execute_single_rename(
+    source_path: &str,
+    target_path: &str,
+) -> AppResult<()>
+
+pub fn summarize(results: &[RenameResult]) -> ExecutionSummary
 ```
 
 ### 2.4 rollback 模块
 
 ```rust
-// rollback/rollback_executor.rs
-pub fn rollback_task(task_id: &str) -> Result<RollbackRecord>
+// rollback/state_checker.rs - 回滚可行性检查
+pub struct RollbackReport {
+    pub can_rollback: bool,
+    pub rollbackable_results: Vec<RenameResult>,
+    pub blocked_results: Vec<BlockedRollbackEntry>,
+    pub blocking_reasons: Vec<String>,
+}
 
-// rollback/state_checker.rs
-pub fn check_rollback_state(task_id: &str) -> TaskRollbackState
+pub struct BlockedRollbackEntry {
+    pub result_id: String,
+    pub reason: String,
+}
+
+pub fn check_rollback(results: &[RenameResult]) -> RollbackReport
+pub fn can_rollback_single(result: &RenameResult) -> Result<(), String>
+pub fn is_task_rollbackable(task_status: &TaskStatus) -> bool
+
+// rollback/rollback_executor.rs - 回滚执行
+pub enum RollbackStatus {
+    Success,
+    Failed,
+    Blocked,
+}
+
+pub struct RollbackEntry {
+    pub result_id: String,
+    pub before_path: String,
+    pub after_path: String,
+    pub status: RollbackStatus,
+    pub error: Option<String>,
+}
+
+pub fn rollback_task(
+    conn: &Connection,
+    task_id: &str,
+    results: &[RenameResult],
+) -> AppResult<Vec<RollbackEntry>>
+
+pub fn rollback_single(
+    result: &RenameResult,
+) -> AppResult<RollbackEntry>
 ```
 
 ### 2.5 audit 模块
 
 ```rust
-// audit/db.rs - 数据库操作
+// audit/db/ - 数据库功能族（6 个子模块）
+
+// audit/db/connection.rs - 连接
+pub fn create_memory_connection() -> Result<Connection, rusqlite::Error>
+pub fn open_connection(path: &str) -> Result<Connection, rusqlite::Error>
+
+// audit/db/schema.rs - 表初始化
 pub fn init_tables(conn: &Connection) -> Result<(), rusqlite::Error>
+pub fn tables_exist(conn: &Connection) -> Result<bool, rusqlite::Error>
+
+// audit/db/task_status.rs - 任务状态
+pub enum TaskStatus { Previewing, Pending, Executing, Completed, Failed, RolledBack }
+pub fn parse_task_status(s: &str) -> TaskStatus
+
+// audit/db/task_repository.rs - 任务仓库
+pub struct RenameTask { pub id, pub status, pub template, pub total_files, pub created_at, pub updated_at, pub error_message }
+pub fn create_task(template: &str, total_files: u32) -> RenameTask
 pub fn insert_task(conn: &Connection, task: &RenameTask) -> Result<(), rusqlite::Error>
-pub fn insert_result(conn: &Connection, result: &RenameResult) -> Result<(), rusqlite::Error>
-pub fn insert_log(conn: &Connection, entry: &AuditLogEntry) -> Result<(), rusqlite::Error>
 pub fn get_task(conn: &Connection, task_id: &str) -> Result<Option<RenameTask>, rusqlite::Error>
+pub fn update_task_status(conn: &Connection, task_id: &str, status: TaskStatus, error_message: Option<&str>) -> Result<(), rusqlite::Error>
+
+// audit/db/result_repository.rs - 结果仓库
+pub struct RenameResult { pub id, pub task_id, pub source_path, pub target_path, pub status, pub created_at, pub error_message }
+pub fn create_result(task_id: &str, source_path: &str, target_path: &str, status: TaskStatus) -> RenameResult
+pub fn insert_result(conn: &Connection, result: &RenameResult) -> Result<(), rusqlite::Error>
 pub fn get_results_by_task(conn: &Connection, task_id: &str) -> Result<Vec<RenameResult>, rusqlite::Error>
+
+// audit/db/log_repository.rs - 日志仓库
+pub struct AuditLogEntry { pub id, pub task_id, pub event_type, pub message, pub created_at }
+pub fn create_log_entry(task_id: Option<&str>, event_type: &str, message: &str) -> AuditLogEntry
+pub fn insert_log(conn: &Connection, entry: &AuditLogEntry) -> Result<(), rusqlite::Error>
 pub fn get_logs_by_task(conn: &Connection, task_id: &str) -> Result<Vec<AuditLogEntry>, rusqlite::Error>
 pub fn get_all_logs(conn: &Connection) -> Result<Vec<AuditLogEntry>, rusqlite::Error>
-pub fn update_task_status(conn: &Connection, task_id: &str, status: TaskStatus, error_message: Option<&str>) -> Result<(), rusqlite::Error>
-pub fn create_task(conn: &Connection, template: &str, total_files: u32) -> RenameTask
-pub fn create_result(task_id: &str, source_path: &str, target_path: &str, status: TaskStatus) -> RenameResult
-pub fn create_log_entry(task_id: Option<&str>, event_type: &str, message: &str) -> AuditLogEntry
+
+// audit/db/mod.rs - re-export hub（向后兼容）
+pub use task_status::TaskStatus;
+pub use task_repository::{create_task, get_task, insert_task, update_task_status, RenameTask};
+pub use result_repository::{create_result, get_results_by_task, insert_result, RenameResult};
+pub use log_repository::{create_log_entry, get_all_logs, get_logs_by_task, insert_log, AuditLogEntry};
+pub use schema::init_tables;
 
 // audit/redaction.rs - 敏感字段脱敏
 pub fn redact_text(input: &str) -> String
@@ -405,36 +481,11 @@ impl JsonlExporter<'a> {
 }
 pub fn entry_to_json(entry: &AuditLogEntry) -> Result<String, serde_json::Error>
 
-// audit/db.rs - 数据结构
-pub enum TaskStatus { Previewing, Pending, Executing, Completed, Failed, RolledBack }
-
-pub struct RenameTask {
-    pub id: String,
-    pub status: TaskStatus,
-    pub template: String,
-    pub total_files: u32,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub error_message: Option<String>,
-}
-
-pub struct RenameResult {
-    pub id: String,
-    pub task_id: String,
-    pub source_path: String,
-    pub target_path: String,
-    pub status: TaskStatus,
-    pub created_at: DateTime<Utc>,
-    pub error_message: Option<String>,
-}
-
-pub struct AuditLogEntry {
-    pub id: String,
-    pub task_id: Option<String>,
-    pub event_type: String,
-    pub message: String,
-    pub created_at: DateTime<Utc>,
-}
+// 数据结构定义在各自仓库文件中
+// audit/db/task_status.rs: TaskStatus enum
+// audit/db/task_repository.rs: RenameTask struct
+// audit/db/result_repository.rs: RenameResult struct
+// audit/db/log_repository.rs: AuditLogEntry struct
 ```
 
 ### 2.6 config 模块

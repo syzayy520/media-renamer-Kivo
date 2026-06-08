@@ -258,9 +258,9 @@
 | Rust 单测 | config/user_settings | T-TEST-001 | |
 | Rust 单测 | scan | T-TEST-001 | |
 | Rust 单测 | parse (53 tests) | T-TEST-001 | ✅ 已完成 |
-| Rust 单测 | rename (37 tests) | T-TEST-001 | ✅ 已完成 |
-| Rust 单测 | rollback | T-TEST-001 |
-| Rust 单测 | audit | T-TEST-001 |
+| Rust 单测 | rename (45 tests) | T-TEST-001 | ✅ 已完成 |
+| Rust 单测 | rollback (15 tests) | T-TEST-001 | ✅ 已完成 |
+| Rust 单测 | audit (44 tests) | T-TEST-001 | ✅ 已完成 |
 | Rust 单测 | metadata | T-TEST-001 |
 | Rust 单测 | metadata/provider | T-TEST-001 |
 | Rust 单测 | metadata/tmdb | T-TEST-001 |
@@ -399,22 +399,38 @@
 
 ---
 
-## Audit 模块测试映射（Safety Core Round 2）
+## Audit 模块测试映射（整树家谱重构）
 
 > 日期：2026-06-08
-> 验证：cargo test 140/140 PASS, clippy PASS
+> 验证：cargo test 178/178 PASS, clippy PASS
 
 ### F-008 审计日志 → T-RUST-006 → 单元测试映射
 
 | 需求 ID | 模块 | 测试用例 | 覆盖场景 |
 |---------|------|----------|----------|
-| F-008-01 | db | test_insert_and_get_task | RenameTask 创建与查询 |
-| F-008-02 | db | test_insert_and_get_result | RenameResult 创建与查询 |
-| F-008-03 | db | test_insert_and_get_log | AuditLogEntry 创建与查询 |
-| F-008-05 | db | test_update_task_status | 任务状态更新 |
-| F-008-05 | db | test_failed_status_record | 失败状态记录 |
-| F-008-05 | db | test_get_logs_by_task | 按任务查询日志 |
-| F-008-05 | db | test_task_status_display | TaskStatus 显示格式 |
+| F-008-07 | db/connection | test_memory_connection | 内存连接创建 |
+| F-008-07 | db/connection | test_connection_open | 文件连接创建 |
+| F-008-07 | db/schema | test_init_tables | 三表创建 |
+| F-008-07 | db/schema | test_tables_exist | 表存在检查 |
+| F-008-07 | db/schema | test_repeated_init_is_idempotent | 幂等初始化 |
+| F-008-05 | db/task_status | test_status_display | TaskStatus 显示格式 |
+| F-008-05 | db/task_status | test_status_parse | TaskStatus 解析 |
+| F-008-05 | db/task_status | test_invalid_status_handling | 无效状态处理 |
+| F-008-05 | db/task_status | test_parse_task_status_valid | parse_task_status 兼容 |
+| F-008-01 | db/task_repository | test_insert_task | 任务插入 |
+| F-008-01 | db/task_repository | test_get_task | 任务查询 |
+| F-008-05 | db/task_repository | test_update_task_status | 任务状态更新 |
+| F-008-05 | db/task_repository | test_failed_status_record | 失败状态记录 |
+| F-008-01 | db/task_repository | test_get_nonexistent_task | 不存在任务查询 |
+| F-008-02 | db/result_repository | test_insert_result | 结果插入 |
+| F-008-02 | db/result_repository | test_get_results_by_task | 按任务查询结果 |
+| F-008-02 | db/result_repository | test_get_results_empty | 空结果查询 |
+| F-008-02 | db/result_repository | test_multiple_results | 多结果查询 |
+| F-008-03 | db/log_repository | test_insert_log | 日志插入 |
+| F-008-05 | db/log_repository | test_get_logs_by_task | 按任务查询日志 |
+| F-008-05 | db/log_repository | test_get_all_logs | 全量日志查询 |
+| F-008-05 | db/log_repository | test_empty_logs | 空日志查询 |
+| F-008-05 | db/log_repository | test_get_logs_by_task_empty | 无结果日志查询 |
 | F-008-06 | exporter | test_export_jsonl_format | JSONL 格式验证 |
 | F-008-06 | exporter | test_export_multiple_logs | 多条日志导出 |
 | F-008-06 | exporter | test_export_redacts_sensitive_data | 导出数据脱敏 |
@@ -444,7 +460,74 @@
 
 | 需求 ID | 模块 | 测试用例 | 覆盖场景 |
 |---------|------|----------|----------|
-| F-008-07 | db | test_init_tables | 三表创建 |
+| F-008-07 | db/connection | test_memory_connection | 内存连接 |
+| F-008-07 | db/connection | test_connection_open | 文件连接 |
+| F-008-07 | db/schema | test_init_tables | 三表创建 |
+| F-008-07 | db/schema | test_tables_exist | 表存在检查 |
+| F-008-07 | db/schema | test_repeated_init_is_idempotent | 幂等初始化 |
+
+---
+
+## Executor 模块测试映射（Safety Core Round 3）
+
+> 日期：2026-06-08
+> 验证：cargo test 163/163 PASS, clippy PASS
+
+### F-007 安全执行 → T-RUST-005 → executor.rs 单元测试映射
+
+| 需求 ID | 模块 | 测试用例 | 覆盖场景 |
+|---------|------|----------|----------|
+| F-007-01 | executor | test_dry_run_does_not_modify_files | DryRun 模式不修改文件 |
+| F-007-01 | executor | test_confirmed_rename_success | Confirmed 模式成功改名 |
+| F-007-10 | executor | test_source_not_found_fails | 源文件不存在失败 |
+| F-007-10 | executor | test_target_already_exists_fails | 目标已存在失败 |
+| F-007-06 | executor | test_conflict_item_blocked | 冲突项阻断执行 |
+| F-007-05 | executor | test_low_confidence_blocks_confirmed_mode | 低置信度阻断 Confirmed 模式 |
+| F-008-02 | executor | test_audit_result_recorded | 审计结果记录 |
+| F-007-10 | executor | test_partial_failure_aggregation | 部分失败聚合 |
+
+### 新增领域对象测试映射（Safety Core Round 3 - Executor）
+
+| 领域对象 | 测试用例 | 说明 |
+|----------|----------|------|
+| ExecutionMode | test_dry_run_does_not_modify_files | DryRun 默认模式 |
+| ExecutionMode | test_confirmed_rename_success | Confirmed 确认模式 |
+
+---
+
+## Rollback 模块测试映射（Safety Core Round 3）
+
+> 日期：2026-06-08
+> 验证：cargo test 163/163 PASS, clippy PASS
+
+### F-009 任务回滚 → T-RUST-007 → 单元测试映射
+
+| 需求 ID | 模块 | 测试用例 | 覆盖场景 |
+|---------|------|----------|----------|
+| F-009-01 | state_checker | test_rollbackable_state | 可回滚状态检测 |
+| F-009-03 | state_checker | test_afterpath_not_exist_blocks | afterPath 不存在阻断 |
+| F-009-04 | state_checker | test_beforepath_occupied_blocks | beforePath 被占用阻断 |
+| F-009-01 | state_checker | test_failed_rename_not_rollbackable | 失败任务不可回滚 |
+| F-009-06 | state_checker | test_partial_rollbackable | 部分可回滚 |
+| F-009-01 | state_checker | test_no_results_not_rollbackable | 无结果不可回滚 |
+| F-009-01 | state_checker | test_can_rollback_single | 单项回滚检查 |
+| F-009-01 | rollback_executor | test_single_file_rollback_success | 单文件回滚成功 |
+| F-009-01 | rollback_executor | test_multi_file_rollback_success | 多文件回滚成功 |
+| F-009-05 | rollback_executor | test_partial_failure_recorded | 部分失败记录 |
+| F-009-04 | rollback_executor | test_beforepath_occupied_blocks | beforePath 被占用阻断 |
+| F-009-03 | rollback_executor | test_afterpath_missing_blocks | afterPath 不存在阻断 |
+| F-009-07 | rollback_executor | test_rollback_writes_audit_log | 回滚写审计日志 |
+| F-009-09 | rollback_executor | test_does_not_overwrite_existing_file | 不覆盖已存在文件 |
+| F-009-01 | rollback_executor | test_idempotent_already_rolled_back | 幂等性已回滚阻断 |
+
+### 新增领域对象测试映射（Safety Core Round 3 - Rollback）
+
+| 领域对象 | 测试用例 | 说明 |
+|----------|----------|------|
+| RollbackReport | test_rollbackable_state | can_rollback + rollbackable_results |
+| RollbackStatus | test_single_file_rollback_success | Success 状态 |
+| RollbackStatus | test_partial_failure_recorded | Failed 状态 |
+| RollbackStatus | test_beforepath_occupied_blocks | Blocked 状态 |
 
 ---
 

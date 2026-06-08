@@ -318,18 +318,18 @@ T-PKG-* 在所有功能完成后执行
 | 优先级 | P0 |
 | 预估 | 12h |
 | 依赖 | T-RUST-001, T-RUST-002, T-RUST-004 |
-| 状态 | **Safety Core Round 1 完成** ✅ (executor 待实现) |
+| 状态 | **Safety Core Round 3 完成** ✅ |
 
 **子任务**：
 1. ✅ template.rs: 模板渲染 + RenamePreviewItem/RenameConflict/MetadataSource 领域对象（12 个测试通过）
 2. ✅ conflict_detector.rs: 6 种冲突检测 + has_blocking_conflicts（8 个测试通过）
 3. ✅ safety_checker.rs: 置信度/人工确认/冲突/非法字符/路径长度检查（9 个测试通过）
 4. ✅ preview_generator.rs: 预览生成 + 默认模板 + sanitize（8 个测试通过）
-5. 待后续阶段：executor.rs: 批量执行 + 进度推送
-6. ✅ 单元测试：37 个新增测试全部通过
+5. ✅ executor.rs: DryRun/Confirmed 执行模式 + 安全检查 + 审计记录（8 个测试通过）
+6. ✅ 单元测试：45 个新增测试全部通过
 
-**验证结果**（2026-06-08）：
-- `cargo test`: 111/111 PASS (74 baseline + 37 rename)
+**验证结果**（2026-06-08 Safety Core Round 3）：
+- `cargo test`: 163/163 PASS (140 baseline + 23 rename executor + rollback)
 - `cargo clippy --all-targets -- -D warnings`: 通过
 - `cargo fmt --check`: 通过
 
@@ -338,7 +338,8 @@ T-PKG-* 在所有功能完成后执行
 - 冲突检测：TargetExists/DuplicateTarget/CaseConflict/PathTooLong/InvalidChars/SourceNotFound
 - SafetyReport 包含 can_execute, dry_run, checks, blocking_reasons
 - preview_generator 串联 template → confidence → conflict_detector 完整预览链
-- 本轮为 Safety Core Round 1，不执行真实文件改名
+- executor.rs 实现 DryRun/Confirmed 双模式，Confirmed 模式必须通过安全检查
+- 执行结果自动写入 audit rename_result，失败写入失败原因
 
 ---
 
@@ -350,26 +351,34 @@ T-PKG-* 在所有功能完成后执行
 | 优先级 | P0 |
 | 预估 | 4h |
 | 依赖 | T-RUST-001 |
-| 状态 | **Safety Core Round 2 完成** ✅ |
+| 状态 | **整树家谱重构完成** ✅ |
 
 **子任务**：
 1. ✅ redaction.rs: 敏感字段脱敏（TMDb Key/API Key/Token/Secret/URL/JSON）（10 个测试通过）
-2. ✅ db.rs: SQLite 表初始化 + rename_tasks/rename_results/audit_log CRUD（8 个测试通过）
-3. ✅ logger.rs: 统一写入审计事件，调用 redaction（6 个测试通过）
-4. ✅ exporter.rs: JSONL 导出，导出前 redaction（5 个测试通过）
-5. ✅ mod.rs: 薄入口，只导出 4 个子模块
+2. ✅ db/connection.rs: SQLite 连接创建（2 个测试通过）
+3. ✅ db/schema.rs: 表初始化（3 个测试通过）
+4. ✅ db/task_status.rs: TaskStatus 枚举 + Display + FromStr（4 个测试通过）
+5. ✅ db/task_repository.rs: rename_tasks 表 CRUD（5 个测试通过）
+6. ✅ db/result_repository.rs: rename_results 表 CRUD（4 个测试通过）
+7. ✅ db/log_repository.rs: audit_log 表 CRUD（5 个测试通过）
+8. ✅ db/mod.rs: re-export hub（向后兼容，无业务逻辑）
+9. ✅ logger.rs: 统一写入审计事件，调用 redaction（6 个测试通过）
+10. ✅ exporter.rs: JSONL 导出，导出前 redaction（5 个测试通过）
 
-**验证结果**（2026-06-08）：
-- `cargo test`: 140/140 PASS (111 baseline + 29 audit)
+**验证结果**（2026-06-08 整树家谱重构）：
+- `cargo test`: 178/178 PASS (原 163 + 新增 15 个 db 子模块测试)
 - `cargo clippy --all-targets -- -D warnings`: 通过
 - `cargo fmt --check`: 通过
 
 **关键实现**：
-- db.rs 定义 RenameTask / RenameResult / AuditLogEntry 数据结构 + TaskStatus 枚举
+- audit/db/ 拆分为 6 个子模块，每个文件 ≤130 行，各负一责
+- task_status.rs 定义 TaskStatus 枚举（Previewing/Pending/Executing/Completed/Failed/RolledBack）
+- connection.rs 只负责连接创建，schema.rs 只负责建表
+- 三个仓库各自管理一张表的 CRUD，互不依赖
+- mod.rs 为 re-export hub，下游模块（logger/exporter/executor/rollback）无需修改 import
 - redaction.rs 使用 6 个正则表达式覆盖 TMDb Key、通用 API Key、Token、Secret、URL Query、JSON 字段
 - logger.rs 提供 log_event / log_failure / log_preview / log_task_created / log_execution_plan
 - exporter.rs 支持 export_all / export_by_task，每行一个脱敏后的 JSON 对象
-- 本轮为 Safety Core Round 2，不执行真实文件改名
 
 ---
 
@@ -381,13 +390,25 @@ T-PKG-* 在所有功能完成后执行
 | 优先级 | P0 |
 | 预估 | 6h |
 | 依赖 | T-RUST-001, T-RUST-006 |
+| 状态 | **Safety Core Round 3 完成** ✅ |
 
 **子任务**：
-1. state_checker.rs: check_rollback_state
-2. rollback_executor.rs: rollback_task, 逐文件回滚, 冲突暂停
-3. 单元测试
+1. ✅ state_checker.rs: 回滚可行性检测（afterPath 存在 + beforePath 不被占用）（7 个测试通过）
+2. ✅ rollback_executor.rs: 逐文件回滚 + 冲突暂停 + 审计记录（8 个测试通过）
+3. ✅ 单元测试：15 个新增测试全部通过
 
 **验收**：回滚前置检查正确，回滚执行正确，冲突时暂停报告
+
+**验证结果**（2026-06-08 Safety Core Round 3）：
+- `cargo test`: 163/163 PASS (140 baseline + 23 rollback)
+- `cargo clippy --all-targets -- -D warnings`: 通过
+- `cargo fmt --check`: 通过
+
+**关键实现**：
+- state_checker.rs 检查 afterPath 存在性 + beforePath 不被占用 + 任务状态允许
+- rollback_executor.rs 逐文件回滚，失败记录 RollbackStatus::Failed，成功写审计日志
+- RollbackReport 包含 can_rollback, rollbackable_results, blocked_results, blocking_reasons
+- 幂等性：RolledBack 任务不允许再次回滚
 
 ---
 
@@ -616,16 +637,33 @@ T-PKG-* 在所有功能完成后执行
 | preview_generator.rs | 8 | ✅ 全通过 |
 | **rename 合计** | **37** | **✅** |
 
-**audit 模块测试进度**（2026-06-08 Safety Core Round 2）：
+**audit 模块测试进度**（2026-06-08 整树家谱重构）：
 | 文件 | 测试数 | 状态 |
 |------|--------|------|
 | redaction.rs | 10 | ✅ 全通过 |
-| db.rs | 8 | ✅ 全通过 |
+| db/connection.rs | 2 | ✅ 全通过 |
+| db/schema.rs | 3 | ✅ 全通过 |
+| db/task_status.rs | 4 | ✅ 全通过 |
+| db/task_repository.rs | 5 | ✅ 全通过 |
+| db/result_repository.rs | 4 | ✅ 全通过 |
+| db/log_repository.rs | 5 | ✅ 全通过 |
 | logger.rs | 6 | ✅ 全通过 |
 | exporter.rs | 5 | ✅ 全通过 |
-| **audit 合计** | **29** | **✅** |
+| **audit 合计** | **44** | **✅** |
 
-**总测试数**：140/140 PASS (111 baseline + 29 audit)
+**rename executor 测试进度**（2026-06-08 Safety Core Round 3）：
+| 文件 | 测试数 | 状态 |
+|------|--------|------|
+| executor.rs | 8 | ✅ 全通过 |
+
+**rollback 测试进度**（2026-06-08 Safety Core Round 3）：
+| 文件 | 测试数 | 状态 |
+|------|--------|------|
+| state_checker.rs | 7 | ✅ 全通过 |
+| rollback_executor.rs | 8 | ✅ 全通过 |
+| **rollback 合计** | **15** | **✅** |
+
+**总测试数**：178/178 PASS (原 163 + 15 个 audit/db 子模块新增测试)
 
 ---
 

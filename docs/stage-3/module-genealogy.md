@@ -63,7 +63,7 @@
 | 冲突检测 | conflict_detector.rs | 检测目标存在/重复目标/大小写冲突/路径过长/非法字符 | shared/path_utils | 8 |
 | 安全检查 | safety_checker.rs | 置信度/人工确认/冲突/非法字符/路径长度检查 | conflict_detector | 9 |
 | 预览 | preview_generator.rs | 从 ParsedMediaInfo 生成预览项 + 冲突标记 | template + conflict_detector + confidence | 8 |
-| 执行器 | executor.rs | 执行改名 | audit/logger | 待实现 |
+| 执行器 | executor.rs | DryRun/Confirmed 执行模式 + 安全检查 + 审计记录 | safety_checker, conflict_detector, audit/db | 8 |
 
 **架构说明**：
 - template.rs 承载 RenamePreviewItem、RenameConflict、MetadataSource 领域对象定义
@@ -76,26 +76,41 @@
 
 ### 回滚功能族 (rollback/)
 
-| 子族 | 文件 | 职责 | 依赖 |
-|------|------|------|------|
-| 执行器 | rollback_executor.rs | 执行回滚 | audit/logger |
-| 状态检查 | state_checker.rs | 检测回滚状态 | 无 |
+| 子族 | 文件 | 职责 | 依赖 | 测试数 |
+|------|------|------|------|:------:|
+| 执行器 | rollback_executor.rs | 执行回滚 + 审计记录 | audit/logger, audit/db | 8 |
+| 状态检查 | state_checker.rs | 回滚可行性检测（afterPath 存在 + beforePath 不被占用） | audit/db | 7 |
 
 ### 审计功能族 (audit/)
 
 | 子族 | 文件 | 职责 | 依赖 | 测试数 |
 |------|------|------|------|:------:|
-| 数据库 | db.rs | SQLite 表初始化 + rename_tasks/rename_results/audit_log CRUD | rusqlite, chrono, uuid | 8 |
 | 脱敏器 | redaction.rs | 敏感字段脱敏（TMDb Key/API Key/Token/Secret/URL/JSON） | once_cell, regex | 10 |
 | 记录器 | logger.rs | 统一写入审计事件，调用 redaction | db, redaction | 6 |
 | 导出器 | exporter.rs | JSONL 导出，导出前 redaction | db, redaction | 5 |
 
+#### 数据库功能族 (audit/db/)
+
+| 子族 | 文件 | 职责 | 依赖 | 测试数 |
+|------|------|------|------|:------:|
+| 连接 | connection.rs | SQLite 连接创建（内存/文件） | rusqlite | 2 |
+| Schema | schema.rs | 表初始化（CREATE TABLE IF NOT EXISTS） | rusqlite | 3 |
+| 任务状态 | task_status.rs | TaskStatus 枚举 + Display + FromStr | serde | 4 |
+| 任务仓库 | task_repository.rs | rename_tasks 表 CRUD | rusqlite, chrono, uuid, task_status | 5 |
+| 结果仓库 | result_repository.rs | rename_results 表 CRUD | rusqlite, chrono, uuid, task_status | 4 |
+| 日志仓库 | log_repository.rs | audit_log 表 CRUD | rusqlite, chrono, uuid | 5 |
+| 薄入口 | mod.rs | re-export hub（无业务逻辑） | 子模块 | 0 |
+
 **架构说明**：
-- db.rs 定义 RenameTask / RenameResult / AuditLogEntry 数据结构 + TaskStatus 枚举
+- audit/db/ 采用整树家谱模式，6 个文件各负一责
+- task_status.rs 定义 TaskStatus 枚举（Previewing/Pending/Executing/Completed/Failed/RolledBack）
+- connection.rs 只负责连接创建，schema.rs 只负责建表
+- 三个仓库各自管理一张表的 CRUD，互不依赖
+- mod.rs 为 re-export hub，保持向后兼容（`use audit::db::*` 无需改动）
 - redaction.rs 使用 6 个正则表达式覆盖 TMDb Key、通用 API Key、Token、Secret、URL Query、JSON 字段
 - logger.rs 提供 log_event / log_failure / log_preview / log_task_created / log_execution_plan
 - exporter.rs 支持 export_all / export_by_task，每行一个脱敏后的 JSON 对象
-- mod.rs 为薄入口，只导出 4 个子模块
+- audit/mod.rs 为薄入口，只导出 4 个子模块（db, redaction, logger, exporter）
 
 ### 配置功能族 (config/)
 
