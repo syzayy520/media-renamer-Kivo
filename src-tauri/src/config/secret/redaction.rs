@@ -28,8 +28,10 @@ pub fn is_sensitive_field(field_name: &str) -> bool {
 /// 匹配形如 api_key=xxx, apiKey=xxx, "api_key": "xxx" 等模式
 pub fn redact_sensitive_data(data: &str) -> String {
     static API_KEY_PATTERN: Lazy<Regex> = Lazy::new(|| {
-        Regex::new(r#"(?i)(api[_-]?key|secret|token|password)["']?\s*[=:]\s*["']?([A-Za-z0-9_\-\.]+)"#)
-            .unwrap()
+        Regex::new(
+            r#"(?i)(api[_-]?key|secret|token|password)["']?\s*[=:]\s*["']?([A-Za-z0-9_\-\.]+)"#,
+        )
+        .unwrap()
     });
 
     API_KEY_PATTERN
