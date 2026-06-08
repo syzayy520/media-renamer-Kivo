@@ -1,5 +1,6 @@
 // 模块声明
 pub mod audit;
+pub mod commands;
 pub mod config;
 pub mod parse;
 pub mod pipeline;
@@ -9,6 +10,10 @@ pub mod scan;
 pub mod session;
 pub mod shared;
 
+use commands::{
+    get_all_tasks, get_all_templates, get_app_config, get_audit_logs, get_confidence_threshold,
+    get_task, set_confidence_threshold, set_template,
+};
 use session::plan_session::{start_rename_session, DbState};
 use tauri::Manager;
 
@@ -38,7 +43,17 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![start_rename_session])
+        .invoke_handler(tauri::generate_handler![
+            start_rename_session,
+            get_app_config,
+            get_all_templates,
+            set_template,
+            get_confidence_threshold,
+            set_confidence_threshold,
+            get_task,
+            get_all_tasks,
+            get_audit_logs,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
