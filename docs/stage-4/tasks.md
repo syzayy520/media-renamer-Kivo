@@ -1,0 +1,556 @@
+# 任务分解
+
+> 阶段 4：任务分解与执行计划
+> 项目：media-renamer-Kivo
+> 日期：2026-06-08
+
+---
+
+## 分解原则
+
+1. 原子性：每个任务可独立完成和测试
+2. 可追溯：每个任务对应需求 ID
+3. 依赖清晰：任务间依赖关系明确
+4. 粒度适中：单个任务 2-8 小时
+
+---
+
+## 任务依赖图
+
+```
+T-INF-001 (项目初始化)
+  ├── T-INF-002 (Rust 依赖)
+  ├── T-INF-003 (前端依赖)
+  ├── T-INF-004 (目录结构)
+  │     └── T-INF-005 (设计系统)
+  │
+  ├── T-RUST-001 (shared/)
+  │     ├── T-RUST-002 (config/)
+  │     ├── T-RUST-003 (scan/)
+  │     ├── T-RUST-004 (parse/)
+  │     ├── T-RUST-006 (audit/)
+  │     │     ├── T-RUST-007 (rollback/)
+  │     │     └── T-RUST-009 (数据库)
+  │     └── T-RUST-005 (rename/)
+  │           └── T-RUST-008 (IPC 命令)
+  │                 └── T-RUST-010 (事件通道)
+  │                       └── T-RUST-011 (错误处理)
+  │                             └── T-RUST-012 (崩溃恢复)
+  │
+  └── T-UI-001 (应用壳) + T-UI-002 (状态) + T-UI-003 (组件)
+        ├── T-UI-004 (扫描页)
+        │     └── T-UI-005 (预览页)
+        │           ├── T-UI-006 (人工确认页)
+        │           └── T-UI-007 (执行确认页)
+        ├── T-UI-008 (历史页)
+        ├── T-UI-009 (设置页)
+        └── T-UI-010 (Toast)
+
+T-TEST-* 可在对应模块完成后并行执行
+T-PKG-* 在所有功能完成后执行
+```
+
+---
+
+## A. 基础设施任务
+
+### T-INF-001: 初始化 Tauri v2 + React + TS 项目
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | ADR-001, ADR-002, ADR-010 |
+| 优先级 | P0 |
+| 预估 | 2h |
+| 依赖 | 无 |
+
+**子任务**：
+1. `npm create tauri-app` 初始化
+2. 配置 tsconfig.json, vite.config.ts, tailwind.config.js
+3. 验证 `npm run dev` 可启动
+
+**验收**：窗口显示成功，Tailwind 生效
+
+---
+
+### T-INF-002: Rust 依赖配置
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | ADR-006 |
+| 优先级 | P0 |
+| 预估 | 1h |
+| 依赖 | T-INF-001 |
+
+**子任务**：编辑 Cargo.toml 添加 serde, rusqlite, regex, anyhow, thiserror, tracing, uuid, chrono, camino, walkdir, tokio
+
+**验收**：`cargo build` 编译成功
+
+---
+
+### T-INF-003: 前端依赖配置
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | ADR-002~004 |
+| 优先级 | P0 |
+| 预估 | 1h |
+| 依赖 | T-INF-001 |
+
+**子任务**：安装 react-router-dom, zustand, @tauri-apps/api, lucide-react, @tanstack/react-virtual, vitest, @testing-library/react
+
+**验收**：`npm install` 成功
+
+---
+
+### T-INF-004: 创建整树家谱目录结构
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | ADR-010, NF-009 |
+| 优先级 | P0 |
+| 预估 | 2h |
+| 依赖 | T-INF-001 |
+
+**子任务**：
+1. Rust: src-tauri/src/{scan,parse,rename,rollback,audit,config,shared}/
+2. 前端: src/{app,pages,components,flows,state,design-system}/
+3. 测试目录: src-tauri/tests/, tests/
+4. 示例目录: examples/fixtures/sandbox/
+5. 薄入口文件 (mod.rs, index.ts)
+
+**验收**：目录结构符合 module-tree.md，入口文件 ≤30 行
+
+---
+
+### T-INF-005: 设计系统基础
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | visual-design-direction.md |
+| 优先级 | P0 |
+| 预估 | 3h |
+| 依赖 | T-INF-003, T-INF-004 |
+
+**子任务**：
+1. Tailwind 主题配置（色彩、字体、间距）
+2. design-system/tokens/ (colors, typography, spacing)
+3. design-system/buttons/ (Primary, Secondary, Danger, Ghost)
+
+**验收**：按钮组件可渲染，符合设计规范
+
+---
+
+## B. Rust 核心任务
+
+### T-RUST-001: shared/ 共享模块
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | F-006-03, F-006-04 |
+| 优先级 | P0 |
+| 预估 | 3h |
+| 依赖 | T-INF-002, T-INF-004 |
+
+**子任务**：
+1. shared/path_utils.rs: sanitize_filename, is_path_too_long, has_invalid_chars, normalize_path
+2. shared/result_types.rs: AppError, AppResult
+3. shared/platform.rs: 平台适配
+4. 单元测试
+
+**验收**：路径工具正确处理 Windows 路径，测试覆盖率 >90%
+
+---
+
+### T-RUST-002: config/ 配置模块
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | F-012, NF-008 |
+| 优先级 | P0 |
+| 预估 | 3h |
+| 依赖 | T-RUST-001 |
+
+**子任务**：
+1. template_manager.rs: get/set/get_all 模板
+2. threshold.rs: get/set 阈值
+3. config_loader.rs: config.toml 读写
+4. 单元测试
+
+**验收**：配置正确读写，默认模板符合 requirements.md
+
+---
+
+### T-RUST-003: scan/ 扫描模块
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | F-001-01 ~ F-001-10 |
+| 优先级 | P0 |
+| 预估 | 6h |
+| 依赖 | T-RUST-001, T-RUST-002 |
+
+**子任务**：
+1. file_detector.rs: is_video, is_companion
+2. scanner.rs: scan_directory, 递归遍历, 符号链接/循环检测, 权限错误记录, 最大文件数保护
+3. progress.rs: ScanProgress
+4. 单元测试
+
+**验收**：正确识别 13 种视频扩展名，递归遍历，权限错误不中断，最大文件数限制
+
+---
+
+### T-RUST-004: parse/ 解析模块
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | F-002, F-003 |
+| 优先级 | P0 |
+| 预估 | 12h |
+| 依赖 | T-RUST-001 |
+
+**子任务**：
+1. movie_parser.rs: 电影文件名解析
+2. series_parser.rs: 剧集文件名解析
+3. anime_parser.rs: 动漫文件名解析
+4. special_parser.rs: 特别篇/OVA/NCOP/NCED 解析
+5. confidence.rs: 置信度评分
+6. classifier.rs: 类型分类
+7. 使用 rename-fixtures.md 45 个测试用例
+
+**验收**：45 个 fixture 测试通过，置信度评分合理
+
+---
+
+### T-RUST-005: rename/ 重命名模块
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | F-004, F-006, F-007 |
+| 优先级 | P0 |
+| 预估 | 12h |
+| 依赖 | T-RUST-001, T-RUST-002, T-RUST-004 |
+
+**子任务**：
+1. template.rs: 模板渲染，变量替换
+2. conflict_detector.rs: 6 种冲突检测
+3. safety_checker.rs: 10 项安全检查
+4. preview_generator.rs: 预览生成
+5. executor.rs: 批量执行 + 进度推送
+6. 单元测试
+
+**验收**：模板渲染正确，冲突检测正确，安全检查通过，批量执行正确
+
+---
+
+### T-RUST-006: audit/ 审计模块
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | F-008 |
+| 优先级 | P0 |
+| 预估 | 4h |
+| 依赖 | T-RUST-001 |
+
+**子任务**：
+1. logger.rs: log, log_action, audit_log! 宏
+2. exporter.rs: export_jsonl
+3. db.rs: SQLite CRUD
+4. 单元测试
+
+**验收**：审计日志正确写入 SQLite，JSONL 导出格式正确
+
+---
+
+### T-RUST-007: rollback/ 回滚模块
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | F-009, F-010 |
+| 优先级 | P0 |
+| 预估 | 6h |
+| 依赖 | T-RUST-001, T-RUST-006 |
+
+**子任务**：
+1. state_checker.rs: check_rollback_state
+2. rollback_executor.rs: rollback_task, 逐文件回滚, 冲突暂停
+3. 单元测试
+
+**验收**：回滚前置检查正确，回滚执行正确，冲突时暂停报告
+
+---
+
+### T-RUST-008: Tauri IPC 命令层
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | interfaces-and-contracts.md |
+| 优先级 | P0 |
+| 预估 | 4h |
+| 依赖 | T-RUST-003~007 |
+
+**子任务**：实现 15+ 个 #[tauri::command]，注册到 main.rs
+
+**验收**：所有命令可从前端调用，错误正确转换
+
+---
+
+### T-RUST-009: 数据库初始化
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | F-008-07, F-010-01 |
+| 优先级 | P0 |
+| 预估 | 2h |
+| 依赖 | T-RUST-006 |
+
+**子任务**：创建 4 张表 (rename_tasks, rename_results, rollback_records, audit_logs)
+
+**验收**：应用启动时自动创建表，结构符合 interfaces-and-contracts.md
+
+---
+
+### T-RUST-010: 事件通道
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | interfaces-and-contracts.md 事件契约 |
+| 优先级 | P0 |
+| 预估 | 2h |
+| 依赖 | T-RUST-008 |
+
+**子任务**：实现 scan-progress, rename-progress, rollback-progress 事件推送
+
+**验收**：前端可实时监听事件
+
+---
+
+### T-RUST-011: 错误处理集成
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | error-handling-strategy.md |
+| 优先级 | P0 |
+| 预估 | 2h |
+| 依赖 | T-RUST-001~010 |
+
+**子任务**：统一 AppError, 批量操作错误处理, panic 恢复
+
+**验收**：无 unwrap/expect 在生产代码，错误正确传播
+
+---
+
+### T-RUST-012: 崩溃恢复
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | F-010 |
+| 优先级 | P1 |
+| 预估 | 3h |
+| 依赖 | T-RUST-007, T-RUST-009 |
+
+**子任务**：任务状态持久化时机，启动时恢复检查，未完成任务处理
+
+**验收**：崩溃后重启可检测未完成任务，已执行改名可回滚
+
+---
+
+## C. UI 前端任务
+
+### T-UI-001: 应用壳和路由
+
+| 需求 | ui-architecture.md | 预估 | 3h | 依赖 | T-INF-004, T-INF-005 |
+
+**子任务**：App.tsx, layout.tsx (侧边栏+内容), router.tsx, 导航高亮
+
+**验收**：路由切换正常，侧边栏导航工作
+
+---
+
+### T-UI-002: Zustand Store
+
+| 需求 | ui-state-model.md | 预估 | 4h | 依赖 | T-INF-003 |
+
+**子任务**：scanStore, previewStore, executionStore, rollbackStore, configStore, 状态串联
+
+**验收**：状态管理正确，筛选/排序功能正常
+
+---
+
+### T-UI-003: 设计系统组件
+
+| 需求 | visual-design-direction.md | 预估 | 4h | 依赖 | T-INF-005 |
+
+**子任务**：FileTable (虚拟滚动), RiskBadge, ConfidenceIndicator, PathDiff, ConfirmationDialog
+
+**验收**：虚拟滚动支持 10,000 行，路径对比清晰
+
+---
+
+### T-UI-004: 扫描页面
+
+| 需求 | F-001 | 预估 | 4h | 依赖 | T-UI-001~003 |
+
+**子任务**：ScanPage (目录选择、进度、统计), ScanFlow, 空状态提示
+
+**验收**：扫描进度实时更新，统计信息正确
+
+---
+
+### T-UI-005: 预览页面
+
+| 需求 | F-004 | 预估 | 6h | 依赖 | T-UI-004 |
+
+**子任务**：PreviewPage (文件表格、筛选器、排序、批量操作), PreviewFlow
+
+**验收**：表格展示正确，筛选/排序正常，before/after 对比清晰
+
+---
+
+### T-UI-006: 人工确认页面
+
+| 需求 | F-005, F-011 | 预估 | 4h | 依赖 | T-UI-005 |
+
+**子任务**：ManualReviewPage (编辑表单、跳过、确认), ManualReviewFlow
+
+**验收**：编辑后更新预览，跳过功能正常
+
+---
+
+### T-UI-007: 执行确认页面
+
+| 需求 | F-007 | 预估 | 4h | 依赖 | T-UI-005, T-UI-006 |
+
+**子任务**：ExecutionConfirmPage (统计、风险提示、确认弹窗、进度、结果)
+
+**验收**：确认弹窗工作，执行进度实时更新
+
+---
+
+### T-UI-008: 任务历史页面
+
+| 需求 | F-008, F-009 | 预估 | 4h | 依赖 | T-UI-002 |
+
+**子任务**：TaskHistoryPage (列表、详情、回滚、导出), RollbackFlow
+
+**验收**：任务列表正确，回滚功能正常
+
+---
+
+### T-UI-009: 设置页面
+
+| 需求 | F-012 | 预估 | 3h | 依赖 | T-UI-002 |
+
+**子任务**：SettingsPage (模板编辑、阈值设置), 配置保存
+
+**验收**：模板编辑正常，阈值设置生效
+
+---
+
+### T-UI-010: Toast 通知
+
+| 需求 | ui-review-notes.md | 预估 | 2h | 依赖 | T-UI-001 |
+
+**子任务**：Toast 组件、容器、showToast 函数
+
+**验收**：Toast 正确显示，自动消失
+
+---
+
+## D. 测试任务
+
+### T-TEST-001: Rust 单元测试
+
+| 预估 | 8h | 依赖 | T-RUST-001~012 |
+
+**子任务**：shared/config/scan/parse/rename/rollback/audit 全模块测试
+
+**验收**：测试覆盖率 >80%，45 个 fixture 通过
+
+---
+
+### T-TEST-002: 前端单元测试
+
+| 预估 | 6h | 依赖 | T-UI-001~010 |
+
+**子任务**：组件测试、Store 测试、流程测试
+
+**验收**：核心组件/Store/流程测试覆盖
+
+---
+
+### T-TEST-003: 集成测试
+
+| 预估 | 4h | 依赖 | T-RUST-008, T-UI-004~008 |
+
+**子任务**：Tauri IPC 命令测试、端到端流程测试
+
+**验收**：扫描→解析→预览→执行→回滚全流程通过
+
+---
+
+### T-TEST-004: 性能测试
+
+| 预估 | 3h | 依赖 | T-TEST-003 |
+
+**子任务**：10,000 文件扫描、10,000 文件预览、内存占用
+
+**验收**：扫描 <30s，UI 不卡顿，内存 <500MB
+
+---
+
+### T-TEST-005: Sandbox Fixtures
+
+| 预估 | 3h | 依赖 | T-INF-004 |
+
+**子任务**：创建 45 组 fixture 文件，覆盖所有媒体类型
+
+**验收**：fixture 文件可被正确扫描和解析
+
+---
+
+## E. 打包部署任务
+
+### T-PKG-001: 开发环境文档
+
+| 预估 | 2h | 依赖 | T-INF-001 |
+
+**子任务**：README.md，环境要求，开发/构建/测试命令
+
+**验收**：新开发者可按文档搭建环境
+
+---
+
+### T-PKG-002: 生产构建
+
+| 预估 | 2h | 依赖 | T-TEST-001, T-TEST-002 |
+
+**子任务**：Tauri 生产构建配置，MSI + NSIS 打包
+
+**验收**：构建产物可安装运行
+
+---
+
+### T-PKG-003: 交付文档
+
+| 预估 | 2h | 依赖 | T-PKG-002 |
+
+**子任务**：用户手册、已知限制、版本说明
+
+**验收**：文档完整清晰
+
+---
+
+## 任务汇总
+
+| 类别 | 数量 | 总预估 |
+|------|------|--------|
+| 基础设施 | 5 | 9h |
+| Rust 核心 | 12 | 59h |
+| UI 前端 | 10 | 38h |
+| 测试 | 5 | 24h |
+| 打包部署 | 3 | 6h |
+| **合计** | **35** | **136h** |
+
+---
+
+*下一阶段：traceability-matrix.md*
