@@ -18,6 +18,7 @@ interface ScanState {
   setScanning: (loading: boolean) => void;
   setResult: (result: PipelineResult) => void;
   setError: (error: string) => void;
+  clearResult: () => void;
   reset: () => void;
 }
 
@@ -32,5 +33,6 @@ export const useScanStore = create<ScanState>((set) => ({
   setScanning: (loading) => set({ isScanning: loading }),
   setResult: (result) => set({ result, error: null, isScanning: false }),
   setError: (error) => set({ error, isScanning: false }),
+  clearResult: () => set({ result: null, error: null, isScanning: true }),
   reset: () => set({ directory: '', result: null, error: null, isScanning: false }),
 }));

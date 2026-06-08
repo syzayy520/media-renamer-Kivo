@@ -2,15 +2,29 @@
 // 职责：包装 @tauri-apps/api/core 的 invoke，规范化错误处理
 
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-import type { ApiError } from './shared/apiError';
+
+/**
+ * 从 unknown error 中提取可读消息
+ */
+function extractMessage(err: unknown): string {
+  if (typeof err === 'string') return err;
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === 'object') {
+    const obj = err as Record<string, unknown>;
+    if (typeof obj.message === 'string') return obj.message;
+    if (typeof obj.error === 'string') return obj.error;
+    if (typeof obj.reason === 'string') return obj.reason;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      // fall through
+    }
+  }
+  return 'Unknown scan error';
+}
 
 /**
  * 调用 Tauri 后端命令
- *
- * @param command - Tauri 命令名
- * @param args - 命令参数
- * @returns Promise<T> 返回类型化的结果
- * @throws ApiError 统一错误格式
  */
 export async function invokeCommand<T>(
   command: string,
@@ -19,8 +33,6 @@ export async function invokeCommand<T>(
   try {
     return await tauriInvoke<T>(command, args);
   } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : String(err);
-    throw { message } satisfies ApiError;
+    throw new Error(extractMessage(err), { cause: err });
   }
 }

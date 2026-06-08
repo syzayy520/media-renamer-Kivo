@@ -16,14 +16,14 @@ export function ScanPage() {
     isScanning,
     error,
     result,
-    setScanning,
     setResult,
     setError,
+    clearResult,
   } = useScanStore();
 
   const handleStartScan = async () => {
     if (!directory.trim()) return;
-    setScanning(true);
+    clearResult();
     try {
       const data = await startRenameSession({ directory: directory.trim() });
       setResult(data);
