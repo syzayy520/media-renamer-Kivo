@@ -28,10 +28,16 @@ export function PreviewRow({ index, item }: PreviewRowProps) {
   return (
     <tr className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
       <td className="whitespace-nowrap px-4 py-2 text-xs text-white/30">{index + 1}</td>
-      <td className="max-w-[300px] truncate px-4 py-2 font-mono text-xs text-white/50">
+      <td
+        className="max-w-[300px] truncate px-4 py-2 font-mono text-xs text-white/50"
+        title={item.source_path}
+      >
         {item.original_name}
       </td>
-      <td className="max-w-[300px] truncate px-4 py-2 font-mono text-xs text-blue-400">
+      <td
+        className="max-w-[300px] truncate px-4 py-2 font-mono text-xs text-blue-400"
+        title={item.target_path}
+      >
         {item.proposed_name}
       </td>
       <td className="whitespace-nowrap px-4 py-2 text-xs text-white/50">
