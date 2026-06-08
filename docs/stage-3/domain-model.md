@@ -310,14 +310,14 @@
 
 | 字段 | 类型 | 可空 | 说明 |
 |------|------|:----:|------|
-| id | String | 否 | 日志 ID |
-| timestamp | DateTime | 否 | 时间戳 |
-| level | LogLevel | 否 | 日志级别 |
-| action | String | 否 | 操作类型 |
-| details | serde_json::Value | 否 | 详细信息 |
+| id | String | 否 | 日志 ID (UUID) |
+| task_id | Option\<String\> | 是 | 关联任务 ID |
+| event_type | String | 否 | 事件类型（task_created/preview/execute/failure/config 等） |
+| message | String | 否 | 事件消息（已脱敏） |
+| created_at | DateTime\<Utc\> | 否 | 创建时间 |
 
-**持久化**：是
-**所属功能族**：audit/
+**持久化**：是（SQLite audit_log 表）
+**所属功能族**：audit/db.rs, audit/logger.rs
 
 ---
 
@@ -335,7 +335,7 @@ Special | SP | OVA | NCOP | NCED | Extra
 
 ### TaskStatus
 ```
-Created | Scanning | Previewing | Reviewing | Executing | Completed | Failed | RolledBack
+Previewing | Pending | Executing | Completed | Failed | RolledBack
 ```
 
 ### RenameStatus

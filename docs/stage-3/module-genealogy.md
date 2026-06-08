@@ -83,10 +83,19 @@
 
 ### 审计功能族 (audit/)
 
-| 子族 | 文件 | 职责 | 依赖 |
-|------|------|------|------|
-| 记录器 | logger.rs | 记录审计日志 | 无 |
-| 导出器 | exporter.rs | JSONL 导出 | 无 |
+| 子族 | 文件 | 职责 | 依赖 | 测试数 |
+|------|------|------|------|:------:|
+| 数据库 | db.rs | SQLite 表初始化 + rename_tasks/rename_results/audit_log CRUD | rusqlite, chrono, uuid | 8 |
+| 脱敏器 | redaction.rs | 敏感字段脱敏（TMDb Key/API Key/Token/Secret/URL/JSON） | once_cell, regex | 10 |
+| 记录器 | logger.rs | 统一写入审计事件，调用 redaction | db, redaction | 6 |
+| 导出器 | exporter.rs | JSONL 导出，导出前 redaction | db, redaction | 5 |
+
+**架构说明**：
+- db.rs 定义 RenameTask / RenameResult / AuditLogEntry 数据结构 + TaskStatus 枚举
+- redaction.rs 使用 6 个正则表达式覆盖 TMDb Key、通用 API Key、Token、Secret、URL Query、JSON 字段
+- logger.rs 提供 log_event / log_failure / log_preview / log_task_created / log_execution_plan
+- exporter.rs 支持 export_all / export_by_task，每行一个脱敏后的 JSON 对象
+- mod.rs 为薄入口，只导出 4 个子模块
 
 ### 配置功能族 (config/)
 
@@ -143,7 +152,7 @@ shared/ (path_utils, result_types)
 | parse/mod.rs | ≤30 | pub use 各解析器, confidence, classifier |
 | rename/mod.rs | ≤30 | pub use template, conflict_detector, etc. |
 | rollback/mod.rs | ≤30 | pub use rollback_executor, state_checker |
-| audit/mod.rs | ≤30 | pub use logger, exporter |
+| audit/mod.rs | ≤30 | pub use db, redaction, logger, exporter |
 | config/mod.rs | ≤30 | pub use template_manager, threshold, secret, user_settings |
 | config/secret/mod.rs | ≤30 | pub use api_key_store, redaction |
 | config/user_settings/mod.rs | ≤30 | pub use metadata_settings |

@@ -399,4 +399,53 @@
 
 ---
 
+## Audit 模块测试映射（Safety Core Round 2）
+
+> 日期：2026-06-08
+> 验证：cargo test 140/140 PASS, clippy PASS
+
+### F-008 审计日志 → T-RUST-006 → 单元测试映射
+
+| 需求 ID | 模块 | 测试用例 | 覆盖场景 |
+|---------|------|----------|----------|
+| F-008-01 | db | test_insert_and_get_task | RenameTask 创建与查询 |
+| F-008-02 | db | test_insert_and_get_result | RenameResult 创建与查询 |
+| F-008-03 | db | test_insert_and_get_log | AuditLogEntry 创建与查询 |
+| F-008-05 | db | test_update_task_status | 任务状态更新 |
+| F-008-05 | db | test_failed_status_record | 失败状态记录 |
+| F-008-05 | db | test_get_logs_by_task | 按任务查询日志 |
+| F-008-05 | db | test_task_status_display | TaskStatus 显示格式 |
+| F-008-06 | exporter | test_export_jsonl_format | JSONL 格式验证 |
+| F-008-06 | exporter | test_export_multiple_logs | 多条日志导出 |
+| F-008-06 | exporter | test_export_redacts_sensitive_data | 导出数据脱敏 |
+| F-008-06 | exporter | test_export_empty_logs | 空日志处理 |
+| F-008-06 | exporter | test_export_by_task | 按任务导出 |
+
+### 敏感数据脱敏 → 单元测试映射
+
+| 需求 ID | 模块 | 测试用例 | 覆盖场景 |
+|---------|------|----------|----------|
+| NF-006 | redaction | test_redact_tmdb_key | TMDb API Key 脱敏 |
+| NF-006 | redaction | test_redact_api_key | 通用 API Key 脱敏 |
+| NF-006 | redaction | test_redact_token | Token 脱敏 |
+| NF-006 | redaction | test_redact_secret | Secret 脱敏 |
+| NF-006 | redaction | test_redact_url_query | URL 查询参数脱敏 |
+| NF-006 | redaction | test_redact_json_field | JSON 字段脱敏 |
+| NF-006 | redaction | test_normal_text_not_redacted | 正常文本不误脱 |
+| NF-006 | redaction | test_contains_sensitive_true/false | 敏感内容检测 |
+| NF-006 | logger | test_log_does_not_leak_key | 日志自动脱敏 |
+| NF-006 | logger | test_log_event | 审计事件记录 |
+| NF-006 | logger | test_log_failure | 失败事件记录 |
+| NF-006 | logger | test_log_preview | 预览事件记录 |
+| NF-006 | logger | test_log_task_created | 任务创建记录 |
+| NF-006 | logger | test_log_error_handling | 错误处理 |
+
+### 数据库初始化 → 单元测试映射
+
+| 需求 ID | 模块 | 测试用例 | 覆盖场景 |
+|---------|------|----------|----------|
+| F-008-07 | db | test_init_tables | 三表创建 |
+
+---
+
 *阶段 4 完成，进入阶段 5 实施*

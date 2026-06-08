@@ -350,14 +350,26 @@ T-PKG-* 在所有功能完成后执行
 | 优先级 | P0 |
 | 预估 | 4h |
 | 依赖 | T-RUST-001 |
+| 状态 | **Safety Core Round 2 完成** ✅ |
 
 **子任务**：
-1. logger.rs: log, log_action, audit_log! 宏
-2. exporter.rs: export_jsonl
-3. db.rs: SQLite CRUD
-4. 单元测试
+1. ✅ redaction.rs: 敏感字段脱敏（TMDb Key/API Key/Token/Secret/URL/JSON）（10 个测试通过）
+2. ✅ db.rs: SQLite 表初始化 + rename_tasks/rename_results/audit_log CRUD（8 个测试通过）
+3. ✅ logger.rs: 统一写入审计事件，调用 redaction（6 个测试通过）
+4. ✅ exporter.rs: JSONL 导出，导出前 redaction（5 个测试通过）
+5. ✅ mod.rs: 薄入口，只导出 4 个子模块
 
-**验收**：审计日志正确写入 SQLite，JSONL 导出格式正确
+**验证结果**（2026-06-08）：
+- `cargo test`: 140/140 PASS (111 baseline + 29 audit)
+- `cargo clippy --all-targets -- -D warnings`: 通过
+- `cargo fmt --check`: 通过
+
+**关键实现**：
+- db.rs 定义 RenameTask / RenameResult / AuditLogEntry 数据结构 + TaskStatus 枚举
+- redaction.rs 使用 6 个正则表达式覆盖 TMDb Key、通用 API Key、Token、Secret、URL Query、JSON 字段
+- logger.rs 提供 log_event / log_failure / log_preview / log_task_created / log_execution_plan
+- exporter.rs 支持 export_all / export_by_task，每行一个脱敏后的 JSON 对象
+- 本轮为 Safety Core Round 2，不执行真实文件改名
 
 ---
 
@@ -604,7 +616,16 @@ T-PKG-* 在所有功能完成后执行
 | preview_generator.rs | 8 | ✅ 全通过 |
 | **rename 合计** | **37** | **✅** |
 
-**总测试数**：111/111 PASS (74 baseline + 37 rename)
+**audit 模块测试进度**（2026-06-08 Safety Core Round 2）：
+| 文件 | 测试数 | 状态 |
+|------|--------|------|
+| redaction.rs | 10 | ✅ 全通过 |
+| db.rs | 8 | ✅ 全通过 |
+| logger.rs | 6 | ✅ 全通过 |
+| exporter.rs | 5 | ✅ 全通过 |
+| **audit 合计** | **29** | **✅** |
+
+**总测试数**：140/140 PASS (111 baseline + 29 audit)
 
 ---
 

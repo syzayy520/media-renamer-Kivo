@@ -367,12 +367,74 @@ pub fn check_rollback_state(task_id: &str) -> TaskRollbackState
 ### 2.5 audit 模块
 
 ```rust
-// audit/logger.rs
-pub fn log(entry: AuditLogEntry)
-pub fn log_action(action: &str, details: serde_json::Value)
+// audit/db.rs - 数据库操作
+pub fn init_tables(conn: &Connection) -> Result<(), rusqlite::Error>
+pub fn insert_task(conn: &Connection, task: &RenameTask) -> Result<(), rusqlite::Error>
+pub fn insert_result(conn: &Connection, result: &RenameResult) -> Result<(), rusqlite::Error>
+pub fn insert_log(conn: &Connection, entry: &AuditLogEntry) -> Result<(), rusqlite::Error>
+pub fn get_task(conn: &Connection, task_id: &str) -> Result<Option<RenameTask>, rusqlite::Error>
+pub fn get_results_by_task(conn: &Connection, task_id: &str) -> Result<Vec<RenameResult>, rusqlite::Error>
+pub fn get_logs_by_task(conn: &Connection, task_id: &str) -> Result<Vec<AuditLogEntry>, rusqlite::Error>
+pub fn get_all_logs(conn: &Connection) -> Result<Vec<AuditLogEntry>, rusqlite::Error>
+pub fn update_task_status(conn: &Connection, task_id: &str, status: TaskStatus, error_message: Option<&str>) -> Result<(), rusqlite::Error>
+pub fn create_task(conn: &Connection, template: &str, total_files: u32) -> RenameTask
+pub fn create_result(task_id: &str, source_path: &str, target_path: &str, status: TaskStatus) -> RenameResult
+pub fn create_log_entry(task_id: Option<&str>, event_type: &str, message: &str) -> AuditLogEntry
 
-// audit/exporter.rs
-pub fn export_jsonl(task_id: &str) -> Result<String>
+// audit/redaction.rs - 敏感字段脱敏
+pub fn redact_text(input: &str) -> String
+pub fn contains_sensitive(text: &str) -> bool
+
+// audit/logger.rs - 审计日志器
+pub struct AuditLogger<'a> { conn: &'a Connection }
+impl AuditLogger<'a> {
+    pub fn new(conn: &'a Connection) -> Self
+    pub fn log_event(&self, task_id: Option<&str>, event_type: &str, message: &str) -> Result<AuditLogEntry, rusqlite::Error>
+    pub fn log_failure(&self, task_id: Option<&str>, error: &str) -> Result<AuditLogEntry, rusqlite::Error>
+    pub fn log_preview(&self, task_id: &str, file_count: u32) -> Result<AuditLogEntry, rusqlite::Error>
+    pub fn log_task_created(&self, task_id: &str, template: &str) -> Result<AuditLogEntry, rusqlite::Error>
+    pub fn log_execution_plan(&self, task_id: &str, file_count: u32) -> Result<AuditLogEntry, rusqlite::Error>
+}
+
+// audit/exporter.rs - JSONL 导出
+pub struct JsonlExporter<'a> { conn: &'a Connection }
+impl JsonlExporter<'a> {
+    pub fn new(conn: &'a Connection) -> Self
+    pub fn export_all(&self) -> Result<String, Box<dyn std::error::Error>>
+    pub fn export_by_task(&self, task_id: &str) -> Result<String, Box<dyn std::error::Error>>
+}
+pub fn entry_to_json(entry: &AuditLogEntry) -> Result<String, serde_json::Error>
+
+// audit/db.rs - 数据结构
+pub enum TaskStatus { Previewing, Pending, Executing, Completed, Failed, RolledBack }
+
+pub struct RenameTask {
+    pub id: String,
+    pub status: TaskStatus,
+    pub template: String,
+    pub total_files: u32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub error_message: Option<String>,
+}
+
+pub struct RenameResult {
+    pub id: String,
+    pub task_id: String,
+    pub source_path: String,
+    pub target_path: String,
+    pub status: TaskStatus,
+    pub created_at: DateTime<Utc>,
+    pub error_message: Option<String>,
+}
+
+pub struct AuditLogEntry {
+    pub id: String,
+    pub task_id: Option<String>,
+    pub event_type: String,
+    pub message: String,
+    pub created_at: DateTime<Utc>,
+}
 ```
 
 ### 2.6 config 模块
@@ -637,15 +699,15 @@ CREATE TABLE rollback_records (
 );
 ```
 
-### 5.4 audit_logs 表
+### 5.4 audit_log 表
 
 ```sql
-CREATE TABLE audit_logs (
+CREATE TABLE audit_log (
     id TEXT PRIMARY KEY,
-    timestamp TEXT NOT NULL,
-    level TEXT NOT NULL,
-    action TEXT NOT NULL,
-    details TEXT NOT NULL  -- JSON
+    task_id TEXT,
+    event_type TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TEXT NOT NULL
 );
 ```
 
