@@ -26,6 +26,8 @@ T-INF-001 (项目初始化)
   │
   ├── T-RUST-001 (shared/)
   │     ├── T-RUST-002 (config/)
+  │     ├── T-RUST-002a (config/secret/)
+  │     │     └── T-RUST-002b (config/user_settings/)
   │     ├── T-RUST-003 (scan/)
   │     ├── T-RUST-004 (parse/)
   │     ├── T-RUST-006 (audit/)
@@ -36,6 +38,11 @@ T-INF-001 (项目初始化)
   │                 └── T-RUST-010 (事件通道)
   │                       └── T-RUST-011 (错误处理)
   │                             └── T-RUST-012 (崩溃恢复)
+  │
+  ├── T-RUST-013 (metadata/)
+  │     ├── T-RUST-013a (metadata/provider/)
+  │     └── T-RUST-013b (metadata/tmdb/)
+  │           └── T-RUST-013c (metadata/tests/)
   │
   └── T-UI-001 (应用壳) + T-UI-002 (状态) + T-UI-003 (组件)
         ├── T-UI-004 (扫描页)
@@ -177,6 +184,76 @@ T-PKG-* 在所有功能完成后执行
 4. 单元测试
 
 **验收**：配置正确读写，默认模板符合 requirements.md
+
+---
+
+### T-RUST-002a: config/secret/ 安全存储模块
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | ADR-SECRET-001, F-METADATA-003 |
+| 优先级 | P0 |
+| 预估 | 4h |
+| 依赖 | T-RUST-001 |
+
+**子任务**：
+1. api_key_store.rs: API Key 安全存储（SQLite 加密或系统密钥库）
+2. redaction.rs: 数据脱敏处理
+3. 单元测试
+4. 安全测试（确保 Key 不被泄露）
+
+**验收**：
+- API Key 安全存储
+- 脱敏显示正确
+- 无日志/审计日志泄露
+- 无 Git 提交风险
+
+---
+
+### T-RUST-002b: config/user_settings/ 用户设置模块
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | F-METADATA-001 ~ F-METADATA-006 |
+| 优先级 | P0 |
+| 预估 | 2h |
+| 依赖 | T-RUST-002a |
+
+**子任务**：
+1. metadata_settings.rs: TMDb 设置管理
+2. 单元测试
+
+**验收**：TMDb 设置正确读写
+
+---
+
+### T-RUST-013: metadata/ 元数据模块
+
+| 属性 | 值 |
+|------|-----|
+| 需求 | F-METADATA-001 ~ F-METADATA-006, ADR-METADATA-001 |
+| 优先级 | P0 |
+| 预估 | 8h |
+| 依赖 | T-RUST-002a, T-RUST-002b |
+
+**子任务**：
+1. provider/metadata_provider.rs: Provider 接口定义
+2. provider/metadata_query.rs: 查询接口
+3. provider/metadata_match.rs: 匹配接口
+4. tmdb/tmdb_client.rs: TMDb 客户端实现
+5. tmdb/tmdb_config.rs: TMDb 配置管理
+6. tmdb/tmdb_error.rs: 错误处理
+7. tmdb/tmdb_mapper.rs: 数据映射
+8. tests/provider_contract_tests.rs: Provider 契约测试
+9. tests/tmdb_config_tests.rs: TMDb 配置测试
+10. 单元测试
+
+**验收**：
+- Provider 接口清晰
+- TMDb 客户端功能正常
+- 配置管理正确
+- 错误处理完善
+- 测试覆盖完整
 
 ---
 
@@ -446,6 +523,24 @@ T-PKG-* 在所有功能完成后执行
 
 ---
 
+### T-UI-011: TMDb API Key 配置页面
+
+| 需求 | F-METADATA-001 ~ F-METADATA-006 | 预估 | 4h | 依赖 | T-UI-002 |
+
+**子任务**：
+1. SettingsPage 中添加 TMDb 配置区域
+2. ApiKeyInput 组件（输入、遮罩显示、测试连接）
+3. MetadataSourceBadge 组件（来源标签）
+4. 状态管理（configStore 或 metadataStore）
+5. 未配置时的提示信息
+
+**验收**：
+- API Key 输入、保存、清除功能正常
+- 遮罩显示正确
+- 测试连接功能可用
+- 未配置时显示正确提示
+- 已配置时显示已配置状态
+
 ### T-UI-010: Toast 通知
 
 | 需求 | ui-review-notes.md | 预估 | 2h | 依赖 | T-UI-001 |
@@ -545,11 +640,17 @@ T-PKG-* 在所有功能完成后执行
 | 类别 | 数量 | 总预估 |
 |------|------|--------|
 | 基础设施 | 5 | 9h |
-| Rust 核心 | 12 | 59h |
-| UI 前端 | 10 | 38h |
+| Rust 核心 | 15 | 71h |
+| UI 前端 | 11 | 42h |
 | 测试 | 5 | 24h |
 | 打包部署 | 3 | 6h |
-| **合计** | **35** | **136h** |
+| **合计** | **39** | **152h** |
+
+**新增任务说明**：
+- T-RUST-002a: config/secret/ 安全存储模块 (+4h)
+- T-RUST-002b: config/user_settings/ 用户设置模块 (+2h)
+- T-RUST-013: metadata/ 元数据模块 (+8h)
+- T-UI-011: TMDb API Key 配置页面 (+4h)
 
 ---
 

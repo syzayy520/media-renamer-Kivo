@@ -41,6 +41,7 @@
 | executionStore | state/execution-state/index.ts | 执行状态、进度、结果 |
 | rollbackStore | state/rollback-state/index.ts | 回滚状态、结果 |
 | configStore | state/config-state/index.ts | 配置、模板、阈值 |
+| metadataStore | state/metadata-state/index.ts | TMDb API Key 管理、连接状态 |
 
 ---
 
@@ -687,6 +688,149 @@ const useConfigStore = create<ConfigStore>((set, get) => ({
 
 ---
 
+### 3.6 metadataStore
+
+```typescript
+// state/metadata-state/index.ts
+
+interface MetadataState {
+  // TMDb API Key
+  tmdbApiKey: string | null;
+  maskedApiKey: string | null; // 遮罩显示
+
+  // 连接状态
+  connectionStatus: 'idle' | 'testing' | 'connected' | 'error';
+  connectionError: string | null;
+
+  // 配置状态
+  isConfigured: boolean;
+
+  // 状态
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  error: string | null;
+}
+
+interface MetadataActions {
+  // 操作
+  loadApiKey: () => Promise<void>;
+  saveApiKey: (apiKey: string) => Promise<void>;
+  clearApiKey: () => Promise<void>;
+  testConnection: () => Promise<void>;
+  reset: () => void;
+
+  // 内部更新
+  setApiKey: (apiKey: string | null) => void;
+  setMaskedApiKey: (masked: string | null) => void;
+  setConnectionStatus: (status: MetadataState['connectionStatus']) => void;
+  setError: (error: string) => void;
+}
+
+type MetadataStore = MetadataState & MetadataActions;
+
+const useMetadataStore = create<MetadataStore>((set, get) => ({
+  // 初始状态
+  tmdbApiKey: null,
+  maskedApiKey: null,
+  connectionStatus: 'idle',
+  connectionError: null,
+  isConfigured: false,
+  status: 'idle',
+  error: null,
+
+  // 操作
+  loadApiKey: async () => {
+    set({ status: 'loading' });
+
+    try {
+      const result = await invoke<{ apiKey: string | null; maskedApiKey: string | null }>('get_tmdb_api_key');
+
+      set({
+        status: 'ready',
+        tmdbApiKey: result.apiKey,
+        maskedApiKey: result.maskedApiKey,
+        isConfigured: result.apiKey !== null,
+      });
+    } catch (error) {
+      set({ status: 'error', error: String(error) });
+    }
+  },
+
+  saveApiKey: async (apiKey: string) => {
+    set({ status: 'loading' });
+
+    try {
+      const result = await invoke<{ maskedApiKey: string }>('save_tmdb_api_key', { apiKey });
+
+      set({
+        status: 'ready',
+        tmdbApiKey: apiKey,
+        maskedApiKey: result.maskedApiKey,
+        isConfigured: true,
+        connectionStatus: 'idle',
+        connectionError: null,
+      });
+    } catch (error) {
+      set({ status: 'error', error: String(error) });
+    }
+  },
+
+  clearApiKey: async () => {
+    set({ status: 'loading' });
+
+    try {
+      await invoke('clear_tmdb_api_key');
+
+      set({
+        status: 'ready',
+        tmdbApiKey: null,
+        maskedApiKey: null,
+        isConfigured: false,
+        connectionStatus: 'idle',
+        connectionError: null,
+      });
+    } catch (error) {
+      set({ status: 'error', error: String(error) });
+    }
+  },
+
+  testConnection: async () => {
+    set({ connectionStatus: 'testing', connectionError: null });
+
+    try {
+      await invoke('test_tmdb_connection');
+
+      set({
+        connectionStatus: 'connected',
+        connectionError: null,
+      });
+    } catch (error) {
+      set({
+        connectionStatus: 'error',
+        connectionError: String(error),
+      });
+    }
+  },
+
+  reset: () => set({
+    tmdbApiKey: null,
+    maskedApiKey: null,
+    connectionStatus: 'idle',
+    connectionError: null,
+    isConfigured: false,
+    status: 'idle',
+    error: null,
+  }),
+
+  // 内部更新
+  setApiKey: (apiKey) => set({ tmdbApiKey: apiKey }),
+  setMaskedApiKey: (masked) => set({ maskedApiKey: masked }),
+  setConnectionStatus: (status) => set({ connectionStatus: status }),
+  setError: (error) => set({ status: 'error', error }),
+}));
+```
+
+---
+
 ## 四、Store 间通信
 
 ### 4.1 流程串联
@@ -740,6 +884,7 @@ export function useScanFlow() {
 | executionStore | 否 | 执行状态是临时的 |
 | rollbackStore | 否 | 历史从 DB 加载 |
 | configStore | 是 (DB) | 配置需要持久化 |
+| metadataStore | 是 (DB) | TMDb API Key 需要安全持久化 |
 
 ### 5.2 应用重启恢复
 
@@ -747,9 +892,11 @@ export function useScanFlow() {
 // 应用启动时
 export function useAppInit() {
   const configStore = useConfigStore();
+  const metadataStore = useMetadataStore();
 
   useEffect(() => {
     configStore.loadConfig();
+    metadataStore.loadApiKey();
   }, []);
 }
 ```

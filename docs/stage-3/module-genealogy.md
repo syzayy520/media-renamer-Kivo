@@ -77,6 +77,23 @@
 |------|------|------|------|
 | 模板管理 | template_manager.rs | 管理命名模板 | 无 |
 | 阈值 | threshold.rs | 置信度阈值 | 无 |
+| 安全存储 | secret/api_key_store.rs | API Key 安全存储 | 无 |
+| 数据脱敏 | secret/redaction.rs | 数据脱敏处理 | 无 |
+| 用户设置 | user_settings/metadata_settings.rs | 元数据设置管理 | 无 |
+
+### 元数据功能族 (metadata/)
+
+| 子族 | 文件 | 职责 | 依赖 |
+|------|------|------|------|
+| Provider 接口 | provider/metadata_provider.rs | 元数据 Provider 接口 | 无 |
+| 查询接口 | provider/metadata_query.rs | 元数据查询接口 | metadata_provider |
+| 匹配接口 | provider/metadata_match.rs | 元数据匹配接口 | metadata_provider |
+| TMDb 客户端 | tmdb/tmdb_client.rs | TMDb API 客户端 | config/secret |
+| TMDb 配置 | tmdb/tmdb_config.rs | TMDb 配置管理 | config/secret |
+| TMDb 错误 | tmdb/tmdb_error.rs | TMDb 错误处理 | 无 |
+| TMDb 数据映射 | tmdb/tmdb_mapper.rs | TMDb 数据映射 | metadata_provider |
+| Provider 测试 | tests/provider_contract_tests.rs | Provider 契约测试 | metadata_provider |
+| TMDb 配置测试 | tests/tmdb_config_tests.rs | TMDb 配置测试 | tmdb_config |
 
 ---
 
@@ -110,7 +127,13 @@ shared/ (path_utils, result_types)
 | rename/mod.rs | ≤30 | pub use template, conflict_detector, etc. |
 | rollback/mod.rs | ≤30 | pub use rollback_executor, state_checker |
 | audit/mod.rs | ≤30 | pub use logger, exporter |
-| config/mod.rs | ≤30 | pub use template_manager, threshold |
+| config/mod.rs | ≤30 | pub use template_manager, threshold, secret, user_settings |
+| config/secret/mod.rs | ≤30 | pub use api_key_store, redaction |
+| config/user_settings/mod.rs | ≤30 | pub use metadata_settings |
+| metadata/mod.rs | ≤30 | pub use provider, tmdb, tests |
+| metadata/provider/mod.rs | ≤30 | pub use metadata_provider, metadata_query, metadata_match |
+| metadata/tmdb/mod.rs | ≤30 | pub use tmdb_client, tmdb_config, tmdb_error, tmdb_mapper |
+| metadata/tests/mod.rs | ≤30 | pub use provider_contract_tests, tmdb_config_tests |
 | shared/mod.rs | ≤30 | pub use path_utils, result_types |
 | components/index.ts | ≤30 | export 各组件 |
 | state/*/index.ts | ≤30 | export store |

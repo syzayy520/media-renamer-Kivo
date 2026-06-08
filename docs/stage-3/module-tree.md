@@ -55,7 +55,32 @@ media-renamer-Kivo/
 │   │   ├── config/                    # 配置功能族
 │   │   │   ├── template_manager.rs   # 模板管理
 │   │   │   ├── threshold.rs          # 阈值配置
+│   │   │   ├── secret/               # 安全存储子族
+│   │   │   │   ├── api_key_store.rs  # API Key 存储
+│   │   │   │   ├── redaction.rs      # 数据脱敏
+│   │   │   │   └── mod.rs            # 薄入口
+│   │   │   ├── user_settings/        # 用户设置子族
+│   │   │   │   ├── metadata_settings.rs # 元数据设置
+│   │   │   │   └── mod.rs            # 薄入口
 │   │   │   └── mod.rs                 # 薄入口
+│   │   │
+│   │   ├── metadata/                 # 元数据功能族
+│   │   │   ├── provider/             # Provider 子族
+│   │   │   │   ├── metadata_provider.rs # Provider 接口
+│   │   │   │   ├── metadata_query.rs # 查询接口
+│   │   │   │   ├── metadata_match.rs # 匹配接口
+│   │   │   │   └── mod.rs            # 薄入口
+│   │   │   ├── tmdb/                 # TMDb 子族
+│   │   │   │   ├── tmdb_client.rs    # TMDb 客户端
+│   │   │   │   ├── tmdb_config.rs    # TMDb 配置
+│   │   │   │   ├── tmdb_error.rs     # TMDb 错误
+│   │   │   │   ├── tmdb_mapper.rs    # TMDb 数据映射
+│   │   │   │   └── mod.rs            # 薄入口
+│   │   │   ├── tests/                # 测试子族
+│   │   │   │   ├── provider_contract_tests.rs # Provider 契约测试
+│   │   │   │   ├── tmdb_config_tests.rs # TMDb 配置测试
+│   │   │   │   └── mod.rs            # 薄入口
+│   │   │   └── mod.rs                # 薄入口
 │   │   │
 │   │   ├── shared/                    # 共享模块
 │   │   │   ├── path_utils.rs         # 路径工具
@@ -116,6 +141,12 @@ media-renamer-Kivo/
 │   │   ├── confirmation-dialog/       # 确认弹窗组件
 │   │   │   ├── ConfirmationDialog.tsx
 │   │   │   └── index.ts
+│   │   ├── api-key-input/             # API Key 输入组件
+│   │   │   ├── ApiKeyInput.tsx
+│   │   │   └── index.ts
+│   │   ├── metadata-source-badge/     # 元数据来源标签
+│   │   │   ├── MetadataSourceBadge.tsx
+│   │   │   └── index.ts
 │   │   └── index.ts                   # 组件入口
 │   │
 │   ├── flows/                         # 流程族
@@ -142,8 +173,14 @@ media-renamer-Kivo/
 │   │   ├── execution-state/           # 执行状态
 │   │   │   ├── executionStore.ts
 │   │   │   └── index.ts
-│   │   └── rollback-state/            # 回滚状态
-│   │       ├── rollbackStore.ts
+│   │   ├── rollback-state/            # 回滚状态
+│   │   │   ├── rollbackStore.ts
+│   │   │   └── index.ts
+│   │   ├── config-state/              # 配置状态
+│   │   │   ├── configStore.ts
+│   │   │   └── index.ts
+│   │   └── metadata-state/            # 元数据状态
+│   │       ├── metadataStore.ts
 │   │       └── index.ts
 │   │
 │   └── design-system/                 # 设计系统族

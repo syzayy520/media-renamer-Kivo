@@ -168,6 +168,31 @@
 | F-012-06 | 多集格式模板 | T-RUST-002 |
 | F-012-07 | 模板可配置 | T-UI-009 |
 
+### F-METADATA TMDb API Key 配置
+
+| 需求 ID | 需求描述 | 任务 ID |
+|---------|----------|---------|
+| F-METADATA-001-01 | TMDb API Key 输入入口 | T-UI-011 |
+| F-METADATA-001-02 | 保存 TMDb API Key | T-RUST-002a, T-UI-011 |
+| F-METADATA-001-03 | 更新 TMDb API Key | T-RUST-002a, T-UI-011 |
+| F-METADATA-001-04 | 清除 TMDb API Key | T-RUST-002a, T-UI-011 |
+| F-METADATA-001-05 | UI 遮罩显示 | T-UI-011 |
+| F-METADATA-001-06 | 测试连接入口 | T-RUST-013, T-UI-011 |
+| F-METADATA-001-07 | 未配置时提示 | T-UI-011 |
+| F-METADATA-001-08 | 配置后可使用 | T-RUST-013 |
+| F-METADATA-001-09 | 可选增强，不阻塞主流程 | T-RUST-013, T-UI-011 |
+| F-METADATA-001-10 | 本地安全保存 | T-RUST-002a |
+| F-METADATA-001-11 | 禁止硬编码 | T-RUST-002a |
+| F-METADATA-001-12 | 禁止写进源码 | T-RUST-002a |
+| F-METADATA-001-13 | 禁止提交 Git | T-RUST-002a |
+| F-METADATA-001-14 | 禁止输出到日志 | T-RUST-002a |
+| F-METADATA-001-15 | 禁止明文长期展示 | T-UI-011 |
+| F-METADATA-001-16 | 禁止作为必需条件 | T-RUST-013 |
+| F-METADATA-001-17 | 无 Key 时功能可用 | T-RUST-013 |
+| F-METADATA-001-18 | 可选元数据增强 | T-RUST-013 |
+| F-METADATA-001-19 | 结果显示来源、置信度 | T-RUST-013, T-UI-011 |
+| F-METADATA-001-20 | 不得静默覆盖 | T-RUST-013 |
+
 ---
 
 ## 非功能需求 → 任务映射
@@ -201,6 +226,8 @@
 | ADR-008 | MSI + NSIS | T-PKG-002 |
 | ADR-009 | 测试框架 | T-TEST-001~003 |
 | ADR-010 | 项目结构 | T-INF-004 |
+| ADR-METADATA-001 | TMDb 可选 Provider | T-RUST-013 |
+| ADR-SECRET-001 | API Key 安全存储 | T-RUST-002a |
 
 ---
 
@@ -227,18 +254,27 @@
 |----------|----------|---------|
 | Rust 单测 | shared | T-TEST-001 |
 | Rust 单测 | config | T-TEST-001 |
+| Rust 单测 | config/secret | T-TEST-001 |
+| Rust 单测 | config/user_settings | T-TEST-001 |
 | Rust 单测 | scan | T-TEST-001 |
 | Rust 单测 | parse | T-TEST-001 |
 | Rust 单测 | rename | T-TEST-001 |
 | Rust 单测 | rollback | T-TEST-001 |
 | Rust 单测 | audit | T-TEST-001 |
+| Rust 单测 | metadata | T-TEST-001 |
+| Rust 单测 | metadata/provider | T-TEST-001 |
+| Rust 单测 | metadata/tmdb | T-TEST-001 |
 | 前端单测 | 组件 | T-TEST-002 |
 | 前端单测 | Store | T-TEST-002 |
 | 前端单测 | 流程 | T-TEST-002 |
+| 前端单测 | metadataStore | T-TEST-002 |
 | 集成测试 | IPC 命令 | T-TEST-003 |
 | 集成测试 | 端到端流程 | T-TEST-003 |
+| 集成测试 | TMDb API Key 配置 | T-TEST-003 |
 | 性能测试 | 大批量 | T-TEST-004 |
 | Fixture | 测试数据 | T-TEST-005 |
+| 安全测试 | API Key 安全存储 | T-TEST-001 |
+| 安全测试 | 数据脱敏 | T-TEST-001 |
 
 ---
 

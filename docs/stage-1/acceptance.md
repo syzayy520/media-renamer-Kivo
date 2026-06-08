@@ -37,6 +37,12 @@
 - A-FUNC-012: 审计日志记录
 - A-FUNC-013: 按任务回滚
 - A-FUNC-014: 任务历史查看
+- A-FUNC-015: TMDb API Key 配置入口（设置页）
+- A-FUNC-016: TMDb API Key 保存/更新/清除功能
+- A-FUNC-017: TMDb API Key 遮罩显示
+- A-FUNC-018: TMDb API Key 测试连接入口
+- A-FUNC-019: 未配置 TMDb Key 时显示提示信息
+- A-FUNC-020: TMDb 功能不阻塞本地规则重命名主流程
 
 ### 安全验收（必须）
 
@@ -46,6 +52,9 @@
 - A-SEC-004: 执行前二次确认
 - A-SEC-005: 不自动覆盖/追加后缀
 - A-SEC-006: 测试 sandbox 隔离
+- A-SEC-007: TMDb API Key 不得出现在日志、审计日志、控制台、导出文件中
+- A-SEC-008: TMDb API Key 不得被提交进仓库
+- A-SEC-009: UI 中不得明文长期展示完整 TMDb API Key
 
 ### 回滚验收（必须）
 
@@ -75,6 +84,11 @@
 5. 审计日志丢失
 6. 整树家谱模式严重违反
 7. 核心流程测试不通过
+8. TMDb API Key 出现在日志、审计日志、控制台、导出文件中
+9. TMDb API Key 被提交进仓库
+10. 未配置 TMDb Key 时，本地扫描/预览/改名/回滚功能不可用
+11. 配置 TMDb Key 后，设置页无法显示已配置状态
+12. 清除 TMDb Key 后，系统继续使用旧 Key
 
 ---
 

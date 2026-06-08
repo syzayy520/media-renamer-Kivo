@@ -200,6 +200,7 @@ media-renamer-Kivo/
       rollback/       # 回滚功能族
       audit/          # 审计功能族
       config/         # 配置功能族
+      metadata/       # 元数据功能族（TMDb 等）
       shared/         # 共享模块
     tests/
   src/                # 前端
@@ -220,6 +221,55 @@ media-renamer-Kivo/
 
 ---
 
+## ADR-METADATA-001: TMDb 作为可选 MetadataProvider
+
+**状态**：已决定
+
+**背景**：需要决定 TMDb 在系统中的定位和依赖关系。
+
+**决策**：TMDb 作为可选 MetadataProvider，不作为 MVP 主链路依赖。
+
+**理由**：
+1. 降低外部依赖风险
+2. 保证本地功能完整性
+3. 用户可选择是否启用
+4. 符合渐进式增强原则
+
+**后果**：
+- TMDb 模块独立，不影响核心流程
+- 需要设计清晰的 Provider 接口
+- 需要处理无 Key 时的降级逻辑
+- V1 可扩展其他 MetadataProvider
+
+---
+
+## ADR-SECRET-001: 用户 API Key 的本地安全存储策略
+
+**状态**：已决定
+
+**背景**：需要决定如何安全存储用户的 TMDb API Key。
+
+**决策**：采用本地安全存储策略，具体措施包括：
+1. 使用 SQLite 加密存储（或系统密钥库）
+2. UI 遮罩显示
+3. 禁止日志输出
+4. 禁止 Git 提交
+5. 禁止源码硬编码
+
+**理由**：
+1. 保护用户隐私
+2. 符合安全最佳实践
+3. 防止意外泄露
+4. 满足合规要求
+
+**后果**：
+- 需要实现安全存储模块
+- 需要在多个层面添加安全检查
+- 需要更新 .gitignore 和安全策略
+- 需要添加相关测试
+
+---
+
 ## 决策汇总
 
 | ADR | 决策 | 状态 |
@@ -234,6 +284,8 @@ media-renamer-Kivo/
 | ADR-008 | MSI + NSIS | 已决定 |
 | ADR-009 | 测试框架 | 已决定 |
 | ADR-010 | 项目结构 | 已决定 |
+| ADR-METADATA-001 | TMDb 作为可选 MetadataProvider | 已决定 |
+| ADR-SECRET-001 | 用户 API Key 的本地安全存储策略 | 已决定 |
 
 ---
 

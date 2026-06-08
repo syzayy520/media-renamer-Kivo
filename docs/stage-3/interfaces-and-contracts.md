@@ -172,7 +172,43 @@ async fn get_templates() -> Result<Vec<RenameRule>, String>
 
 ---
 
-### 1.9 导出命令
+### 1.9 TMDb API Key 命令
+
+```rust
+#[tauri::command]
+async fn get_tmdb_api_key() -> Result<TmdbApiKeyResponse, String>
+
+#[tauri::command]
+async fn save_tmdb_api_key(api_key: String) -> Result<TmdbApiKeyResponse, String>
+
+#[tauri::command]
+async fn clear_tmdb_api_key() -> Result<(), String>
+
+#[tauri::command]
+async fn test_tmdb_connection() -> Result<(), String>
+```
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| api_key | String | TMDb API Key |
+
+| 返回 | 类型 | 说明 |
+|------|------|------|
+| Ok | TmdbApiKeyResponse | 包含 apiKey 和 maskedApiKey |
+| Err | String | 错误信息 |
+
+**TmdbApiKeyResponse 结构**：
+```rust
+#[derive(Serialize, Deserialize)]
+pub struct TmdbApiKeyResponse {
+    pub api_key: Option<String>,
+    pub masked_api_key: Option<String>,
+}
+```
+
+---
+
+### 1.10 导出命令
 
 ```rust
 #[tauri::command]
@@ -288,9 +324,84 @@ pub fn get_all_templates() -> Vec<RenameRule>
 // config/threshold.rs
 pub fn get_threshold() -> u8
 pub fn set_threshold(value: u8) -> Result<()>
+
+// config/secret/api_key_store.rs
+pub fn get_api_key(service: &str) -> Result<Option<String>>
+pub fn save_api_key(service: &str, api_key: &str) -> Result<()>
+pub fn delete_api_key(service: &str) -> Result<()>
+pub fn mask_api_key(api_key: &str) -> String
+
+// config/secret/redaction.rs
+pub fn redact_sensitive_data(data: &str) -> String
+pub fn is_sensitive_field(field_name: &str) -> bool
+
+// config/user_settings/metadata_settings.rs
+pub fn get_tmdb_settings() -> Result<TmdbSettings>
+pub fn save_tmdb_settings(settings: &TmdbSettings) -> Result<()>
 ```
 
-### 2.7 shared 模块
+### 2.7 metadata 模块
+
+```rust
+// metadata/provider/metadata_provider.rs
+pub trait MetadataProvider {
+    fn search_movie(&self, title: &str, year: Option<u32>) -> Result<Vec<MovieResult>>;
+    fn search_series(&self, title: &str, year: Option<u32>) -> Result<Vec<SeriesResult>>;
+    fn get_movie_details(&self, id: &str) -> Result<MovieDetails>;
+    fn get_series_details(&self, id: &str) -> Result<SeriesDetails>;
+}
+
+// metadata/provider/metadata_query.rs
+pub fn query_movie_metadata(title: &str, year: Option<u32>) -> Result<Vec<MovieResult>>
+pub fn query_series_metadata(title: &str, year: Option<u32>) -> Result<Vec<SeriesResult>>
+
+// metadata/provider/metadata_match.rs
+pub fn match_movie_metadata(local_info: &ParsedMediaInfo, results: &[MovieResult]) -> Option<MovieResult>
+pub fn match_series_metadata(local_info: &ParsedMediaInfo, results: &[SeriesResult]) -> Option<SeriesResult>
+
+// metadata/tmdb/tmdb_client.rs
+pub struct TmdbClient {
+    api_key: String,
+    base_url: String,
+}
+impl TmdbClient {
+    pub fn new(api_key: &str) -> Self;
+    pub fn search_movie(&self, title: &str, year: Option<u32>) -> Result<Vec<TmdbMovieResult>>;
+    pub fn search_series(&self, title: &str, year: Option<u32>) -> Result<Vec<TmdbSeriesResult>>;
+    pub fn get_movie_details(&self, movie_id: u32) -> Result<TmdbMovieDetails>;
+    pub fn get_series_details(&self, series_id: u32) -> Result<TmdbSeriesDetails>;
+    pub fn test_connection(&self) -> Result<()>;
+}
+
+// metadata/tmdb/tmdb_config.rs
+pub fn get_tmdb_api_key() -> Result<Option<String>>
+pub fn save_tmdb_api_key(api_key: &str) -> Result<()>
+pub fn clear_tmdb_api_key() -> Result<()>
+pub fn is_tmdb_configured() -> bool
+
+// metadata/tmdb/tmdb_error.rs
+#[derive(Debug, thiserror::Error)]
+pub enum TmdbError {
+    #[error("API key not configured")]
+    ApiKeyNotConfigured,
+    #[error("Invalid API key")]
+    InvalidApiKey,
+    #[error("Network error: {0}")]
+    NetworkError(String),
+    #[error("Rate limit exceeded")]
+    RateLimitExceeded,
+    #[error("Movie not found")]
+    MovieNotFound,
+    #[error("Series not found")]
+    SeriesNotFound,
+}
+
+// metadata/tmdb/tmdb_mapper.rs
+pub fn map_movie_to_parsed_info(tmdb_movie: &TmdbMovieDetails) -> ParsedMediaInfo
+pub fn map_series_to_parsed_info(tmdb_series: &TmdbSeriesDetails) -> ParsedMediaInfo
+```
+
+### 2.8 shared 模块
 
 ```rust
 // shared/path_utils.rs
@@ -314,6 +425,8 @@ pub enum AppError {
     Conflict(String),
     #[error("Permission denied: {0}")]
     PermissionDenied(String),
+    #[error("TMDb error: {0}")]
+    Tmdb(#[from] TmdbError),
 }
 ```
 
