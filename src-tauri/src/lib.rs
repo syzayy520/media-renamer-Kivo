@@ -6,13 +6,11 @@ pub mod pipeline;
 pub mod rename;
 pub mod rollback;
 pub mod scan;
+pub mod session;
 pub mod shared;
 
-// Tauri 命令
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+use session::plan_session::{start_rename_session, DbState};
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -27,9 +25,20 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            // 初始化数据库（默认存放在 app data 目录）
+            let app_dir = app
+                .path()
+                .app_data_dir()
+                .expect("Failed to get app data dir");
+            std::fs::create_dir_all(&app_dir).ok();
+            let db_path = app_dir.join("media-renamer.db");
+            let db_state = DbState::new(&db_path).expect("Failed to initialize database");
+            app.manage(db_state);
+
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![start_rename_session])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
