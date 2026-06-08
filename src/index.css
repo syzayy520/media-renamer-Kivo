@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../src";
 
 /* Media Renamer Kivo - 深色主题 */
 
@@ -32,47 +33,49 @@
   --spacing-2xl: 48px;
 }
 
-/* 全局样式 */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* 全局样式 — 使用 @layer base 确保不覆盖 Tailwind 工具类 */
+@layer base {
+  html, body, #root {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
 
-html, body, #root {
-  height: 100%;
-  width: 100%;
-}
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-body {
-  font-family: var(--font-sans);
-  background-color: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* 路径和代码使用等宽字体 */
-.font-path, code, pre {
-  font-family: var(--font-mono);
+  /* 路径和代码使用等宽字体 */
+  .font-path, code, pre {
+    font-family: var(--font-mono);
+  }
 }
 
 /* 滚动条样式 */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+@layer utilities {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-::-webkit-scrollbar-track {
-  background: var(--color-bg-secondary);
-}
+  ::-webkit-scrollbar-track {
+    background: var(--color-bg-secondary);
+  }
 
-::-webkit-scrollbar-thumb {
-  background: var(--color-text-secondary);
-  border-radius: 4px;
-}
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-text-secondary);
+    border-radius: 4px;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-accent);
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent);
+  }
 }

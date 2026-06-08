@@ -7,9 +7,9 @@ export function AppShell() {
   return (
     <ErrorBoundary>
       <Router>
-        <div className="w-full min-h-screen flex flex-col bg-bg-primary">
+        <div className="w-screen min-h-screen flex flex-col bg-bg-primary overflow-hidden">
           <Navigation />
-          <main className="flex-1 min-w-0 overflow-auto">
+          <main className="flex-1 w-full min-w-0 overflow-auto">
             <AppRoutes />
           </main>
         </div>

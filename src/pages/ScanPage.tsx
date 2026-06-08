@@ -30,9 +30,9 @@ export function ScanPage() {
   };
 
   return (
-    <div className="w-full px-4 py-8">
-      <div className="w-full max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-text-primary mb-8">
+    <div className="w-full px-6 py-8">
+      <div className="w-full">
+        <h1 className="text-3xl font-bold text-text-primary mb-8 whitespace-nowrap">
           媒体文件重命名
         </h1>
 
@@ -46,12 +46,12 @@ export function ScanPage() {
           
           <CardContent>
             <div className="space-y-4">
-              <div className="flex gap-4">
+              <div className="flex gap-4 items-center">
                 <Input
                   placeholder="输入目录路径..."
                   value={directory}
                   onChange={(e) => setDirectory(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 min-w-0"
                 />
                 <Button
                   variant="secondary"
@@ -71,8 +71,8 @@ export function ScanPage() {
           </CardContent>
           
           <CardFooter>
-            <div className="flex justify-between items-center w-full">
-              <div className="text-sm text-text-secondary">
+            <div className="flex justify-between items-center w-full gap-4">
+              <div className="text-sm text-text-secondary min-w-0 flex-1">
                 {directory ? `已选择: ${directory}` : '请选择要扫描的目录'}
               </div>
               <Button

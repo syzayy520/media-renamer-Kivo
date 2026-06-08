@@ -17,7 +17,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={`flex flex-col items-center justify-center p-8 text-center ${className}`}
+      className={`flex flex-col items-center justify-center p-6 text-center max-h-48 ${className}`}
       {...props}
     >
       {icon && (

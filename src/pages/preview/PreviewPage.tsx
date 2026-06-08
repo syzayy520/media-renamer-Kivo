@@ -52,18 +52,18 @@ export function PreviewPage() {
   const selectedCount = selectedItems.size;
 
   return (
-    <div className="w-full px-4 py-8">
-      <div className="w-full max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-text-primary">
+    <div className="w-full px-6 py-8">
+      <div className="w-full">
+        <div className="flex items-center justify-between mb-8 gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl font-bold text-text-primary whitespace-nowrap">
               重命名预览
             </h1>
             <p className="text-text-secondary mt-2">
               共 {previews.length} 个文件，已选择 {selectedCount} 个
             </p>
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-4 shrink-0">
             <Button variant="secondary" icon={<ArrowLeft className="w-4 h-4" />}>
               返回
             </Button>
