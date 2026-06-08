@@ -37,13 +37,15 @@
 
 **背景**：需要选择前端 UI 框架。
 
-**决策**：采用 React 18 + TypeScript
+**决策**：采用 React 19 + TypeScript
 
 **理由**：
 1. Tauri 官方推荐
 2. 生态成熟
 3. TypeScript 类型安全
 4. 社区支持
+
+**构建工具**：Vite 8.x（快速开发服务器和构建工具）
 
 **后果**：需要 React 开发经验
 
@@ -55,7 +57,7 @@
 
 **背景**：需要选择 CSS 方案。
 
-**决策**：采用 Tailwind CSS
+**决策**：采用 Tailwind CSS 4.x
 
 **理由**：
 1. 原子化 CSS，开发效率高
@@ -275,8 +277,8 @@ media-renamer-Kivo/
 | ADR | 决策 | 状态 |
 |-----|------|:----:|
 | ADR-001 | Tauri v2 | 已决定 |
-| ADR-002 | React 18 + TypeScript | 已决定 |
-| ADR-003 | Tailwind CSS | 已决定 |
+| ADR-002 | React 19 + TypeScript | 已决定 |
+| ADR-003 | Tailwind CSS 4.x | 已决定 |
 | ADR-004 | Zustand | 已决定 |
 | ADR-005 | SQLite (rusqlite) | 已决定 |
 | ADR-006 | Rust 核心库 | 已决定 |
