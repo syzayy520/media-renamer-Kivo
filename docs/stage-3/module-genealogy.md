@@ -57,13 +57,22 @@
 
 ### 重命名功能族 (rename/)
 
-| 子族 | 文件 | 职责 | 依赖 |
-|------|------|------|------|
-| 模板 | template.rs | 模板渲染 | config/template_manager |
-| 冲突检测 | conflict_detector.rs | 检测冲突 | shared/path_utils |
-| 安全检查 | safety_checker.rs | 10 项安全检查 | conflict_detector |
-| 执行器 | executor.rs | 执行改名 | audit/logger |
-| 预览 | preview_generator.rs | 生成预览 | template + conflict_detector |
+| 子族 | 文件 | 职责 | 依赖 | 测试数 |
+|------|------|------|------|:------:|
+| 模板 | template.rs | 模板渲染 + RenamePreviewItem/RenameConflict/MetadataSource 领域对象 | parse/confidence, shared/result_types | 12 |
+| 冲突检测 | conflict_detector.rs | 检测目标存在/重复目标/大小写冲突/路径过长/非法字符 | shared/path_utils | 8 |
+| 安全检查 | safety_checker.rs | 置信度/人工确认/冲突/非法字符/路径长度检查 | conflict_detector | 9 |
+| 预览 | preview_generator.rs | 从 ParsedMediaInfo 生成预览项 + 冲突标记 | template + conflict_detector + confidence | 8 |
+| 执行器 | executor.rs | 执行改名 | audit/logger | 待实现 |
+
+**架构说明**：
+- template.rs 承载 RenamePreviewItem、RenameConflict、MetadataSource 领域对象定义
+- render() 支持 20+ 变量替换，自动清理空括号和多余空格
+- get_default_template() 按媒体类型返回默认模板
+- conflict_detector.rs 检测 6 种冲突：TargetExists/DuplicateTarget/CaseConflict/PathTooLong/InvalidChars/SourceNotFound
+- safety_checker.rs 输出 SafetyReport (can_execute, dry_run, checks, blocking_reasons)
+- preview_generator.rs 串联 template → confidence → conflict_detector 完整预览链
+- 本轮为 Safety Core Round 1，不执行真实文件改名
 
 ### 回滚功能族 (rollback/)
 

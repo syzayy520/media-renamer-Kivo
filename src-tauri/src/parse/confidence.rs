@@ -3,12 +3,13 @@
 // 每种媒体类型有独立的评分依据，低于阈值必须进入人工确认
 
 use super::movie_parser::{MediaType, ParsedMediaInfo};
+use serde::{Deserialize, Serialize};
 
 /// 置信度阈值常量
 pub const DEFAULT_CONFIDENCE_THRESHOLD: u8 = 70;
 
 /// 规则匹配证据
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleMatchEvidence {
     /// 规则名称
     pub rule_name: String,
@@ -19,7 +20,7 @@ pub struct RuleMatchEvidence {
 }
 
 /// 置信度评分结果
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfidenceResult {
     /// 最终置信度
     pub score: u8,

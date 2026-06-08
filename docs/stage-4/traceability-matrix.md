@@ -258,7 +258,7 @@
 | Rust 单测 | config/user_settings | T-TEST-001 | |
 | Rust 单测 | scan | T-TEST-001 | |
 | Rust 单测 | parse (53 tests) | T-TEST-001 | ✅ 已完成 |
-| Rust 单测 | rename | T-TEST-001 |
+| Rust 单测 | rename (37 tests) | T-TEST-001 | ✅ 已完成 |
 | Rust 单测 | rollback | T-TEST-001 |
 | Rust 单测 | audit | T-TEST-001 |
 | Rust 单测 | metadata | T-TEST-001 |
@@ -323,6 +323,79 @@
 |----------|----------|------|
 | RuleMatchEvidence | test_evidence_contains_rule_name_and_delta | 证据链完整性 |
 | ConfidenceResult | test_evaluate_movie_with_year | score + evidences + needs_review |
+
+---
+
+## Rename 模块测试映射（Safety Core Round 1）
+
+> 日期：2026-06-08
+> 验证：cargo test 111/111 PASS, clippy PASS
+
+### F-004 重命名预览 → T-RUST-005 → 单元测试映射
+
+| 需求 ID | 模块 | 测试用例 | 覆盖场景 |
+|---------|------|----------|----------|
+| F-004-01 | template | test_render_movie_template | 电影模板渲染 |
+| F-004-01 | template | test_render_series_template | 剧集模板渲染 |
+| F-004-01 | template | test_render_anime_template | 动漫模板渲染 |
+| F-004-01 | template | test_render_special_template | 特别篇模板渲染 |
+| F-004-01 | template | test_render_empty_fields | 空字段处理 |
+| F-004-01 | template | test_render_unknown_variables | 未知变量保持原样 |
+| F-004-01 | template | test_get_default_template_movie | 默认电影模板 |
+| F-004-01 | template | test_get_default_template_series | 默认剧集模板 |
+| F-004-01 | template | test_get_default_template_anime | 默认动漫模板 |
+| F-004-01 | template | test_get_default_template_extras | 默认 Extras 模板 |
+| F-004-01 | template | test_render_idempotency | 幂等性 |
+| F-004-01 | template | test_render_illegal_chars_sanitization | 非法字符处理 |
+| F-004-08 | preview_generator | test_generate_low_confidence_marks_manual_review | 低置信度标记人工确认 |
+| F-004-10 | preview_generator | test_generate_conflict_items_marked | 冲突项标记 |
+
+### F-006 冲突检测 → T-RUST-005 → 单元测试映射
+
+| 需求 ID | 模块 | 测试用例 | 覆盖场景 |
+|---------|------|----------|----------|
+| F-006-01 | conflict_detector | test_detect_target_exists | 目标路径已存在 |
+| F-006-02 | conflict_detector | test_detect_duplicate_target | 多源指向同一目标 |
+| F-006-02 | conflict_detector | test_detect_case_conflict | 大小写冲突 |
+| F-006-03 | conflict_detector | test_detect_path_too_long | 路径过长 |
+| F-006-06 | conflict_detector | test_detect_source_not_found | 源文件不存在 |
+| F-006-07 | conflict_detector | test_has_blocking_conflicts | 阻塞冲突判断 |
+| F-006-07 | conflict_detector | test_detect_multi_conflict_aggregation | 多冲突聚合 |
+| F-006-09 | conflict_detector | test_detect_no_conflict | 无冲突 |
+
+### F-007 安全执行 → T-RUST-005 → 单元测试映射
+
+| 需求 ID | 模块 | 测试用例 | 覆盖场景 |
+|---------|------|----------|----------|
+| F-007-01 | safety_checker | test_check_all_safe_items | 默认 dry-run |
+| F-007-04 | safety_checker | test_check_all_safe_items_pass | 安全项通过 |
+| F-007-05 | safety_checker | test_check_all_low_confidence_blocks | 低置信度阻塞 |
+| F-007-06 | safety_checker | test_check_all_conflict_blocks | 冲突阻塞 |
+| F-007-04 | safety_checker | test_check_all_manual_review_blocks | 人工确认阻塞 |
+| F-007-04 | safety_checker | test_check_all_invalid_chars_blocks | 非法字符阻塞 |
+| F-007-04 | safety_checker | test_check_all_path_too_long_blocks | 路径过长阻塞 |
+| F-007-04 | safety_checker | test_check_single_safe | 单项检查通过 |
+| F-007-04 | safety_checker | test_check_single_low_confidence | 单项低置信度 |
+
+### 预览生成测试映射
+
+| 需求 ID | 模块 | 测试用例 | 覆盖场景 |
+|---------|------|----------|----------|
+| F-004-01 | preview_generator | test_generate_movie_preview | 电影预览 |
+| F-004-01 | preview_generator | test_generate_series_preview | 剧集预览 |
+| F-004-01 | preview_generator | test_generate_anime_preview | 动漫预览 |
+| F-004-01 | preview_generator | test_generate_special_preview | 特别篇预览 |
+| F-004-01 | preview_generator | test_generate_with_default_template | 默认模板预览 |
+| F-004-01 | preview_generator | test_sanitize_proposed_name | 文件名清理 |
+
+### 新增领域对象测试映射（Safety Core Round 1）
+
+| 领域对象 | 测试用例 | 说明 |
+|----------|----------|------|
+| RenameConflict | test_detect_target_exists | conflict_type + source_path + target_path + blocking |
+| MetadataSource | test_render_movie_template | LocalRule 来源 |
+| SafetyReport | test_check_all_safe_items | can_execute + dry_run + checks + blocking_reasons |
+| SafetyCheck | test_check_single_safe | name + passed + message |
 
 ---
 

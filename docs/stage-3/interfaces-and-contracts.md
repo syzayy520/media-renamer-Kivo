@@ -293,22 +293,65 @@ pub const DEFAULT_CONFIDENCE_THRESHOLD: u8 = 70
 ### 2.3 rename 模块
 
 ```rust
-// rename/template.rs
+// rename/template.rs - 领域对象 + 模板渲染
+pub enum MetadataSource { LocalRule, Tmdb, Manual }
+
+pub struct RenameConflict {
+    pub conflict_type: ConflictType,
+    pub source_path: String,
+    pub target_path: String,
+    pub message: String,
+    pub blocking: bool,
+}
+
+pub struct RenamePreviewItem {
+    pub id: String,
+    pub parsed_info: ParsedMediaInfo,
+    pub source_path: String,
+    pub original_name: String,
+    pub proposed_name: String,
+    pub target_path: String,
+    pub media_type: MediaType,
+    pub confidence: u8,
+    pub needs_manual_review: bool,
+    pub should_skip: bool,
+    pub conflicts: Vec<RenameConflict>,
+    pub evidence: Vec<RuleMatchEvidence>,
+    pub metadata_source: MetadataSource,
+}
+
 pub fn render(info: &ParsedMediaInfo, template: &str) -> String
 pub fn get_default_template(media_type: &MediaType) -> &str
 
-// rename/conflict_detector.rs
-pub fn detect_conflicts(preview_items: &[RenamePreviewItem]) -> Vec<Conflict>
+// rename/conflict_detector.rs - 冲突检测
+pub fn detect_conflicts(preview_items: &[RenamePreviewItem]) -> Vec<RenameConflict>
+pub fn has_blocking_conflicts(conflicts: &[RenameConflict]) -> bool
 
-// rename/safety_checker.rs
+// rename/safety_checker.rs - 安全检查
+pub struct SafetyReport {
+    pub can_execute: bool,
+    pub dry_run: bool,
+    pub checks: Vec<SafetyCheck>,
+    pub blocking_reasons: Vec<String>,
+}
+
+pub struct SafetyCheck {
+    pub name: String,
+    pub passed: bool,
+    pub message: String,
+}
+
 pub fn check_all(preview_items: &[RenamePreviewItem]) -> SafetyReport
+pub fn check_single(item: &RenamePreviewItem) -> Vec<SafetyCheck>
 
-// rename/executor.rs
+// rename/preview_generator.rs - 预览生成
+pub fn generate(parsed_items: &[ParsedMediaInfo], template_str: &str) -> Vec<RenamePreviewItem>
+pub fn generate_with_default_template(parsed_items: &[ParsedMediaInfo]) -> Vec<RenamePreviewItem>
+pub fn sanitize_proposed_name(name: &str) -> String
+
+// rename/executor.rs - 待实现
 pub fn execute_single(item: &RenamePreviewItem) -> RenameResult
 pub fn execute_batch(items: &[RenamePreviewItem], app_handle: &AppHandle) -> Vec<RenameResult>
-
-// rename/preview_generator.rs
-pub fn generate(parsed_items: &[ParsedMediaInfo], template: &str) -> Vec<RenamePreviewItem>
 ```
 
 ### 2.4 rollback 模块

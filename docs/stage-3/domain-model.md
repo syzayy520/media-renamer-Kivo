@@ -159,6 +159,67 @@
 
 ---
 
+### 13. RenameConflict
+
+**含义**：重命名冲突（带路径和阻塞标记）
+
+| 字段 | 类型 | 可空 | 说明 |
+|------|------|:----:|------|
+| conflict_type | ConflictType | 否 | 冲突类型 |
+| source_path | String | 否 | 源路径 |
+| target_path | String | 否 | 目标路径 |
+| message | String | 否 | 冲突描述 |
+| blocking | bool | 否 | 是否阻塞执行 |
+
+**所属功能族**：rename/conflict_detector.rs
+
+---
+
+### 14. MetadataSource
+
+**含义**：元数据来源
+
+| 值 | 说明 |
+|------|------|
+| LocalRule | 本地规则解析 |
+| Tmdb | TMDb API |
+| Manual | 手动输入 |
+
+**所属功能族**：rename/template.rs
+
+---
+
+### 15. SafetyReport
+
+**含义**：安全检查报告
+
+| 字段 | 类型 | 可空 | 说明 |
+|------|------|:----:|------|
+| can_execute | bool | 否 | 是否可以执行 |
+| dry_run | bool | 否 | 是否为预演模式（默认 true） |
+| checks | Vec\<SafetyCheck\> | 否 | 检查结果列表 |
+| blocking_reasons | Vec\<String\> | 否 | 阻塞原因列表 |
+
+**所属功能族**：rename/safety_checker.rs
+
+---
+
+### 16. SafetyCheck
+
+**含义**：单项安全检查结果
+
+| 字段 | 类型 | 可空 | 说明 |
+|------|------|:----:|------|
+| name | String | 否 | 检查名称 |
+| passed | bool | 否 | 是否通过 |
+| message | String | 否 | 消息 |
+
+**检查项**：confidence, manual_review, conflicts, invalid_chars, path_length, skipped
+
+**所属功能族**：rename/safety_checker.rs
+
+---
+
 ### 8. RollbackRecord
 
 **含义**：回滚记录

@@ -318,16 +318,27 @@ T-PKG-* 在所有功能完成后执行
 | 优先级 | P0 |
 | 预估 | 12h |
 | 依赖 | T-RUST-001, T-RUST-002, T-RUST-004 |
+| 状态 | **Safety Core Round 1 完成** ✅ (executor 待实现) |
 
 **子任务**：
-1. template.rs: 模板渲染，变量替换
-2. conflict_detector.rs: 6 种冲突检测
-3. safety_checker.rs: 10 项安全检查
-4. preview_generator.rs: 预览生成
-5. executor.rs: 批量执行 + 进度推送
-6. 单元测试
+1. ✅ template.rs: 模板渲染 + RenamePreviewItem/RenameConflict/MetadataSource 领域对象（12 个测试通过）
+2. ✅ conflict_detector.rs: 6 种冲突检测 + has_blocking_conflicts（8 个测试通过）
+3. ✅ safety_checker.rs: 置信度/人工确认/冲突/非法字符/路径长度检查（9 个测试通过）
+4. ✅ preview_generator.rs: 预览生成 + 默认模板 + sanitize（8 个测试通过）
+5. 待后续阶段：executor.rs: 批量执行 + 进度推送
+6. ✅ 单元测试：37 个新增测试全部通过
 
-**验收**：模板渲染正确，冲突检测正确，安全检查通过，批量执行正确
+**验证结果**（2026-06-08）：
+- `cargo test`: 111/111 PASS (74 baseline + 37 rename)
+- `cargo clippy --all-targets -- -D warnings`: 通过
+- `cargo fmt --check`: 通过
+
+**关键实现**：
+- render() 支持 20+ 变量替换，自动清理空括号和多余空格
+- 冲突检测：TargetExists/DuplicateTarget/CaseConflict/PathTooLong/InvalidChars/SourceNotFound
+- SafetyReport 包含 can_execute, dry_run, checks, blocking_reasons
+- preview_generator 串联 template → confidence → conflict_detector 完整预览链
+- 本轮为 Safety Core Round 1，不执行真实文件改名
 
 ---
 
@@ -582,7 +593,18 @@ T-PKG-* 在所有功能完成后执行
 | special_parser.rs | 9 | ✅ 全通过 |
 | confidence.rs | 8 | ✅ 全通过 |
 | classifier.rs | 15 | ✅ 全通过 |
-| **合计** | **53** | **✅** |
+| **parse 合计** | **53** | **✅** |
+
+**rename 模块测试进度**（2026-06-08 Safety Core Round 1）：
+| 文件 | 测试数 | 状态 |
+|------|--------|------|
+| template.rs | 12 | ✅ 全通过 |
+| conflict_detector.rs | 8 | ✅ 全通过 |
+| safety_checker.rs | 9 | ✅ 全通过 |
+| preview_generator.rs | 8 | ✅ 全通过 |
+| **rename 合计** | **37** | **✅** |
+
+**总测试数**：111/111 PASS (74 baseline + 37 rename)
 
 ---
 
