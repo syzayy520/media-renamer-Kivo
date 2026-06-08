@@ -1,23 +1,45 @@
-// features/safety/page/SafetyPage 模块 - 安全检查页面 placeholder
-// 职责：占位页面，后续实现安全检查报告
+// features/safety/page/SafetyPage.tsx — 安全检查页面
+// 职责：展示 SafetyReport、阻塞原因、预览统计
 
-import { Card, CardTitle, CardDescription } from '../../../shared/ui/Card';
+import { useScanStore } from '../../scan/state/scanStore';
+import { SafetyEmptyState } from '../components/SafetyEmptyState';
+import { SafetyOverview } from '../components/SafetyOverview';
+import { BlockingReasonsList } from '../components/BlockingReasonsList';
+import { SafetyCheckList } from '../components/SafetyCheckList';
+import { RiskSummary } from '../components/RiskSummary';
+import { SafetyPreviewBreakdown } from '../components/SafetyPreviewBreakdown';
 
 export function SafetyPage() {
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardTitle>安全检查</CardTitle>
-        <CardDescription>
-          查看安全检查结果：置信度、冲突检测、人工审核需求。
-        </CardDescription>
-      </Card>
+  const result = useScanStore((s) => s.result);
 
-      <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-        <p className="text-sm text-amber-400">
-          当前仅为 Dry-run Preview，不会真实修改媒体文件。
+  if (!result) {
+    return <SafetyEmptyState />;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* 标题 + Dry-run 安全说明 */}
+      <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+        <h2 className="mb-1 text-lg font-semibold">安全检查</h2>
+        <p className="text-sm text-white/50">
+          当前仅展示安全检查结果，不会真实修改媒体文件。
         </p>
       </div>
+
+      {/* 风险摘要 */}
+      <RiskSummary canExecute={result.safety.can_execute} />
+
+      {/* 概览统计 */}
+      <SafetyOverview result={result} />
+
+      {/* 阻塞原因 */}
+      <BlockingReasonsList safety={result.safety} />
+
+      {/* 检查项列表 */}
+      <SafetyCheckList result={result} />
+
+      {/* 预览项分类 */}
+      <SafetyPreviewBreakdown result={result} />
     </div>
   );
 }
