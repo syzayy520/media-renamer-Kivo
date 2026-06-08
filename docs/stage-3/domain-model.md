@@ -246,7 +246,7 @@
 | DryRun | 预演模式（默认），不修改文件，返回模拟结果 |
 | Confirmed | 确认模式，必须通过安全检查，执行真实文件改名 |
 
-**所属功能族**：rename/executor.rs
+**所属功能族**：rename/execution/execution_mode.rs
 
 ---
 
@@ -277,7 +277,7 @@
 | status | RollbackStatus | 否 | 回滚状态 |
 | error | Option\<String\> | 是 | 错误信息 |
 
-**所属功能族**：rollback/rollback_executor.rs
+**所属功能族**：rollback/executor/rollback_entry.rs
 
 ---
 

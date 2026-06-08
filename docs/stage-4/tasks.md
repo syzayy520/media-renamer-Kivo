@@ -325,11 +325,14 @@ T-PKG-* 在所有功能完成后执行
 2. ✅ conflict_detector.rs: 6 种冲突检测 + has_blocking_conflicts（8 个测试通过）
 3. ✅ safety_checker.rs: 置信度/人工确认/冲突/非法字符/路径长度检查（9 个测试通过）
 4. ✅ preview_generator.rs: 预览生成 + 默认模板 + sanitize（8 个测试通过）
-5. ✅ executor.rs: DryRun/Confirmed 执行模式 + 安全检查 + 审计记录（8 个测试通过）
-6. ✅ 单元测试：45 个新增测试全部通过
+5. ✅ execution/execution_mode.rs: ExecutionMode 枚举 (DryRun/Confirmed)（3 个测试通过）
+6. ✅ execution/single_rename.rs: 单文件重命名执行（0 个测试）
+7. ✅ execution/execution_summary.rs: ExecutionSummary + summarize()（3 个测试通过）
+8. ✅ execution/executor_core.rs: execute() 主函数 + 安全检查 + 审计记录（8 个测试通过）
+9. ✅ 单元测试：14 个 execution 子模块测试全部通过
 
 **验证结果**（2026-06-08 Safety Core Round 3）：
-- `cargo test`: 163/163 PASS (140 baseline + 23 rename executor + rollback)
+- `cargo test`: 188/188 PASS
 - `cargo clippy --all-targets -- -D warnings`: 通过
 - `cargo fmt --check`: 通过
 
@@ -338,7 +341,8 @@ T-PKG-* 在所有功能完成后执行
 - 冲突检测：TargetExists/DuplicateTarget/CaseConflict/PathTooLong/InvalidChars/SourceNotFound
 - SafetyReport 包含 can_execute, dry_run, checks, blocking_reasons
 - preview_generator 串联 template → confidence → conflict_detector 完整预览链
-- executor.rs 实现 DryRun/Confirmed 双模式，Confirmed 模式必须通过安全检查
+- execution/ 拆分为 4 个子模块：execution_mode, single_rename, execution_summary, executor_core
+- executor_core.rs 串联 mode → safety_check → single_rename → audit 完整执行链
 - 执行结果自动写入 audit rename_result，失败写入失败原因
 
 ---
@@ -394,19 +398,22 @@ T-PKG-* 在所有功能完成后执行
 
 **子任务**：
 1. ✅ state_checker.rs: 回滚可行性检测（afterPath 存在 + beforePath 不被占用）（7 个测试通过）
-2. ✅ rollback_executor.rs: 逐文件回滚 + 冲突暂停 + 审计记录（8 个测试通过）
-3. ✅ 单元测试：15 个新增测试全部通过
+2. ✅ executor/rollback_entry.rs: RollbackEntry/RollbackStatus/RollbackSummary + summarize_rollback()（4 个测试通过）
+3. ✅ executor/rollback_core.rs: rollback_task() 主函数 + 逐文件回滚 + 审计记录（8 个测试通过）
+4. ✅ 单元测试：12 个 executor 子模块测试全部通过
 
 **验收**：回滚前置检查正确，回滚执行正确，冲突时暂停报告
 
 **验证结果**（2026-06-08 Safety Core Round 3）：
-- `cargo test`: 163/163 PASS (140 baseline + 23 rollback)
+- `cargo test`: 188/188 PASS
 - `cargo clippy --all-targets -- -D warnings`: 通过
 - `cargo fmt --check`: 通过
 
 **关键实现**：
 - state_checker.rs 检查 afterPath 存在性 + beforePath 不被占用 + 任务状态允许
-- rollback_executor.rs 逐文件回滚，失败记录 RollbackStatus::Failed，成功写审计日志
+- executor/ 拆分为 2 个子模块：rollback_entry, rollback_core
+- rollback_entry.rs 定义 RollbackEntry、RollbackStatus (Success/Failed/Blocked)、RollbackSummary
+- rollback_core.rs 串联 state_check → rollback_single → audit 完整回滚链
 - RollbackReport 包含 can_rollback, rollbackable_results, blocked_results, blocking_reasons
 - 幂等性：RolledBack 任务不允许再次回滚
 
@@ -654,16 +661,20 @@ T-PKG-* 在所有功能完成后执行
 **rename executor 测试进度**（2026-06-08 Safety Core Round 3）：
 | 文件 | 测试数 | 状态 |
 |------|--------|------|
-| executor.rs | 8 | ✅ 全通过 |
+| execution/execution_mode.rs | 3 | ✅ 全通过 |
+| execution/execution_summary.rs | 3 | ✅ 全通过 |
+| execution/executor_core.rs | 8 | ✅ 全通过 |
+| **execution 合计** | **14** | **✅** |
 
 **rollback 测试进度**（2026-06-08 Safety Core Round 3）：
 | 文件 | 测试数 | 状态 |
 |------|--------|------|
 | state_checker.rs | 7 | ✅ 全通过 |
-| rollback_executor.rs | 8 | ✅ 全通过 |
-| **rollback 合计** | **15** | **✅** |
+| executor/rollback_entry.rs | 4 | ✅ 全通过 |
+| executor/rollback_core.rs | 8 | ✅ 全通过 |
+| **rollback 合计** | **19** | **✅** |
 
-**总测试数**：178/178 PASS (原 163 + 15 个 audit/db 子模块新增测试)
+**总测试数**：188/188 PASS
 
 ---
 

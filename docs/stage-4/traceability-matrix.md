@@ -258,8 +258,8 @@
 | Rust 单测 | config/user_settings | T-TEST-001 | |
 | Rust 单测 | scan | T-TEST-001 | |
 | Rust 单测 | parse (53 tests) | T-TEST-001 | ✅ 已完成 |
-| Rust 单测 | rename (45 tests) | T-TEST-001 | ✅ 已完成 |
-| Rust 单测 | rollback (15 tests) | T-TEST-001 | ✅ 已完成 |
+| Rust 单测 | rename (51 tests) | T-TEST-001 | ✅ 已完成 |
+| Rust 单测 | rollback (19 tests) | T-TEST-001 | ✅ 已完成 |
 | Rust 单测 | audit (44 tests) | T-TEST-001 | ✅ 已完成 |
 | Rust 单测 | metadata | T-TEST-001 |
 | Rust 单测 | metadata/provider | T-TEST-001 |
@@ -471,20 +471,20 @@
 ## Executor 模块测试映射（Safety Core Round 3）
 
 > 日期：2026-06-08
-> 验证：cargo test 163/163 PASS, clippy PASS
+> 验证：cargo test 188/188 PASS, clippy PASS
 
-### F-007 安全执行 → T-RUST-005 → executor.rs 单元测试映射
+### F-007 安全执行 → T-RUST-005 → execution/ 单元测试映射
 
 | 需求 ID | 模块 | 测试用例 | 覆盖场景 |
 |---------|------|----------|----------|
-| F-007-01 | executor | test_dry_run_does_not_modify_files | DryRun 模式不修改文件 |
-| F-007-01 | executor | test_confirmed_rename_success | Confirmed 模式成功改名 |
-| F-007-10 | executor | test_source_not_found_fails | 源文件不存在失败 |
-| F-007-10 | executor | test_target_already_exists_fails | 目标已存在失败 |
-| F-007-06 | executor | test_conflict_item_blocked | 冲突项阻断执行 |
-| F-007-05 | executor | test_low_confidence_blocks_confirmed_mode | 低置信度阻断 Confirmed 模式 |
-| F-008-02 | executor | test_audit_result_recorded | 审计结果记录 |
-| F-007-10 | executor | test_partial_failure_aggregation | 部分失败聚合 |
+| F-007-01 | executor_core | test_dry_run_does_not_modify_files | DryRun 模式不修改文件 |
+| F-007-01 | executor_core | test_confirmed_rename_success | Confirmed 模式成功改名 |
+| F-007-10 | executor_core | test_source_not_found_fails | 源文件不存在失败 |
+| F-007-10 | executor_core | test_target_already_exists_fails | 目标已存在失败 |
+| F-007-06 | executor_core | test_conflict_item_blocked | 冲突项阻断执行 |
+| F-007-05 | executor_core | test_low_confidence_blocks_confirmed_mode | 低置信度阻断 Confirmed 模式 |
+| F-008-02 | executor_core | test_audit_result_recorded | 审计结果记录 |
+| F-007-10 | executor_core | test_partial_failure_aggregation | 部分失败聚合 |
 
 ### 新增领域对象测试映射（Safety Core Round 3 - Executor）
 
@@ -492,13 +492,19 @@
 |----------|----------|------|
 | ExecutionMode | test_dry_run_does_not_modify_files | DryRun 默认模式 |
 | ExecutionMode | test_confirmed_rename_success | Confirmed 确认模式 |
+| ExecutionMode | test_default_is_dry_run | 默认值验证 |
+| ExecutionMode | test_mode_equality | 模式相等性 |
+| ExecutionMode | test_mode_clone | 模式克隆 |
+| ExecutionSummary | test_summarize_all_success | 全成功汇总 |
+| ExecutionSummary | test_summarize_mixed | 混合结果汇总 |
+| ExecutionSummary | test_summarize_empty | 空结果汇总 |
 
 ---
 
 ## Rollback 模块测试映射（Safety Core Round 3）
 
 > 日期：2026-06-08
-> 验证：cargo test 163/163 PASS, clippy PASS
+> 验证：cargo test 188/188 PASS, clippy PASS
 
 ### F-009 任务回滚 → T-RUST-007 → 单元测试映射
 
@@ -511,14 +517,14 @@
 | F-009-06 | state_checker | test_partial_rollbackable | 部分可回滚 |
 | F-009-01 | state_checker | test_no_results_not_rollbackable | 无结果不可回滚 |
 | F-009-01 | state_checker | test_can_rollback_single | 单项回滚检查 |
-| F-009-01 | rollback_executor | test_single_file_rollback_success | 单文件回滚成功 |
-| F-009-01 | rollback_executor | test_multi_file_rollback_success | 多文件回滚成功 |
-| F-009-05 | rollback_executor | test_partial_failure_recorded | 部分失败记录 |
-| F-009-04 | rollback_executor | test_beforepath_occupied_blocks | beforePath 被占用阻断 |
-| F-009-03 | rollback_executor | test_afterpath_missing_blocks | afterPath 不存在阻断 |
-| F-009-07 | rollback_executor | test_rollback_writes_audit_log | 回滚写审计日志 |
-| F-009-09 | rollback_executor | test_does_not_overwrite_existing_file | 不覆盖已存在文件 |
-| F-009-01 | rollback_executor | test_idempotent_already_rolled_back | 幂等性已回滚阻断 |
+| F-009-01 | rollback_core | test_single_file_rollback_success | 单文件回滚成功 |
+| F-009-01 | rollback_core | test_multi_file_rollback_success | 多文件回滚成功 |
+| F-009-05 | rollback_core | test_partial_failure_recorded | 部分失败记录 |
+| F-009-04 | rollback_core | test_beforepath_occupied_blocks | beforePath 被占用阻断 |
+| F-009-03 | rollback_core | test_afterpath_missing_blocks | afterPath 不存在阻断 |
+| F-009-07 | rollback_core | test_rollback_writes_audit_log | 回滚写审计日志 |
+| F-009-09 | rollback_core | test_does_not_overwrite_existing_file | 不覆盖已存在文件 |
+| F-009-01 | rollback_core | test_idempotent_already_rolled_back | 幂等性已回滚阻断 |
 
 ### 新增领域对象测试映射（Safety Core Round 3 - Rollback）
 
@@ -528,6 +534,10 @@
 | RollbackStatus | test_single_file_rollback_success | Success 状态 |
 | RollbackStatus | test_partial_failure_recorded | Failed 状态 |
 | RollbackStatus | test_beforepath_occupied_blocks | Blocked 状态 |
+| RollbackStatus | test_rollback_status_equality | 枚举相等性 |
+| RollbackSummary | test_summarize_all_success | 全成功汇总 |
+| RollbackSummary | test_summarize_mixed | 混合结果汇总 |
+| RollbackSummary | test_summarize_empty | 空结果汇总 |
 
 ---
 

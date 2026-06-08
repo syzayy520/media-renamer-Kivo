@@ -349,9 +349,22 @@ pub fn generate(parsed_items: &[ParsedMediaInfo], template_str: &str) -> Vec<Ren
 pub fn generate_with_default_template(parsed_items: &[ParsedMediaInfo]) -> Vec<RenamePreviewItem>
 pub fn sanitize_proposed_name(name: &str) -> String
 
-// rename/executor.rs - Controlled Rename Execution
+// rename/execution/ - Controlled Rename Execution（子功能族）
+
+// rename/execution/execution_mode.rs
 pub enum ExecutionMode { DryRun, Confirmed }
 
+// rename/execution/single_rename.rs
+pub fn execute_single_rename(
+    source_path: &str,
+    target_path: &str,
+) -> AppResult<()>
+
+// rename/execution/execution_summary.rs
+pub struct ExecutionSummary { pub total, pub success, pub failed, pub skipped }
+pub fn summarize(results: &[RenameResult]) -> ExecutionSummary
+
+// rename/execution/executor_core.rs
 pub fn execute(
     conn: &Connection,
     task_id: &str,
@@ -359,12 +372,11 @@ pub fn execute(
     mode: ExecutionMode,
 ) -> AppResult<Vec<RenameResult>>
 
-pub fn execute_single_rename(
-    source_path: &str,
-    target_path: &str,
-) -> AppResult<()>
-
-pub fn summarize(results: &[RenameResult]) -> ExecutionSummary
+// rename/execution/mod.rs - re-export hub
+pub use execution_mode::ExecutionMode;
+pub use execution_summary::{summarize, ExecutionSummary};
+pub use executor_core::execute;
+pub use single_rename::execute_single_rename;
 ```
 
 ### 2.4 rollback 模块
@@ -387,7 +399,9 @@ pub fn check_rollback(results: &[RenameResult]) -> RollbackReport
 pub fn can_rollback_single(result: &RenameResult) -> Result<(), String>
 pub fn is_task_rollbackable(task_status: &TaskStatus) -> bool
 
-// rollback/rollback_executor.rs - 回滚执行
+// rollback/executor/ - 回滚执行（子功能族）
+
+// rollback/executor/rollback_entry.rs
 pub enum RollbackStatus {
     Success,
     Failed,
@@ -402,15 +416,25 @@ pub struct RollbackEntry {
     pub error: Option<String>,
 }
 
+pub struct RollbackSummary {
+    pub total: u32,
+    pub success: u32,
+    pub failed: u32,
+    pub blocked: u32,
+}
+
+pub fn summarize_rollback(entries: &[RollbackEntry]) -> RollbackSummary
+
+// rollback/executor/rollback_core.rs
 pub fn rollback_task(
     conn: &Connection,
     task_id: &str,
     results: &[RenameResult],
 ) -> AppResult<Vec<RollbackEntry>>
 
-pub fn rollback_single(
-    result: &RenameResult,
-) -> AppResult<RollbackEntry>
+// rollback/executor/mod.rs - re-export hub
+pub use rollback_core::rollback_task;
+pub use rollback_entry::{summarize_rollback, RollbackEntry, RollbackStatus, RollbackSummary};
 ```
 
 ### 2.5 audit 模块

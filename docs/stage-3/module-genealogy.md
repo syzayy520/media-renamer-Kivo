@@ -63,7 +63,7 @@
 | 冲突检测 | conflict_detector.rs | 检测目标存在/重复目标/大小写冲突/路径过长/非法字符 | shared/path_utils | 8 |
 | 安全检查 | safety_checker.rs | 置信度/人工确认/冲突/非法字符/路径长度检查 | conflict_detector | 9 |
 | 预览 | preview_generator.rs | 从 ParsedMediaInfo 生成预览项 + 冲突标记 | template + conflict_detector + confidence | 8 |
-| 执行器 | executor.rs | DryRun/Confirmed 执行模式 + 安全检查 + 审计记录 | safety_checker, conflict_detector, audit/db | 8 |
+| 执行 | execution/ | DryRun/Confirmed 执行模式 + 安全检查 + 审计记录 | safety_checker, conflict_detector, audit/db | 14 |
 
 **架构说明**：
 - template.rs 承载 RenamePreviewItem、RenameConflict、MetadataSource 领域对象定义
@@ -74,12 +74,44 @@
 - preview_generator.rs 串联 template → confidence → conflict_detector 完整预览链
 - 本轮为 Safety Core Round 1，不执行真实文件改名
 
+#### 执行功能族 (rename/execution/)
+
+| 子族 | 文件 | 职责 | 依赖 | 测试数 |
+|------|------|------|------|:------:|
+| 模式 | execution_mode.rs | ExecutionMode 枚举 (DryRun/Confirmed) | 无 | 3 |
+| 单文件执行 | single_rename.rs | 单文件重命名执行 | shared/result_types | 0 |
+| 执行摘要 | execution_summary.rs | ExecutionSummary 结构体 + summarize() | 无 | 3 |
+| 执行核心 | executor_core.rs | execute() 主函数 + 安全检查 + 审计记录 | execution_mode, single_rename, safety_checker, audit/db | 8 |
+| 薄入口 | mod.rs | re-export hub（无业务逻辑） | 子模块 | 0 |
+
+**架构说明**：
+- execution/ 采用整树家谱模式，4 个文件各负一责
+- execution_mode.rs 定义 ExecutionMode 枚举（DryRun 默认 / Confirmed 需安全检查）
+- single_rename.rs 只负责单文件改名操作（fs::rename）
+- execution_summary.rs 负责汇总执行结果
+- executor_core.rs 串联 mode → safety_check → single_rename → audit 完整执行链
+- mod.rs 为 re-export hub，下游模块无需修改 import
+
 ### 回滚功能族 (rollback/)
 
 | 子族 | 文件 | 职责 | 依赖 | 测试数 |
 |------|------|------|------|:------:|
-| 执行器 | rollback_executor.rs | 执行回滚 + 审计记录 | audit/logger, audit/db | 8 |
+| 执行 | executor/ | 执行回滚 + 审计记录 | audit/logger, audit/db | 12 |
 | 状态检查 | state_checker.rs | 回滚可行性检测（afterPath 存在 + beforePath 不被占用） | audit/db | 7 |
+
+#### 执行功能族 (rollback/executor/)
+
+| 子族 | 文件 | 职责 | 依赖 | 测试数 |
+|------|------|------|------|:------:|
+| 回滚入口 | rollback_entry.rs | RollbackEntry/RollbackStatus/RollbackSummary + summarize_rollback() | 无 | 4 |
+| 回滚核心 | rollback_core.rs | rollback_task() 主函数 + 逐文件回滚 + 审计记录 | rollback_entry, audit/db | 8 |
+| 薄入口 | mod.rs | re-export hub（无业务逻辑） | 子模块 | 0 |
+
+**架构说明**：
+- executor/ 采用整树家谱模式，2 个文件各负一责
+- rollback_entry.rs 定义 RollbackEntry、RollbackStatus (Success/Failed/Blocked)、RollbackSummary
+- rollback_core.rs 串联 state_check → rollback_single → audit 完整回滚链
+- mod.rs 为 re-export hub，下游模块无需修改 import
 
 ### 审计功能族 (audit/)
 
@@ -165,8 +197,8 @@ shared/ (path_utils, result_types)
 |------|:--------:|------|
 | scan/mod.rs | ≤30 | pub use scanner, file_detector, progress |
 | parse/mod.rs | ≤30 | pub use 各解析器, confidence, classifier |
-| rename/mod.rs | ≤30 | pub use template, conflict_detector, etc. |
-| rollback/mod.rs | ≤30 | pub use rollback_executor, state_checker |
+| rename/mod.rs | ≤30 | pub use template, conflict_detector, execution, etc. |
+| rollback/mod.rs | ≤30 | pub use executor, state_checker |
 | audit/mod.rs | ≤30 | pub use db, redaction, logger, exporter |
 | config/mod.rs | ≤30 | pub use template_manager, threshold, secret, user_settings |
 | config/secret/mod.rs | ≤30 | pub use api_key_store, redaction |

@@ -1,0 +1,14 @@
+// rename/execution 子模块 - 重命名执行功能族
+// 职责：受控重命名执行
+// mod.rs 只做 registry / alias / re-export
+
+pub mod execution_mode;
+pub mod execution_summary;
+pub mod executor_core;
+pub mod single_rename;
+
+// 重新导出常用类型，保持向后兼容
+pub use execution_mode::ExecutionMode;
+pub use execution_summary::{summarize, ExecutionSummary};
+pub use executor_core::execute;
+pub use single_rename::execute_single_rename;
