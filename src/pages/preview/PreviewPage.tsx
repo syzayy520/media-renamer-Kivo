@@ -52,8 +52,8 @@ export function PreviewPage() {
   const selectedCount = selectedItems.size;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="w-full px-4 py-8">
+      <div className="w-full max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-text-primary">

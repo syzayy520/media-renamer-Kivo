@@ -12,16 +12,16 @@ export function Navigation() {
   ];
 
   return (
-    <nav className="bg-bg-secondary border-b border-text-secondary/20">
-      <div className="container mx-auto px-4">
+    <nav className="w-full bg-bg-secondary border-b border-text-secondary/20">
+      <div className="w-full px-4">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="text-xl font-bold text-accent">
+          <div className="flex items-center shrink-0">
+            <Link to="/" className="text-xl font-bold text-accent whitespace-nowrap">
               Media Renamer
             </Link>
           </div>
           
-          <div className="flex space-x-4">
+          <div className="flex space-x-4 shrink-0">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -30,7 +30,7 @@ export function Navigation() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                     isActive
                       ? 'bg-accent/20 text-accent'
                       : 'text-text-secondary hover:text-text-primary hover:bg-bg-card'

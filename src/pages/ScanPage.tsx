@@ -30,8 +30,8 @@ export function ScanPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto">
+    <div className="w-full px-4 py-8">
+      <div className="w-full max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-text-primary mb-8">
           媒体文件重命名
         </h1>
