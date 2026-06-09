@@ -91,6 +91,74 @@ mod tests {
     fn test_parse_media_type_invalid() {
         assert!(parse_media_type("invalid").is_err());
     }
+
+    // === TMDb API Key command handler unit tests ===
+
+    #[test]
+    fn test_do_get_tmdb_api_key_status_default_not_configured() {
+        let dir = tempfile::tempdir().unwrap();
+        let status = do_get_tmdb_api_key_status(dir.path()).unwrap();
+        assert!(!status.configured);
+    }
+
+    #[test]
+    fn test_do_set_tmdb_api_key_status_configured_true() {
+        let dir = tempfile::tempdir().unwrap();
+        let status = do_set_tmdb_api_key(dir.path(), "test-key-u8-001").unwrap();
+        assert!(status.configured);
+    }
+
+    #[test]
+    fn test_do_get_after_set_configured_true() {
+        let dir = tempfile::tempdir().unwrap();
+        do_set_tmdb_api_key(dir.path(), "test-key-u8-002").unwrap();
+        let status = do_get_tmdb_api_key_status(dir.path()).unwrap();
+        assert!(status.configured);
+    }
+
+    #[test]
+    fn test_do_clear_tmdb_api_key_status_configured_false() {
+        let dir = tempfile::tempdir().unwrap();
+        do_set_tmdb_api_key(dir.path(), "test-key-u8-003").unwrap();
+        let status = do_clear_tmdb_api_key(dir.path()).unwrap();
+        assert!(!status.configured);
+    }
+
+    #[test]
+    fn test_do_get_after_clear_configured_false() {
+        let dir = tempfile::tempdir().unwrap();
+        do_set_tmdb_api_key(dir.path(), "test-key-u8-004").unwrap();
+        do_clear_tmdb_api_key(dir.path()).unwrap();
+        let status = do_get_tmdb_api_key_status(dir.path()).unwrap();
+        assert!(!status.configured);
+    }
+
+    #[test]
+    fn test_do_set_tmdb_api_key_empty_returns_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = do_set_tmdb_api_key(dir.path(), "");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("cannot be empty"));
+    }
+
+    #[test]
+    fn test_do_set_tmdb_api_key_whitespace_only_returns_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = do_set_tmdb_api_key(dir.path(), "   ");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tmdb_api_key_status_serialization_no_plaintext() {
+        let status = TmdbApiKeyStatus { configured: true };
+        let json = serde_json::to_string(&status).unwrap();
+        assert_eq!(json, r#"{"configured":true}"#);
+
+        let status_false = TmdbApiKeyStatus { configured: false };
+        let json_false = serde_json::to_string(&status_false).unwrap();
+        assert_eq!(json_false, r#"{"configured":false}"#);
+    }
 }
 
 /// TMDb API Key 状态响应
@@ -99,14 +167,36 @@ pub struct TmdbApiKeyStatus {
     pub configured: bool,
 }
 
-/// 获取 TMDb API Key 状态（不返回明文）
-#[tauri::command]
-pub fn get_tmdb_api_key_status(app_handle: tauri::AppHandle) -> Result<TmdbApiKeyStatus, String> {
-    let dir = config_dir(&app_handle);
-    let key = api_key_store::get_api_key("tmdb", &dir).map_err(|e| e.to_string())?;
+// === TMDb API Key internal handlers (testable without AppHandle) ===
+
+fn do_get_tmdb_api_key_status(config_dir: &std::path::Path) -> Result<TmdbApiKeyStatus, String> {
+    let key = api_key_store::get_api_key("tmdb", config_dir).map_err(|e| e.to_string())?;
     Ok(TmdbApiKeyStatus {
         configured: key.is_some(),
     })
+}
+
+fn do_set_tmdb_api_key(
+    config_dir: &std::path::Path,
+    api_key: &str,
+) -> Result<TmdbApiKeyStatus, String> {
+    let trimmed = api_key.trim();
+    if trimmed.is_empty() {
+        return Err("API key cannot be empty".to_string());
+    }
+    api_key_store::save_api_key("tmdb", trimmed, config_dir).map_err(|e| e.to_string())?;
+    Ok(TmdbApiKeyStatus { configured: true })
+}
+
+fn do_clear_tmdb_api_key(config_dir: &std::path::Path) -> Result<TmdbApiKeyStatus, String> {
+    api_key_store::delete_api_key("tmdb", config_dir).map_err(|e| e.to_string())?;
+    Ok(TmdbApiKeyStatus { configured: false })
+}
+
+/// 获取 TMDb API Key 状态（不返回明文）
+#[tauri::command]
+pub fn get_tmdb_api_key_status(app_handle: tauri::AppHandle) -> Result<TmdbApiKeyStatus, String> {
+    do_get_tmdb_api_key_status(&config_dir(&app_handle))
 }
 
 /// 设置 TMDb API Key
@@ -115,19 +205,11 @@ pub fn set_tmdb_api_key(
     app_handle: tauri::AppHandle,
     api_key: String,
 ) -> Result<TmdbApiKeyStatus, String> {
-    let trimmed = api_key.trim();
-    if trimmed.is_empty() {
-        return Err("API key cannot be empty".to_string());
-    }
-    let dir = config_dir(&app_handle);
-    api_key_store::save_api_key("tmdb", trimmed, &dir).map_err(|e| e.to_string())?;
-    Ok(TmdbApiKeyStatus { configured: true })
+    do_set_tmdb_api_key(&config_dir(&app_handle), &api_key)
 }
 
 /// 清除 TMDb API Key
 #[tauri::command]
 pub fn clear_tmdb_api_key(app_handle: tauri::AppHandle) -> Result<TmdbApiKeyStatus, String> {
-    let dir = config_dir(&app_handle);
-    api_key_store::delete_api_key("tmdb", &dir).map_err(|e| e.to_string())?;
-    Ok(TmdbApiKeyStatus { configured: false })
+    do_clear_tmdb_api_key(&config_dir(&app_handle))
 }
