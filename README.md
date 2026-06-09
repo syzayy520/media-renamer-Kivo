@@ -1,73 +1,136 @@
-# React + TypeScript + Vite
+# Media Renamer Kivo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A dry-run media file renamer built with React + TypeScript + Rust/Tauri.
 
-Currently, two official plugins are available:
+## Current Status
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**Version**: Dry-run MVP
+**Branch**: `ui-redesign-dry-run-mvp`
+**Status**: UI redesign complete, automation polish complete, PR ready
 
-## React Compiler
+### Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Scan**: Select a directory and scan for media files (movies, series, anime, etc.)
+- **Preview**: View rename previews with search/filter, hover for full paths
+- **Safety**: View safety report, blocking reasons, conflict/needs-review classification
+- **Audit**: View task list, task details, and audit logs (read-only)
+- **Settings**: Configure rename templates, confidence threshold, TMDb API key
 
-## Expanding the ESLint configuration
+### Important: Dry-run Only
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+This is a **dry-run MVP**. It does NOT perform real file renames or rollbacks.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| Feature | Status |
+|---------|--------|
+| Scan and preview | ✅ Active |
+| Safety checks | ✅ Active |
+| Audit logs | ✅ Read-only |
+| Settings / templates | ✅ Active |
+| TMDb API key storage | ✅ Active (secure, no network calls) |
+| Real rename | ❌ Deferred |
+| Rollback | ❌ Deferred |
+| Rename / Execute / Rollback buttons | ❌ Not exposed |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### TMDb API Key
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Stored securely, never displayed in plaintext
+- Input uses `type="password"`
+- No network calls to TMDb are made
+- Configuration only — no API key is ever leaked
+
+## Development
+
+### Prerequisites
+
+- Node.js 18+
+- Rust 1.70+
+- Tauri CLI
+
+### Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server with Tauri window
+npm run tauri dev
+
+# Build frontend
+npm run build
+
+# Type check
+npx tsc --noEmit
+
+# Lint
+npm run lint
+
+# Rust tests
+cd src-tauri && cargo test
+
+# Rust format check
+cd src-tauri && cargo fmt --check
+
+# Rust clippy
+cd src-tauri && cargo clippy --all-targets -- -D warnings
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Test Results
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+cargo test: 315 tests PASS
+npm run build: PASS
+npx tsc --noEmit: PASS
+npm run lint: PASS
+```
+
+## Architecture
+
+### Frontend (React + TypeScript)
+
+```
+src/
+├── app/              # App shell, router, layout
+│   └── shell/        # TopBar, Sidebar
+├── api/              # Tauri command wrappers
+│   ├── session/      # start_rename_session
+│   ├── config/       # templates, threshold, API key
+│   └── audit/        # tasks, audit logs
+├── features/         # Feature modules
+│   ├── scan/         # Scan page
+│   ├── preview/      # Preview page
+│   ├── safety/       # Safety page
+│   ├── audit/        # Audit page
+│   └── settings/     # Settings page
+└── shared/           # Shared utilities
+    ├── ui/           # Visual primitives (Badge)
+    └── time/         # Time formatting
+```
+
+### Backend (Rust + Tauri)
+
+```
+src-tauri/src/
+├── commands/         # Tauri command layer
+├── config/           # Configuration (templates, threshold, API key)
+├── scan/             # File scanning
+├── parse/            # Filename parsing
+├── pipeline/         # Scan → Parse → Preview pipeline
+├── session/          # Session management
+├── audit/            # Audit logging
+├── rename/           # Rename logic (deferred from UI)
+├── rollback/         # Rollback logic (deferred from UI)
+└── shared/           # Shared types and utilities
+```
+
+## Safety Boundaries
+
+- No real file renames or rollbacks
+- No `execute_rename` or `rollback_task` command wrappers
+- No Rename / Execute / Rollback buttons in UI
+- No network calls to TMDb
+- API key never displayed in plaintext
+- All destructive actions are DEFERRED
+
+## License
+
+MIT
