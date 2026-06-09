@@ -220,7 +220,10 @@ fn test_tmdb_api_key_status_no_plaintext() {
 
     // 脱敏测试：mask 函数不返回完整明文
     let masked = api_key_store::mask_api_key("secret_key_not_leaked");
-    assert!(!masked.contains("secret_key_not_leaked"), "masked should not contain full key");
+    assert!(
+        !masked.contains("secret_key_not_leaked"),
+        "masked should not contain full key"
+    );
 }
 
 /// 测试：空 key 保存不应该泄漏信息

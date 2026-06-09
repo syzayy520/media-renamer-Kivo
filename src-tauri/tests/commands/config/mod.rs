@@ -2,3 +2,4 @@
 // 职责：注册 config contract tests
 
 pub mod config_contract_tests;
+pub mod tmdb_api_key_contract_tests;
