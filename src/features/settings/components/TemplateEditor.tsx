@@ -28,7 +28,11 @@ export function TemplateEditor({ rule, onSave }: TemplateEditorProps) {
 
   const handleSave = async () => {
     const key = rule.media_type.toLowerCase();
-    await onSave(key, value);
+    try {
+      await onSave(key, value);
+    } catch {
+      // error handled by parent via SettingsSaveStatus
+    }
   };
 
   return (

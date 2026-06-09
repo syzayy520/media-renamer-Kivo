@@ -55,6 +55,7 @@ function StatCard({
   value: string | number;
   variant?: 'success' | 'warning' | 'info' | 'danger';
 }) {
+  const v = variant ?? 'info';
   const colorClasses: Record<string, string> = {
     success: 'text-emerald-400',
     warning: 'text-amber-400',
@@ -64,7 +65,7 @@ function StatCard({
 
   return (
     <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-      <div className={`text-xl font-bold ${colorClasses[variant]}`}>
+      <div className={`text-xl font-bold ${colorClasses[v] ?? colorClasses.info}`}>
         {value}
       </div>
       <div className="mt-1 text-xs text-white/50">{label}</div>

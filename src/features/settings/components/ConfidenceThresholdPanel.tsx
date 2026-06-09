@@ -16,7 +16,11 @@ export function ConfidenceThresholdPanel({
   const isDirty = threshold !== value;
 
   const handleSave = async () => {
-    await onSave(threshold);
+    try {
+      await onSave(threshold);
+    } catch {
+      // error handled by parent via SettingsSaveStatus
+    }
   };
 
   return (
