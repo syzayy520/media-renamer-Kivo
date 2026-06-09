@@ -15,3 +15,21 @@ export { RenameSafetyNotice } from './rename-preview/RenameSafetyNotice';
 export { DryRunActionBar } from './action-bar/DryRunActionBar';
 export { DryRunActionButton } from './action-bar/DryRunActionButton';
 export { DryRunActionStatus } from './action-bar/DryRunActionStatus';
+
+// 状态管理
+export { useWorkbenchSelectionStore } from './state/workbenchSelectionStore';
+export {
+  useHasAnySelection,
+  useHasPreviewSelection,
+  useHasCandidateSelection,
+  useHasAppliedCandidate,
+  useSelectionSummary,
+} from './state/workbenchSelectionSelectors';
+
+// 类型定义
+export type {
+  WorkbenchSelectionState,
+  WorkbenchSelectionActions,
+  WorkbenchSelectionStore,
+  SelectionSummary,
+} from './types/selection';

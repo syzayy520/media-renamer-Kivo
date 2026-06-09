@@ -1,7 +1,10 @@
 // features/preview-workbench/rename-preview/RenamePreviewPanel.tsx — 右栏重命名预览面板
 // 职责：只读展示 scanStore 中的 preview item 详情，不执行 rename
+// 集成选择状态：根据 selectedPreviewId 查找对应 preview item
 
+import { useMemo } from 'react';
 import { useScanStore } from '../../scan/state/scanStore';
+import { useWorkbenchSelectionStore } from '../state/workbenchSelectionStore';
 import type { RenamePreviewItem } from '../../../api/session/types';
 import { RenamePreviewEmptyState } from './RenamePreviewEmptyState';
 import { RenamePathPreview } from './RenamePathPreview';
@@ -9,10 +12,17 @@ import { RenameSafetyNotice } from './RenameSafetyNotice';
 
 export function RenamePreviewPanel() {
   const result = useScanStore((s: { result: { previews: RenamePreviewItem[] } | null }) => s.result);
+  const selectedPreviewId = useWorkbenchSelectionStore((s) => s.selectedPreviewId);
 
-  // 当前只展示第一项（后续票 P2-007 接入跨面板选中状态）
-  const previewItem = result?.previews?.[0] ?? null;
+  // 根据 selectedPreviewId 查找对应的 preview item
+  const previewItem = useMemo(() => {
+    if (!result?.previews || !selectedPreviewId) {
+      return null;
+    }
+    return result.previews.find((item) => item.id === selectedPreviewId) ?? null;
+  }, [result, selectedPreviewId]);
 
+  // 如果没有选中预览项，显示空状态
   if (!previewItem) {
     return <RenamePreviewEmptyState />;
   }

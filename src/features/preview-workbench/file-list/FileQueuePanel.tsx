@@ -1,8 +1,9 @@
 // features/preview-workbench/file-list/FileQueuePanel.tsx — 左栏文件队列面板
-// 职责：只读展示 scanStore 中的 preview items，允许本地选择
+// 职责：只读展示 scanStore 中的 preview items，集成全局选择状态
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useScanStore } from '../../scan/state/scanStore';
+import { useWorkbenchSelectionStore } from '../state/workbenchSelectionStore';
 import type { PipelineResult, RenamePreviewItem } from '../../../api/session/types';
 import { FileQueueItem } from './FileQueueItem';
 import { FileQueueEmptyState } from './FileQueueEmptyState';
@@ -15,7 +16,8 @@ interface ScanStoreResultSlice {
 
 export function FileQueuePanel() {
   const result = useScanStore((s: ScanStoreResultSlice) => s.result);
-  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const selectedPreviewId = useWorkbenchSelectionStore((s) => s.selectedPreviewId);
+  const selectPreview = useWorkbenchSelectionStore((s) => s.selectPreview);
 
   // 从 scanStore 读取 preview items
   const previewItems: RenamePreviewItem[] = useMemo(() => result?.previews ?? [], [result]);
@@ -65,8 +67,8 @@ export function FileQueuePanel() {
           <FileQueueItem
             key={item.id}
             item={item}
-            isSelected={selectedFileId === item.id}
-            onSelect={() => setSelectedFileId(item.id)}
+            isSelected={selectedPreviewId === item.id}
+            onSelect={() => selectPreview(item.id)}
           />
         ))}
       </div>
