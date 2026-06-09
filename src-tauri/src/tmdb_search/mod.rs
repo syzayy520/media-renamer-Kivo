@@ -6,6 +6,7 @@ mod validation;
 mod request;
 mod response;
 mod mapping;
+pub mod transport;
 pub mod tests;
 
 pub use validation::search_input_validator::{validate_search_input, ValidatedTmdbSearchInput};
@@ -16,3 +17,4 @@ pub use response::tmdb_search_result::TmdbSearchResult;
 pub use mapping::candidate_mapper::{map_to_candidate, map_to_candidates};
 pub use mapping::error_mapper::{map_http_error, HttpErrorResponse, api_key_missing_error, timeout_error, network_connection_error};
 pub use mapping::rate_limit_mapper::{map_rate_limit, HttpRateLimitResponse, is_rate_limited, seconds_until_reset};
+pub use transport::{TmdbTransport, MockTmdbTransport};

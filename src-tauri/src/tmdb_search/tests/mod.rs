@@ -19,3 +19,6 @@ mod error_mapper_tests;
 
 #[cfg(test)]
 mod rate_limit_mapper_tests;
+
+#[cfg(test)]
+mod mock_transport_tests;
