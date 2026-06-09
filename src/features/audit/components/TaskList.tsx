@@ -3,6 +3,7 @@
 
 import type { RenameTask } from '../../../api/audit/types';
 import { AuditStatusBadge } from './AuditStatusBadge';
+import { formatTaskTime } from '../../../shared/ui/formatTime';
 
 interface TaskListProps {
   tasks: RenameTask[];
@@ -57,7 +58,7 @@ export function TaskList({ tasks, selectedTaskId, onSelect }: TaskListProps) {
                 {task.total_files}
               </td>
               <td className="whitespace-nowrap px-4 py-2 text-xs text-white/30">
-                {formatTime(task.created_at)}
+                {formatTaskTime(task.created_at)}
               </td>
             </tr>
           ))}
@@ -65,17 +66,4 @@ export function TaskList({ tasks, selectedTaskId, onSelect }: TaskListProps) {
       </table>
     </div>
   );
-}
-
-function formatTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso.slice(0, 16);
-  }
 }

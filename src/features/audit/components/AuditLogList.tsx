@@ -2,6 +2,7 @@
 // 职责：展示选中任务的审计日志
 
 import type { AuditLogEntry } from '../../../api/audit/types';
+import { formatTime } from '../../../shared/ui/formatTime';
 
 interface AuditLogListProps {
   logs: AuditLogEntry[];
@@ -49,14 +50,3 @@ export function AuditLogList({ logs }: AuditLogListProps) {
   );
 }
 
-function formatTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  } catch {
-    return iso.slice(11, 19);
-  }
-}
