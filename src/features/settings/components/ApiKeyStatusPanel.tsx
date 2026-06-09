@@ -93,6 +93,7 @@ export function ApiKeyStatusPanel({ onStatusChange }: ApiKeyStatusPanelProps) {
       <div className="mb-3 flex gap-2">
         <input
           type="password"
+          aria-label="TMDb API Key"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="输入新的 TMDb API Key"

@@ -30,6 +30,7 @@ export function PreviewToolbar({
       <div className="flex items-center gap-3">
         <input
           type="text"
+          aria-label="搜索文件名"
           value={searchText}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="搜索原文件名或新文件名..."

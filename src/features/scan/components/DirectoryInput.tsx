@@ -11,6 +11,7 @@ export function DirectoryInput({ value, onChange }: DirectoryInputProps) {
     <div className="flex gap-3">
       <input
         type="text"
+        aria-label="媒体文件目录路径"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="D:\Media\Anime 或 /Users/me/Movies"

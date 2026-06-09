@@ -38,6 +38,7 @@ export function TemplateEditor({ rule, onSave }: TemplateEditorProps) {
       <div className="flex gap-2">
         <input
           type="text"
+          aria-label="模板内容"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           className="min-w-0 flex-1 rounded border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-white outline-none transition-colors focus:border-blue-500/50"

@@ -44,6 +44,7 @@ export function ConfidenceThresholdPanel({
       <div className="mt-3 flex items-center gap-4">
         <input
           type="range"
+          aria-label="置信度阈值"
           min={0}
           max={100}
           value={threshold}
