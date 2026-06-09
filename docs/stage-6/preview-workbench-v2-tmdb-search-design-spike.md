@@ -85,46 +85,59 @@ interface SearchTmdbCandidatesInput {
 ```
 
 ### 输出草案
+
+#### SearchTmdbCandidatesOutput
 ```typescript
 interface SearchTmdbCandidatesOutput {
   /** 候选列表 */
   candidates: TmdbCandidate[];
-  /** 数据来源标识 */
+  /** 数据来源标识，固定为 'tmdb' */
   source: 'tmdb';
   /** 速率限制状态（如果可用） */
   rate_limit?: RateLimitState;
   /** 结构化错误（如果有） */
   error?: TmdbSearchError;
 }
+```
 
+#### TmdbCandidate
+```typescript
 interface TmdbCandidate {
-  /** TMDb ID */
+  /** TMDb 唯一标识符 */
   id: number;
   /** 标题（电影名/剧集名） */
   title: string;
-  /** 原始标题 */
+  /** 原始标题（可能为外语） */
   original_title: string;
   /** 发布年份 */
   year: number;
-  /** 媒体类型 */
+  /** 媒体类型：'Movie' 或 'Tv' */
   media_type: 'Movie' | 'Tv';
-  /** 概述（截断） */
+  /** 概述（截断至 500 字符） */
   overview: string;
-  /** 海报路径（相对路径） */
+  /** 海报路径（相对路径，可拼接为完整 URL） */
   poster_path: string | null;
-  /** 评分 */
+  /** TMDb 评分（0-10） */
   vote_average: number;
-  /** 匹配置信度（由后端计算） */
+  /** 匹配置信度（0-100，由后端计算） */
   confidence: number;
 }
+```
 
+#### RateLimitState
+```typescript
 interface RateLimitState {
   /** 剩余请求次数 */
   remaining: number;
-  /** 重置时间（Unix 时间戳） */
+  /** 重置时间（Unix 时间戳，秒） */
   reset_at: number;
+  /** 总请求限制（可选） */
+  limit?: number;
 }
+```
 
+#### TmdbSearchError
+```typescript
 interface TmdbSearchError {
   /** 错误代码 */
   code: 'API_KEY_MISSING' | 'API_KEY_INVALID' | 'RATE_LIMITED' | 'TIMEOUT' | 'NETWORK_ERROR' | 'UNKNOWN';
@@ -132,7 +145,47 @@ interface TmdbSearchError {
   message: string;
   /** 是否可重试 */
   retryable: boolean;
+  /** 重试等待时间（秒，如果可重试） */
+  retry_after?: number;
 }
+```
+
+#### 示例响应
+```typescript
+// 成功响应示例
+const successResponse: SearchTmdbCandidatesOutput = {
+  candidates: [
+    {
+      id: 550,
+      title: "Fight Club",
+      original_title: "Fight Club",
+      year: 1999,
+      media_type: "Movie",
+      overview: "A ticking-Loss of a insomniac office worker...",
+      poster_path: "/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
+      vote_average: 8.4,
+      confidence: 95
+    }
+  ],
+  source: "tmdb",
+  rate_limit: {
+    remaining: 39,
+    reset_at: 1625097600,
+    limit: 40
+  }
+};
+
+// 错误响应示例
+const errorResponse: SearchTmdbCandidatesOutput = {
+  candidates: [],
+  source: "tmdb",
+  error: {
+    code: "RATE_LIMITED",
+    message: "API rate limit exceeded",
+    retryable: true,
+    retry_after: 10
+  }
+};
 ```
 
 ### 设计原则
@@ -157,26 +210,99 @@ interface TmdbSearchError {
   ```typescript
   interface CandidateSearchState {
     // 搜索状态
+    /** 是否正在搜索 */
     isSearching: boolean;
+    /** 当前搜索查询 */
     searchQuery: string;
+    /** 当前搜索媒体类型 */
     searchMediaType: 'Movie' | 'Tv';
+    /** 当前搜索语言 */
     searchLanguage: string;
     
     // 结果状态
+    /** 搜索结果候选列表 */
     candidates: TmdbCandidate[];
+    /** 当前错误（如果有） */
     error: TmdbSearchError | null;
+    /** 速率限制状态 */
     rateLimit: RateLimitState | null;
     
     // 分页状态
+    /** 当前页码 */
     currentPage: number;
+    /** 总页数 */
     totalPages: number;
     
+    // 关联状态
+    /** 最后搜索的预览项 ID（用于关联搜索结果与文件） */
+    lastSearchPreviewId: string | null;
+    /** 最后更新时间（ISO 字符串） */
+    lastUpdatedAt: string | null;
+    
     // 操作
+    /** 执行搜索 */
     search: (input: SearchTmdbCandidatesInput) => Promise<void>;
+    /** 清空搜索结果 */
     clearResults: () => void;
+    /** 清空错误状态 */
     clearError: () => void;
+    /** 重置整个搜索状态 */
+    reset: () => void;
   }
   ```
+
+#### 状态转换示例
+```typescript
+// 初始状态
+const initialState: CandidateSearchState = {
+  isSearching: false,
+  searchQuery: '',
+  searchMediaType: 'Movie',
+  searchLanguage: 'zh-CN',
+  candidates: [],
+  error: null,
+  rateLimit: null,
+  currentPage: 1,
+  totalPages: 0,
+  lastSearchPreviewId: null,
+  lastUpdatedAt: null,
+  search: async () => {},
+  clearResults: () => {},
+  clearError: () => {},
+  reset: () => {}
+};
+
+// 搜索中状态
+const searchingState: CandidateSearchState = {
+  ...initialState,
+  isSearching: true,
+  searchQuery: 'Fight Club',
+  lastUpdatedAt: new Date().toISOString()
+};
+
+// 搜索成功状态
+const successState: CandidateSearchState = {
+  ...searchingState,
+  isSearching: false,
+  candidates: [/* TmdbCandidate 数组 */],
+  currentPage: 1,
+  totalPages: 1,
+  lastSearchPreviewId: 'preview-123',
+  rateLimit: { remaining: 39, reset_at: 1625097600 }
+};
+
+// 搜索失败状态
+const errorState: CandidateSearchState = {
+  ...searchingState,
+  isSearching: false,
+  error: {
+    code: 'RATE_LIMITED',
+    message: 'API rate limit exceeded',
+    retryable: true,
+    retry_after: 10
+  }
+};
+```
 
 ### 数据安全
 - **不保存 API key**
