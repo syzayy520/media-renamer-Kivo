@@ -24,7 +24,7 @@
 | # | Command | 功能族 | 只读 | 写配置 | 触发媒体文件变更 | 前端推荐使用场景 |
 |---|---------|--------|------|--------|-----------------|-----------------|
 | 1 | `start_rename_session` | session | ❌ | ❌ | ❌ (dry-run only) | 扫描目录并生成重命名预览 |
-| 2 | `get_app_config` | config | ✅ | ❌ | ❌ | 首屏加载配置 |
+| 2 | `get_app_config` | config | ✅ | ❌ | ❌ | 首屏加载配置（Batch 4 移除 active UX 调用；仍 exposed 供未来使用） |
 | 3 | `get_all_templates` | config | ✅ | ❌ | ❌ | 展示模板列表 |
 | 4 | `set_template` | config | ❌ | ✅ | ❌ | 修改重命名模板 |
 | 5 | `get_confidence_threshold` | config | ✅ | ❌ | ❌ | 获取置信度阈值 |
@@ -203,6 +203,8 @@ interface ScanSummary {
 ## 4. Config Commands Contract
 
 ### get_app_config
+
+> **注意**: 该 command 仍 exposed 于 backend，但 UI Settings 页面已不再主动调用（移除于 Batch 4 `883c6b0`）。如需恢复使用，AppConfig contract 定义仍然有效。
 
 ```typescript
 // 无输入参数
