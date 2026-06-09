@@ -27,7 +27,7 @@ export interface ScanSummary {
 // ===== Rename Preview =====
 
 export interface RenameConflict {
-  conflict_type: string;
+  conflict_type: 'TargetExists' | 'DuplicateTarget' | 'PathTooLong' | 'InvalidChars' | 'PermissionDenied' | 'SourceNotFound';
   source_path: string;
   target_path: string;
   message: string;
