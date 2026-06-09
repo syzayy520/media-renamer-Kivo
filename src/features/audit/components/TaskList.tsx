@@ -34,8 +34,17 @@ export function TaskList({ tasks, selectedTaskId, onSelect }: TaskListProps) {
           {tasks.map((task) => (
             <tr
               key={task.id}
+              tabIndex={0}
+              role="button"
+              aria-current={selectedTaskId === task.id ? 'true' : undefined}
               onClick={() => onSelect(task.id)}
-              className={`cursor-pointer border-b border-white/5 transition-colors hover:bg-white/[0.02] ${
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelect(task.id);
+                }
+              }}
+              className={`cursor-pointer border-b border-white/5 outline-none transition-colors hover:bg-white/[0.02] focus-visible:ring-1 focus-visible:ring-blue-500/50 ${
                 selectedTaskId === task.id ? 'bg-blue-600/10' : ''
               }`}
             >
