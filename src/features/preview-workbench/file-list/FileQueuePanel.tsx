@@ -2,17 +2,23 @@
 // 职责：只读展示 scanStore 中的 preview items，允许本地选择
 
 import { useMemo, useState } from 'react';
-import { useScanStore } from '../../../features/scan/state/scanStore';
+import { useScanStore } from '../../scan/state/scanStore';
+import type { PipelineResult, RenamePreviewItem } from '../../../api/session/types';
 import { FileQueueItem } from './FileQueueItem';
 import { FileQueueEmptyState } from './FileQueueEmptyState';
 
+// 本地类型：描述从 scanStore 读取的 result 字段
+// 不直接导入 ScanState（未导出），只描述所需字段
+interface ScanStoreResultSlice {
+  result: PipelineResult | null;
+}
+
 export function FileQueuePanel() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = useScanStore((s: any) => s.result);
+  const result = useScanStore((s: ScanStoreResultSlice) => s.result);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
 
   // 从 scanStore 读取 preview items
-  const previewItems = useMemo(() => result?.previews ?? [], [result]);
+  const previewItems: RenamePreviewItem[] = useMemo(() => result?.previews ?? [], [result]);
 
   // 计算统计信息
   const stats = useMemo(() => {
