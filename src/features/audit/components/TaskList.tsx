@@ -3,7 +3,7 @@
 
 import type { RenameTask } from '../../../api/audit/types';
 import { AuditStatusBadge } from './AuditStatusBadge';
-import { formatTaskTime } from '../../../shared/ui/formatTime';
+import { formatTaskTime } from '../../../shared/time/formatTime';
 
 interface TaskListProps {
   tasks: RenameTask[];

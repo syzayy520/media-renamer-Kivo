@@ -2,7 +2,7 @@
 // 职责：展示选中任务的审计日志
 
 import type { AuditLogEntry } from '../../../api/audit/types';
-import { formatTime } from '../../../shared/ui/formatTime';
+import { formatTime } from '../../../shared/time/formatTime';
 
 interface AuditLogListProps {
   logs: AuditLogEntry[];
