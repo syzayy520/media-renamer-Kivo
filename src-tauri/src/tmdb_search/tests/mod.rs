@@ -22,3 +22,6 @@ mod rate_limit_mapper_tests;
 
 #[cfg(test)]
 mod mock_transport_tests;
+
+#[cfg(test)]
+mod api_key_provider_tests;

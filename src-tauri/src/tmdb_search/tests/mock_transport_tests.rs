@@ -157,10 +157,16 @@ async fn test_multiple_paths() {
 
     let params = vec![];
 
-    let movie_result = mock.send_search_request("/search/movie", &params).await.unwrap();
+    let movie_result = mock
+        .send_search_request("/search/movie", &params)
+        .await
+        .unwrap();
     assert_eq!(movie_result, r#"{"type": "movie"}"#);
 
-    let tv_result = mock.send_search_request("/search/tv", &params).await.unwrap();
+    let tv_result = mock
+        .send_search_request("/search/tv", &params)
+        .await
+        .unwrap();
     assert_eq!(tv_result, r#"{"type": "tv"}"#);
 }
 
@@ -175,10 +181,16 @@ async fn test_multiple_mock_instances() {
 
     let params = vec![];
 
-    let result1 = mock1.send_search_request("/search/movie", &params).await.unwrap();
+    let result1 = mock1
+        .send_search_request("/search/movie", &params)
+        .await
+        .unwrap();
     assert_eq!(result1, "response1");
 
-    let result2 = mock2.send_search_request("/search/tv", &params).await.unwrap();
+    let result2 = mock2
+        .send_search_request("/search/tv", &params)
+        .await
+        .unwrap();
     assert_eq!(result2, "response2");
 
     // mock1 doesn't have /search/tv

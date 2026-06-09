@@ -2,7 +2,9 @@
 // Search Input Validator
 // 职责：验证 TMDb 搜索输入，返回验证后的结构
 
-use crate::tmdb_search_contract::{SearchTmdbCandidatesInput, TmdbSearchError, TmdbSearchErrorCode, TmdbSearchMediaType};
+use crate::tmdb_search_contract::{
+    SearchTmdbCandidatesInput, TmdbSearchError, TmdbSearchErrorCode, TmdbSearchMediaType,
+};
 
 /// 验证后的 TMDb 搜索输入
 /// 所有字段已验证，page 和 year 已规范化

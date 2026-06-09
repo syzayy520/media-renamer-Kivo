@@ -2,10 +2,10 @@
 // Request Builder Tests
 // 职责：测试搜索请求构建功能
 
-use crate::tmdb_search_contract::TmdbSearchMediaType;
-use crate::tmdb_search::validation::search_input_validator::ValidatedTmdbSearchInput;
 use crate::tmdb_search::request::search_query::build_search_query;
 use crate::tmdb_search::request::search_url::build_search_url;
+use crate::tmdb_search::validation::search_input_validator::ValidatedTmdbSearchInput;
+use crate::tmdb_search_contract::TmdbSearchMediaType;
 
 #[test]
 fn test_movie_search_path() {

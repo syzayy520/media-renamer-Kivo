@@ -2,8 +2,8 @@
 // Validation Tests
 // 职责：测试搜索输入验证功能
 
-use crate::tmdb_search_contract::{SearchTmdbCandidatesInput, TmdbSearchMediaType};
 use crate::tmdb_search::validation::search_input_validator::validate_search_input;
+use crate::tmdb_search_contract::{SearchTmdbCandidatesInput, TmdbSearchMediaType};
 
 #[test]
 fn test_query_trim_empty_returns_error() {

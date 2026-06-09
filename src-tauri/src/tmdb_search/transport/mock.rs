@@ -57,11 +57,7 @@ impl MockTmdbTransport {
     /// # Arguments
     /// * `path` - 请求路径（如 "/search/movie"）
     /// * `result` - 预设的响应结果
-    pub fn mock_response_simple(
-        &self,
-        path: &str,
-        result: Result<String, TmdbSearchError>,
-    ) {
+    pub fn mock_response_simple(&self, path: &str, result: Result<String, TmdbSearchError>) {
         let mut responses = self.responses.lock().unwrap();
         responses.insert(path.to_string(), result);
     }
@@ -89,10 +85,8 @@ impl MockTmdbTransport {
         let mut key = path.to_string();
         if !params.is_empty() {
             key.push('?');
-            let param_str: Vec<String> = params
-                .iter()
-                .map(|(k, v)| format!("{}={}", k, v))
-                .collect();
+            let param_str: Vec<String> =
+                params.iter().map(|(k, v)| format!("{}={}", k, v)).collect();
             key.push_str(&param_str.join("&"));
         }
         key

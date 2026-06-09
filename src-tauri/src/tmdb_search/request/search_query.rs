@@ -2,8 +2,8 @@
 // Search Query Builder
 // 职责：构建 TMDb 搜索查询参数
 
-use crate::tmdb_search_contract::TmdbSearchMediaType;
 use crate::tmdb_search::validation::search_input_validator::ValidatedTmdbSearchInput;
+use crate::tmdb_search_contract::TmdbSearchMediaType;
 
 /// TMDb 搜索查询参数
 /// 不包含 API key，不包含 base URL

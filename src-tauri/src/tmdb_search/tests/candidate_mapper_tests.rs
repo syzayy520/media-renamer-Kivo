@@ -61,10 +61,7 @@ fn test_tv_candidate_mapping() {
     assert_eq!(candidate.id, "tmdb-tv-456");
     assert_eq!(candidate.tmdb_id, 456);
     assert_eq!(candidate.title, "Breaking Bad");
-    assert_eq!(
-        candidate.original_title,
-        Some("Breaking Bad".to_string())
-    );
+    assert_eq!(candidate.original_title, Some("Breaking Bad".to_string()));
     assert_eq!(candidate.media_type, TmdbSearchMediaType::Tv);
     assert_eq!(candidate.release_year, Some(2008));
 }

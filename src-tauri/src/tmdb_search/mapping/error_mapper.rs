@@ -35,10 +35,7 @@ pub fn map_http_error(response: &HttpErrorResponse) -> TmdbSearchError {
         _ => TmdbSearchErrorCode::Unknown,
     };
 
-    let retryable = matches!(
-        response.status_code,
-        429 | 500..=599
-    );
+    let retryable = matches!(response.status_code, 429 | 500..=599);
 
     TmdbSearchError {
         code,

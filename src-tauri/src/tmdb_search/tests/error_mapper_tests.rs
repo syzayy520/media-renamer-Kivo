@@ -189,6 +189,10 @@ fn test_non_retryable_codes() {
             retry_after: None,
         };
         let error = map_http_error(&response);
-        assert!(!error.retryable, "Status code {} should not be retryable", code);
+        assert!(
+            !error.retryable,
+            "Status code {} should not be retryable",
+            code
+        );
     }
 }

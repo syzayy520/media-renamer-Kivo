@@ -2,8 +2,8 @@
 // TMDb Search Response DTO
 // 职责：定义 TMDb 搜索响应结构
 
-use serde::{Deserialize, Serialize};
 use crate::tmdb_search::response::tmdb_search_result::TmdbSearchResult;
+use serde::{Deserialize, Serialize};
 
 /// TMDb 搜索响应
 /// 只包含必要字段，不包含 raw JSON passthrough
