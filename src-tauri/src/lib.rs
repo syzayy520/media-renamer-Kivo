@@ -9,6 +9,7 @@ pub mod rollback;
 pub mod scan;
 pub mod session;
 pub mod shared;
+pub mod tmdb_search;
 pub mod tmdb_search_contract;
 
 use commands::{
