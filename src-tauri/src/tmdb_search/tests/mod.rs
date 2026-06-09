@@ -13,3 +13,9 @@ mod response_dto_tests;
 
 #[cfg(test)]
 mod candidate_mapper_tests;
+
+#[cfg(test)]
+mod error_mapper_tests;
+
+#[cfg(test)]
+mod rate_limit_mapper_tests;
