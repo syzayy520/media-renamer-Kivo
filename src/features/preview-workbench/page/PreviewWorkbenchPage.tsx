@@ -1,5 +1,7 @@
 // features/preview-workbench/page/PreviewWorkbenchPage.tsx — Preview Workbench v2 页面骨架
-// 职责：三栏工作台布局骨架，仅展示占位区域，不读取真实数据
+// 职责：三栏工作台布局，集成 FileQueuePanel / CandidatePanel / RenamePreviewPanel
+
+import { FileQueuePanel } from '../file-list/FileQueuePanel';
 
 export function PreviewWorkbenchPage() {
   return (
@@ -27,10 +29,7 @@ export function PreviewWorkbenchPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* 左栏：File Queue Panel */}
         <div className="w-[280px] shrink-0 border-r border-white/10 bg-black/20 p-4">
-          <div className="mb-3 text-sm font-medium text-white/60">文件队列</div>
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center text-xs text-white/30">
-            文件队列将在后续票（P2-003）接入 scanStore preview data
-          </div>
+          <FileQueuePanel />
         </div>
 
         {/* 中栏：Candidate Panel */}
