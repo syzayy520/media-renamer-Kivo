@@ -35,8 +35,8 @@ export const useSettingsPageStore = create<SettingsPageState>((set) => ({
   saveMessage: '',
 
   setConfig: (config) => set({ config }),
-  setTemplates: (templates) => set({ templates }),
-  setConfidenceThreshold: (confidenceThreshold) => set({ confidenceThreshold }),
+  setTemplates: (templates) => set({ templates, isLoading: false }),
+  setConfidenceThreshold: (confidenceThreshold) => set({ confidenceThreshold, isLoading: false }),
   setIsLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error, isLoading: false }),
   setSaveStatus: (saveStatus, saveMessage = '') =>
