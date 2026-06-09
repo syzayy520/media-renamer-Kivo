@@ -7,6 +7,19 @@ import { getAllTasks } from '../../../api/audit/getAllTasks';
 import { getTask } from '../../../api/audit/getTask';
 import { getAuditLogs } from '../../../api/audit/getAuditLogs';
 
+function toErrorMessage(err: unknown): string {
+  if (typeof err === 'string') return err;
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === 'object') {
+    const obj = err as Record<string, unknown>;
+    if (typeof obj.message === 'string') return obj.message;
+    if (typeof obj.error === 'string') return obj.error;
+    if (typeof obj.reason === 'string') return obj.reason;
+    try { return JSON.stringify(err); } catch { /* fall through */ }
+  }
+  return 'Unknown audit error';
+}
+
 interface AuditPageState {
   tasks: RenameTask[];
   selectedTaskId: string | null;
@@ -53,13 +66,13 @@ export const useAuditPageStore = create<AuditPageState>((set) => ({
       const data = await getAllTasks();
       set({ tasks: data, isLoadingTasks: false });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      set({ error: msg, isLoadingTasks: false });
+      set({ error: toErrorMessage(err), isLoadingTasks: false });
     }
   },
 
   selectTask: async (id: string) => {
-    set({ selectedTaskId: id, error: null, isLoadingLogs: true });
+    // 清空旧数据，避免 stale state
+    set({ selectedTaskId: id, selectedTask: null, logs: [], error: null, isLoadingLogs: true });
     try {
       const [task, auditLogs] = await Promise.all([
         getTask(id),
@@ -67,8 +80,7 @@ export const useAuditPageStore = create<AuditPageState>((set) => ({
       ]);
       set({ selectedTask: task, logs: auditLogs, isLoadingLogs: false });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      set({ error: msg, isLoadingLogs: false });
+      set({ error: toErrorMessage(err), isLoadingLogs: false });
     }
   },
 }));
