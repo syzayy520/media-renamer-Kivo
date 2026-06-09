@@ -11,6 +11,7 @@ import { PreviewTable } from '../components/PreviewTable';
 
 export function PreviewPage() {
   const result = useScanStore((s) => s.result);
+  const error = useScanStore((s) => s.error);
   const { searchText, setSearchText, activeFilter, setActiveFilter } =
     usePreviewFilterStore();
 
@@ -44,6 +45,23 @@ export function PreviewPage() {
 
     return items;
   }, [result, searchText, activeFilter]);
+
+  // 有错误 → 显示错误
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+          <h2 className="mb-1 text-lg font-semibold">重命名预览</h2>
+          <p className="text-sm text-white/50">
+            当前仅展示预览，不会真实修改媒体文件。
+          </p>
+        </div>
+        <div className="flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/5 p-4">
+          <p className="min-w-0 break-all text-sm text-red-400">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   // 无结果 → 空状态
   if (!result || result.previews.length === 0) {
