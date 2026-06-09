@@ -103,26 +103,43 @@ interface SearchTmdbCandidatesOutput {
 #### TmdbCandidate
 ```typescript
 interface TmdbCandidate {
-  /** TMDb 唯一标识符 */
-  id: number;
+  /** 前端候选 ID，不等于 TMDb 原始 ID */
+  id: string;
+  /** TMDb ID */
+  tmdb_id: number;
   /** 标题（电影名/剧集名） */
   title: string;
-  /** 原始标题（可能为外语） */
-  original_title: string;
-  /** 发布年份 */
-  year: number;
+  /** 原始标题（可能为外语，可选） */
+  original_title?: string;
   /** 媒体类型：'Movie' 或 'Tv' */
   media_type: 'Movie' | 'Tv';
-  /** 概述（截断至 500 字符） */
-  overview: string;
-  /** 海报路径（相对路径，可拼接为完整 URL） */
-  poster_path: string | null;
-  /** TMDb 评分（0-10） */
-  vote_average: number;
-  /** 匹配置信度（0-100，由后端计算） */
-  confidence: number;
+  /** 发布年份（可选） */
+  release_year?: number;
+  /** 概述（截断至 500 字符，可选） */
+  overview?: string;
+  /** 海报路径（相对路径，可选） */
+  poster_path?: string;
+  /** 背景图路径（相对路径，可选） */
+  backdrop_path?: string;
+  /** 语言（ISO 639-1，可选） */
+  language?: string;
+  /** 热度评分（可选） */
+  popularity?: number;
+  /** TMDb 评分（0-10，可选） */
+  vote_average?: number;
+  /** 匹配置信度（0-1，由后端计算，可选） */
+  confidence_hint?: number;
+  /** 匹配原因列表（只保存必要解释，不保存大对象） */
+  match_reasons: string[];
 }
 ```
+
+**设计说明：**
+- `id` 是前端候选 ID，不等于 TMDb 原始 ID，用于前端状态管理
+- `tmdb_id` 是 TMDb 数据库中的唯一标识符
+- 不透传完整 TMDb 原始 JSON，只提取必要字段
+- `match_reasons` 只保存必要解释，不保存大对象，例如 `['title_match', 'year_match']`
+- 所有字段都是可选的，除了 `id`、`tmdb_id`、`title`、`media_type`、`match_reasons`
 
 #### RateLimitState
 ```typescript
@@ -152,41 +169,52 @@ interface TmdbSearchError {
 
 #### 示例响应
 ```typescript
-// 成功响应示例
-const successResponse: SearchTmdbCandidatesOutput = {
+// 正常结果示例
+const successExample: SearchTmdbCandidatesOutput = {
+  source: 'tmdb',
   candidates: [
     {
-      id: 550,
-      title: "Fight Club",
-      original_title: "Fight Club",
-      year: 1999,
-      media_type: "Movie",
-      overview: "A ticking-Loss of a insomniac office worker...",
-      poster_path: "/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
-      vote_average: 8.4,
-      confidence: 95
-    }
+      id: 'tmdb-movie-12345',
+      tmdb_id: 12345,
+      title: 'Example Movie',
+      media_type: 'Movie',
+      release_year: 2024,
+      language: 'zh-CN',
+      confidence_hint: 0.86,
+      match_reasons: ['title_match', 'year_match'],
+    },
   ],
-  source: "tmdb",
   rate_limit: {
     remaining: 39,
-    reset_at: 1625097600,
-    limit: 40
-  }
+    reset_at: 1710000000,
+    limit: 40,
+  },
 };
 
-// 错误响应示例
-const errorResponse: SearchTmdbCandidatesOutput = {
+// 空结果示例（空结果不是异常）
+const emptyExample: SearchTmdbCandidatesOutput = {
+  source: 'tmdb',
   candidates: [],
-  source: "tmdb",
+};
+
+// 错误响应示例（error 只在失败状态出现）
+const errorExample: SearchTmdbCandidatesOutput = {
+  source: 'tmdb',
+  candidates: [],
   error: {
-    code: "RATE_LIMITED",
-    message: "API rate limit exceeded",
+    code: 'RATE_LIMITED',
+    message: 'API rate limit exceeded',
     retryable: true,
-    retry_after: 10
-  }
+    retry_after: 10,
+  },
 };
 ```
+
+**设计说明：**
+- 空结果不是异常，是正常状态
+- `error` 只在失败状态出现，成功时不返回
+- 不返回 API key
+- 不返回原始未清洗的大 JSON
 
 ### 设计原则
 - **不返回 API key**
@@ -206,101 +234,128 @@ const errorResponse: SearchTmdbCandidatesOutput = {
 
 ### 未来新 Store 设计
 - **未来如需要，应单独建 `candidate-search` 子状态**
+- **该状态未来属于 `candidate-search` 子功能族**
+- **不放进 `workbenchSelectionStore`**
+- **不保存 API key**
+- **不保存完整 TMDb 原始响应**
+- **不保存真实文件修改状态**
+- **不保存 rename / rollback / export 状态**
+
 - **状态结构草案：**
   ```typescript
   interface CandidateSearchState {
-    // 搜索状态
-    /** 是否正在搜索 */
-    isSearching: boolean;
-    /** 当前搜索查询 */
-    searchQuery: string;
-    /** 当前搜索媒体类型 */
-    searchMediaType: 'Movie' | 'Tv';
-    /** 当前搜索语言 */
-    searchLanguage: string;
-    
-    // 结果状态
+    /** 搜索查询字符串 */
+    query: string;
+    /** 搜索媒体类型 */
+    mediaType: 'Movie' | 'Tv';
+    /** 搜索语言 */
+    language: string;
+    /** 是否正在加载 */
+    isLoading: boolean;
     /** 搜索结果候选列表 */
     candidates: TmdbCandidate[];
     /** 当前错误（如果有） */
     error: TmdbSearchError | null;
     /** 速率限制状态 */
     rateLimit: RateLimitState | null;
-    
-    // 分页状态
-    /** 当前页码 */
-    currentPage: number;
-    /** 总页数 */
-    totalPages: number;
-    
-    // 关联状态
     /** 最后搜索的预览项 ID（用于关联搜索结果与文件） */
     lastSearchPreviewId: string | null;
-    /** 最后更新时间（ISO 字符串） */
-    lastUpdatedAt: string | null;
-    
-    // 操作
-    /** 执行搜索 */
-    search: (input: SearchTmdbCandidatesInput) => Promise<void>;
-    /** 清空搜索结果 */
-    clearResults: () => void;
-    /** 清空错误状态 */
-    clearError: () => void;
-    /** 重置整个搜索状态 */
-    reset: () => void;
+    /** 最后更新时间（Unix 时间戳，毫秒） */
+    lastUpdatedAt: number | null;
   }
   ```
+
+#### 状态转换类型定义
+```typescript
+type CandidateSearchTransition =
+  | { type: 'set_query'; query: string }
+  | { type: 'start_search'; previewId: string }
+  | { type: 'search_success'; candidates: TmdbCandidate[]; rateLimit?: RateLimitState }
+  | { type: 'search_empty'; rateLimit?: RateLimitState }
+  | { type: 'search_failed'; error: TmdbSearchError; rateLimit?: RateLimitState }
+  | { type: 'clear_for_preview_change'; nextPreviewId: string };
+```
+
+**状态转换说明：**
+- 切换 `selectedPreviewId` 时必须清理旧候选（通过 `clear_for_preview_change` 转换）
+- 搜索失败不得清空已有 dry-run preview
+- 搜索成功也不得自动 apply candidate
+- apply candidate 只影响后续 dry-run preview，不执行真实 rename
 
 #### 状态转换示例
 ```typescript
 // 初始状态
 const initialState: CandidateSearchState = {
-  isSearching: false,
-  searchQuery: '',
-  searchMediaType: 'Movie',
-  searchLanguage: 'zh-CN',
+  query: '',
+  mediaType: 'Movie',
+  language: 'zh-CN',
+  isLoading: false,
   candidates: [],
   error: null,
   rateLimit: null,
-  currentPage: 1,
-  totalPages: 0,
   lastSearchPreviewId: null,
   lastUpdatedAt: null,
-  search: async () => {},
-  clearResults: () => {},
-  clearError: () => {},
-  reset: () => {}
 };
 
-// 搜索中状态
-const searchingState: CandidateSearchState = {
+// 设置查询
+const queryState: CandidateSearchState = {
   ...initialState,
-  isSearching: true,
-  searchQuery: 'Fight Club',
-  lastUpdatedAt: new Date().toISOString()
+  query: 'Fight Club',
 };
 
-// 搜索成功状态
+// 开始搜索
+const searchingState: CandidateSearchState = {
+  ...queryState,
+  isLoading: true,
+  lastSearchPreviewId: 'preview-123',
+  lastUpdatedAt: Date.now(),
+};
+
+// 搜索成功
 const successState: CandidateSearchState = {
   ...searchingState,
-  isSearching: false,
-  candidates: [/* TmdbCandidate 数组 */],
-  currentPage: 1,
-  totalPages: 1,
-  lastSearchPreviewId: 'preview-123',
-  rateLimit: { remaining: 39, reset_at: 1625097600 }
+  isLoading: false,
+  candidates: [
+    {
+      id: 'tmdb-movie-12345',
+      tmdb_id: 12345,
+      title: 'Fight Club',
+      media_type: 'Movie',
+      release_year: 1999,
+      confidence_hint: 0.95,
+      match_reasons: ['title_match', 'year_match'],
+    },
+  ],
+  rateLimit: { remaining: 39, reset_at: 1710000000, limit: 40 },
 };
 
-// 搜索失败状态
+// 搜索空结果
+const emptyState: CandidateSearchState = {
+  ...searchingState,
+  isLoading: false,
+  candidates: [],
+  rateLimit: { remaining: 38, reset_at: 1710000000, limit: 40 },
+};
+
+// 搜索失败
 const errorState: CandidateSearchState = {
   ...searchingState,
-  isSearching: false,
+  isLoading: false,
   error: {
     code: 'RATE_LIMITED',
     message: 'API rate limit exceeded',
     retryable: true,
-    retry_after: 10
-  }
+    retry_after: 10,
+  },
+};
+
+// 切换预览项时清理旧候选
+const clearedState: CandidateSearchState = {
+  ...successState,
+  candidates: [],
+  error: null,
+  lastSearchPreviewId: 'preview-456',
+  lastUpdatedAt: Date.now(),
 };
 ```
 
@@ -372,11 +427,13 @@ src/features/preview-workbench/
    - 只更新 candidate selection，不执行 rename
    - 高亮选中的候选
    - 更新 workbenchSelectionStore.selectedCandidateId
+   - **注意：这是未来实现票中的行为，不是 P2-009 行为。P2-009 只设计，不修改 store。**
 
 8. **候选应用必须仍是 dry-run preview**
    - 应用候选只影响预览，不执行真实重命名
    - 更新 workbenchSelectionStore.appliedCandidateId
    - 重命名预览面板显示候选应用后的效果
+   - **注意：这是未来实现票中的行为，不是 P2-009 行为。P2-009 只设计，不修改 store。**
 
 ## 8. 错误与边界情况
 
