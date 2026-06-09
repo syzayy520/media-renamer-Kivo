@@ -4,3 +4,6 @@
 
 #[cfg(test)]
 mod validation_tests;
+
+#[cfg(test)]
+mod request_builder_tests;
