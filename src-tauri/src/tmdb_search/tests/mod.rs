@@ -7,3 +7,6 @@ mod validation_tests;
 
 #[cfg(test)]
 mod request_builder_tests;
+
+#[cfg(test)]
+mod response_dto_tests;
