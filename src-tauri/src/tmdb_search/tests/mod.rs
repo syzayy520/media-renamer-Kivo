@@ -10,3 +10,6 @@ mod request_builder_tests;
 
 #[cfg(test)]
 mod response_dto_tests;
+
+#[cfg(test)]
+mod candidate_mapper_tests;
