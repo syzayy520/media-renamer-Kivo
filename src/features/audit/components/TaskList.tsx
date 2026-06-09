@@ -35,8 +35,7 @@ export function TaskList({ tasks, selectedTaskId, onSelect }: TaskListProps) {
             <tr
               key={task.id}
               tabIndex={0}
-              role="button"
-              aria-current={selectedTaskId === task.id ? 'true' : undefined}
+              aria-selected={selectedTaskId === task.id}
               onClick={() => onSelect(task.id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
