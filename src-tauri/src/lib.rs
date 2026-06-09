@@ -9,6 +9,7 @@ pub mod rollback;
 pub mod scan;
 pub mod session;
 pub mod shared;
+pub mod tmdb_search_contract;
 
 use commands::{
     clear_tmdb_api_key, get_all_tasks, get_all_templates, get_app_config, get_audit_logs,
