@@ -63,8 +63,7 @@ export function SettingsPage() {
       setTemplates(updated);
       setSaveStatus('saved', `${mediaType} 模板已保存`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setSaveStatus('error', msg);
+      setSaveStatus('error', toErrorMessage(err));
     }
   };
 
@@ -76,8 +75,7 @@ export function SettingsPage() {
       setConfidenceThreshold(updated);
       setSaveStatus('saved', `阈值已更新为 ${updated}`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setSaveStatus('error', msg);
+      setSaveStatus('error', toErrorMessage(err));
     }
   };
 
