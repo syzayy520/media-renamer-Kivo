@@ -1,7 +1,8 @@
 // features/scan/state/scanStore.ts — 扫描状态管理
-// 职责：管理扫描目录路径、加载状态、PipelineResult、错误
+// 职责：管理扫描目录路径、加载状态、PipelineResult、错误、startScan action
 
 import { create } from 'zustand';
+import { startRenameSession } from '../../../api/session/startRenameSession';
 import type { PipelineResult } from '../../../api/session/types';
 
 interface ScanState {
@@ -20,9 +21,12 @@ interface ScanState {
   setError: (error: string) => void;
   clearResult: () => void;
   reset: () => void;
+
+  // 异步操作
+  startScan: () => Promise<void>;
 }
 
-export const useScanStore = create<ScanState>((set) => ({
+export const useScanStore = create<ScanState>((set, get) => ({
   directory: '',
   setDirectory: (path) => set({ directory: path, error: null }),
 
@@ -35,4 +39,18 @@ export const useScanStore = create<ScanState>((set) => ({
   setError: (error) => set({ error, isScanning: false }),
   clearResult: () => set({ result: null, error: null, isScanning: true }),
   reset: () => set({ directory: '', result: null, error: null, isScanning: false }),
+
+  startScan: async () => {
+    const { directory } = get();
+    if (!directory.trim()) return;
+    set({ result: null, error: null, isScanning: true });
+    try {
+      const data = await startRenameSession({ directory: directory.trim() });
+      set({ result: data, error: null, isScanning: false });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : String(err);
+      set({ error: message, isScanning: false });
+    }
+  },
 }));

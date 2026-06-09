@@ -2,7 +2,6 @@
 // 职责：组合扫描输入、操作、结果、安全状态、错误展示
 
 import { useScanStore } from '../state/scanStore';
-import { startRenameSession } from '../../../api/session/startRenameSession';
 import { DirectoryInput } from '../components/DirectoryInput';
 import { ScanActionPanel } from '../components/ScanActionPanel';
 import { ScanResultSummary } from '../components/ScanResultSummary';
@@ -16,23 +15,9 @@ export function ScanPage() {
     isScanning,
     error,
     result,
-    setResult,
     setError,
-    clearResult,
+    startScan,
   } = useScanStore();
-
-  const handleStartScan = async () => {
-    if (!directory.trim()) return;
-    clearResult();
-    try {
-      const data = await startRenameSession({ directory: directory.trim() });
-      setResult(data);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : String(err);
-      setError(message);
-    }
-  };
 
   const hasResult = result !== null;
   const hasError = error !== null;
@@ -60,7 +45,7 @@ export function ScanPage() {
           <ScanActionPanel
             disabled={!directory.trim()}
             isScanning={isScanning}
-            onStart={handleStartScan}
+            onStart={startScan}
           />
         </div>
       </div>
