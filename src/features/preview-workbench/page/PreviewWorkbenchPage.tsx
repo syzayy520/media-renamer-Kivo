@@ -2,6 +2,7 @@
 // 职责：三栏工作台布局，集成 FileQueuePanel / CandidatePanel / RenamePreviewPanel
 
 import { FileQueuePanel } from '../file-list/FileQueuePanel';
+import { CandidatePanel } from '../candidate-list/CandidatePanel';
 
 export function PreviewWorkbenchPage() {
   return (
@@ -9,7 +10,7 @@ export function PreviewWorkbenchPage() {
       {/* 顶部标题栏 + 实验标记 */}
       <div className="border-b border-white/10 bg-black/40 px-6 py-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold">Preview Workbench</h1>
+          <h1 className="text-lg font-semold">Preview Workbench</h1>
           <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-xs font-medium text-amber-400">
             Experimental
           </span>
@@ -34,10 +35,7 @@ export function PreviewWorkbenchPage() {
 
         {/* 中栏：Candidate Panel */}
         <div className="flex-1 border-r border-white/10 bg-black/10 p-4">
-          <div className="mb-3 text-sm font-medium text-white/60">匹配候选</div>
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center text-xs text-white/30">
-            候选匹配将在后续票（P2-004）接入本地候选 / 未来 TMDb 搜索
-          </div>
+          <CandidatePanel />
         </div>
 
         {/* 右栏：Rename Preview Panel */}
