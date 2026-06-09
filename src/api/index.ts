@@ -21,6 +21,11 @@ export {
   getConfidenceThreshold,
   setConfidenceThreshold,
 } from './config/confidenceThreshold';
+export {
+  getTmdbApiKeyStatus,
+  setTmdbApiKey,
+  clearTmdbApiKey,
+} from './config/tmdbApiKey';
 
 // Audit
 export { getTask } from './audit/getTask';

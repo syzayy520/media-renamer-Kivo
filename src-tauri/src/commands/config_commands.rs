@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use tauri::Manager;
 
 use crate::config::config_loader::{self, AppConfig};
+use crate::config::secret::api_key_store;
 use crate::config::template_manager::{self, RenameRule};
 use crate::config::threshold;
 use crate::parse::movie_parser::MediaType;
@@ -90,4 +91,43 @@ mod tests {
     fn test_parse_media_type_invalid() {
         assert!(parse_media_type("invalid").is_err());
     }
+}
+
+/// TMDb API Key 状态响应
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct TmdbApiKeyStatus {
+    pub configured: bool,
+}
+
+/// 获取 TMDb API Key 状态（不返回明文）
+#[tauri::command]
+pub fn get_tmdb_api_key_status(app_handle: tauri::AppHandle) -> Result<TmdbApiKeyStatus, String> {
+    let dir = config_dir(&app_handle);
+    let key = api_key_store::get_api_key("tmdb", &dir).map_err(|e| e.to_string())?;
+    Ok(TmdbApiKeyStatus {
+        configured: key.is_some(),
+    })
+}
+
+/// 设置 TMDb API Key
+#[tauri::command]
+pub fn set_tmdb_api_key(
+    app_handle: tauri::AppHandle,
+    api_key: String,
+) -> Result<TmdbApiKeyStatus, String> {
+    let trimmed = api_key.trim();
+    if trimmed.is_empty() {
+        return Err("API key cannot be empty".to_string());
+    }
+    let dir = config_dir(&app_handle);
+    api_key_store::save_api_key("tmdb", trimmed, &dir).map_err(|e| e.to_string())?;
+    Ok(TmdbApiKeyStatus { configured: true })
+}
+
+/// 清除 TMDb API Key
+#[tauri::command]
+pub fn clear_tmdb_api_key(app_handle: tauri::AppHandle) -> Result<TmdbApiKeyStatus, String> {
+    let dir = config_dir(&app_handle);
+    api_key_store::delete_api_key("tmdb", &dir).map_err(|e| e.to_string())?;
+    Ok(TmdbApiKeyStatus { configured: false })
 }
