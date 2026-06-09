@@ -84,7 +84,7 @@ export function AuditPage() {
             )}
           </h3>
           {isLoadingLogs ? (
-            <div className="py-6 text-center text-sm text-white/30">
+            <div className="py-8 text-center text-sm text-white/30">
               加载审计日志中...
             </div>
           ) : (
