@@ -3,13 +3,14 @@
 
 import { useState } from 'react';
 import type { RenameRule } from '../../../api/config/types';
+import type { MediaType } from '../../../api/session/types';
 
 interface TemplateEditorProps {
   rule: RenameRule;
   onSave: (mediaType: string, template: string) => Promise<void>;
 }
 
-const typeLabels: Record<string, string> = {
+const typeLabels: Record<MediaType, string> = {
   Movie: '电影',
   Series: '剧集',
   Anime: '动漫',

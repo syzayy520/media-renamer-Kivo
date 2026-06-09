@@ -1,7 +1,7 @@
 // features/preview/components/PreviewRow.tsx — 预览表格行
 // 职责：单条预览记录展示
 
-import type { RenamePreviewItem } from '../../../api/session/types';
+import type { MediaType, RenamePreviewItem } from '../../../api/session/types';
 import { PreviewStatusBadge } from './PreviewStatusBadge';
 
 interface PreviewRowProps {
@@ -15,12 +15,15 @@ function confidenceColor(value: number): string {
   return 'text-red-400';
 }
 
-const typeLabels: Record<string, string> = {
+const typeLabels: Record<MediaType, string> = {
   Movie: '电影',
   Series: '剧集',
   Anime: '动漫',
   Special: '特别篇',
   Ova: 'OVA',
+  Ncop: 'NCOP',
+  Nced: 'NCED',
+  Extras: '花絮',
   Unknown: '未知',
 };
 
