@@ -2,7 +2,6 @@
 // 职责：registry / re-export only
 
 // Types
-export type * from './shared/apiError';
 export type * from './session/types';
 export type * from './config/types';
 export type * from './audit/types';
