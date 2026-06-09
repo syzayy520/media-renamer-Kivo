@@ -3,6 +3,7 @@
 
 import { FileQueuePanel } from '../file-list/FileQueuePanel';
 import { CandidatePanel } from '../candidate-list/CandidatePanel';
+import { RenamePreviewPanel } from '../rename-preview/RenamePreviewPanel';
 
 export function PreviewWorkbenchPage() {
   return (
@@ -40,10 +41,7 @@ export function PreviewWorkbenchPage() {
 
         {/* 右栏：Rename Preview Panel */}
         <div className="w-[360px] shrink-0 bg-black/20 p-4">
-          <div className="mb-3 text-sm font-medium text-white/60">重命名预览</div>
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center text-xs text-white/30">
-            这里只展示 dry-run 预览，不执行真实重命名
-          </div>
+          <RenamePreviewPanel />
         </div>
       </div>
 
