@@ -2,10 +2,9 @@
 // 职责：管理配置加载、编辑、保存状态
 
 import { create } from 'zustand';
-import type { AppConfig, RenameRule } from '../../../api/config/types';
+import type { RenameRule } from '../../../api/config/types';
 
 interface SettingsPageState {
-  config: AppConfig | null;
   templates: RenameRule[];
   confidenceThreshold: number;
   isLoading: boolean;
@@ -13,7 +12,6 @@ interface SettingsPageState {
   saveStatus: 'idle' | 'saving' | 'saved' | 'error';
   saveMessage: string;
 
-  setConfig: (config: AppConfig) => void;
   setTemplates: (templates: RenameRule[]) => void;
   setConfidenceThreshold: (value: number) => void;
   setIsLoading: (loading: boolean) => void;
@@ -26,7 +24,6 @@ interface SettingsPageState {
 }
 
 export const useSettingsPageStore = create<SettingsPageState>((set) => ({
-  config: null,
   templates: [],
   confidenceThreshold: 70,
   isLoading: false,
@@ -34,7 +31,6 @@ export const useSettingsPageStore = create<SettingsPageState>((set) => ({
   saveStatus: 'idle',
   saveMessage: '',
 
-  setConfig: (config) => set({ config }),
   setTemplates: (templates) => set({ templates, isLoading: false }),
   setConfidenceThreshold: (confidenceThreshold) => set({ confidenceThreshold, isLoading: false }),
   setIsLoading: (loading) => set({ isLoading: loading }),

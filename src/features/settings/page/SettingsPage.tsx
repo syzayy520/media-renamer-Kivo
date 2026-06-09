@@ -4,7 +4,6 @@
 import { useEffect } from 'react';
 import { useSettingsPageStore } from '../state/settingsPageStore';
 import { toErrorMessage } from '../../../api/invoke';
-import { getAppConfig } from '../../../api/config/getAppConfig';
 import { getAllTemplates } from '../../../api/config/getAllTemplates';
 import { setTemplate } from '../../../api/config/setTemplate';
 import {
@@ -25,7 +24,6 @@ export function SettingsPage() {
     error,
     saveStatus,
     saveMessage,
-    setConfig,
     setTemplates,
     setConfidenceThreshold,
     setIsLoading,
@@ -39,12 +37,10 @@ export function SettingsPage() {
     const load = async () => {
       setIsLoading(true);
       try {
-        const [config, tpls, threshold] = await Promise.all([
-          getAppConfig(),
+        const [tpls, threshold] = await Promise.all([
           getAllTemplates(),
           getConfidenceThreshold(),
         ]);
-        setConfig(config);
         setTemplates(tpls);
         setConfidenceThreshold(threshold);
       } catch (err: unknown) {
