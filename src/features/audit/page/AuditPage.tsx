@@ -3,9 +3,6 @@
 
 import { useEffect } from 'react';
 import { useAuditPageStore } from '../state/auditPageStore';
-import { getAllTasks } from '../../../api/audit/getAllTasks';
-import { getTask } from '../../../api/audit/getTask';
-import { getAuditLogs } from '../../../api/audit/getAuditLogs';
 import { AuditEmptyState } from '../components/AuditEmptyState';
 import { AuditToolbar } from '../components/AuditToolbar';
 import { TaskList } from '../components/TaskList';
@@ -22,61 +19,16 @@ export function AuditPage() {
     isLoadingTasks,
     isLoadingLogs,
     error,
-    setTasks,
-    setSelectedTaskId,
-    setSelectedTask,
-    setLogs,
-    setIsLoadingTasks,
-    setIsLoadingLogs,
-    setError,
     clearError,
+    loadTasks,
+    selectTask,
   } = useAuditPageStore();
 
   // 首次加载任务列表
   useEffect(() => {
-    const doLoad = async () => {
-      clearError();
-      setIsLoadingTasks(true);
-      try {
-        const data = await getAllTasks();
-        setTasks(data);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        setError(msg);
-      }
-    };
-    doLoad();
+    loadTasks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const loadTasks = async () => {
-    clearError();
-    setIsLoadingTasks(true);
-    try {
-      const data = await getAllTasks();
-      setTasks(data);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
-    }
-  };
-
-  const handleSelectTask = async (id: string) => {
-    setSelectedTaskId(id);
-    clearError();
-    setIsLoadingLogs(true);
-    try {
-      const [task, auditLogs] = await Promise.all([
-        getTask(id),
-        getAuditLogs(id),
-      ]);
-      setSelectedTask(task);
-      setLogs(auditLogs);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
-    }
-  };
 
   // 无任务 → 空状态
   if (!isLoadingTasks && tasks.length === 0 && !error) {
@@ -110,7 +62,7 @@ export function AuditPage() {
         <TaskList
           tasks={tasks}
           selectedTaskId={selectedTaskId}
-          onSelect={handleSelectTask}
+          onSelect={selectTask}
         />
       )}
 
