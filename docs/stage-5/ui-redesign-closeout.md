@@ -2,7 +2,7 @@
 
 **Date**: 2026-06-09  
 **Branch**: ui-redesign-dry-run-mvp  
-**HEAD**: dc550a8 fix(frontend): resolve settings loading state  
+**HEAD**: 88c6588 test(settings): verify TMDb API key command handlers  
 
 ---
 
@@ -12,14 +12,14 @@
 |------|--------|
 | Branch | `ui-redesign-dry-run-mvp` |
 | Working Tree | ✅ Clean |
-| HEAD | `dc550a8` |
+| HEAD | `88c6588` |
 | Broken UI commits in history | ✅ NO |
 
 ---
 
 ## 2. UI Redesign Commit Chain
 
-从 `9f23bae` 后开始，共 11 个 UI Redesign commits：
+从 `9f23bae` 后开始，共 15 个 UI Redesign commits：
 
 | # | Hash | Ticket | Message |
 |---|------|--------|---------|
@@ -34,25 +34,33 @@
 | 9 | `1f41111` | UI-6 | feat(frontend): add audit record page |
 | 10 | `3935860` | UI-7 | feat(frontend): add settings page |
 | 11 | `dc550a8` | UI-7 fix | fix(frontend): resolve settings loading state |
+| 12 | `c3fe467` | closeout v1 | docs(frontend): close out dry-run MVP UI redesign |
+| 13 | `10d2cf0` | UI-8 | feat(settings): add secure TMDb API key controls |
+| 14 | `3afdfb4` | UI-8 test | test(config): add TMDb API key contract tests |
+| 15 | `7f370f0` | UI-8 test | test(config): cover TMDb API key command contracts |
+| 16 | `88c6588` | UI-8 test | test(settings): verify TMDb API key command handlers |
 
 ---
 
 ## 3. UI Ticket Closure Matrix
 
-| # | Ticket | Status | Commit | Real Window | Touch Rust | Destructive Action |
-|---|--------|--------|--------|-------------|------------|-------------------|
-| 1 | UI-1 App Shell + Routing + Window Size | CLOSED | `8f1edd4` | YES | NO | NO |
-| 2 | UI-2 TypeScript Contracts + API Wrappers | CLOSED | `d77031e` | N/A | NO | NO |
-| 3 | UI-2.1 API Contract Genealogy Split | CLOSED | `4b71c5b` | N/A | NO | NO |
-| 4 | UI-3 Scan Page Dry-run Flow | CLOSED | `6985ef1` | YES | NO | NO |
-| 5 | UI-3 Runtime Fix (error state) | CLOSED | `f0bfdb2` | YES | NO | NO |
-| 6 | UI-4 Preview Page | CLOSED | `a00122a` | YES | NO | NO |
-| 7 | UI-4 Path Visibility Fix | CLOSED | `3dee4e9` | YES | NO | NO |
-| 8 | UI-5 Safety Page | CLOSED | `ee0d881` | YES | NO | NO |
-| 9 | UI-6 Audit Page | CLOSED | `1f41111` | YES | NO | NO |
-| 10 | UI-7 Settings Page | CLOSED | `3935860` | YES | NO | NO |
-| 11 | UI-7 Loading Fix | CLOSED | `dc550a8` | YES | NO | NO |
-| 12 | UI-7 Save Smoke Check | CLOSED | — (已验证) | YES | NO | NO |
+| # | Ticket | Status | Commit | Real Window | Touch Rust | Leak Key | Rename/Rollback |
+|---|--------|--------|--------|-------------|------------|----------|----------------|
+| 1 | UI-1 App Shell + Routing + Window Size | CLOSED | `8f1edd4` | ✅ YES | ❌ NO | N/A | ❌ NO |
+| 2 | UI-2 TypeScript Contracts + API Wrappers | CLOSED | `d77031e` | N/A | ❌ NO | N/A | ❌ NO |
+| 3 | UI-2.1 API Contract Genealogy Split | CLOSED | `4b71c5b` | N/A | ❌ NO | N/A | ❌ NO |
+| 4 | UI-3 Scan Page Dry-run Flow | CLOSED | `6985ef1` | ✅ YES | ❌ NO | N/A | ❌ NO |
+| 5 | UI-3 Runtime Fix (error state) | CLOSED | `f0bfdb2` | ✅ YES | ❌ NO | N/A | ❌ NO |
+| 6 | UI-4 Preview Page | CLOSED | `a00122a` | ✅ YES | ❌ NO | N/A | ❌ NO |
+| 7 | UI-4 Path Visibility Fix | CLOSED | `3dee4e9` | ✅ YES | ❌ NO | N/A | ❌ NO |
+| 8 | UI-5 Safety Page | CLOSED | `ee0d881` | ✅ YES | ❌ NO | N/A | ❌ NO |
+| 9 | UI-6 Audit Page | CLOSED | `1f41111` | ✅ YES | ❌ NO | N/A | ❌ NO |
+| 10 | UI-7 Settings Page | CLOSED | `3935860` | ✅ YES | ❌ NO | N/A | ❌ NO |
+| 11 | UI-7 Loading Fix | CLOSED | `dc550a8` | ✅ YES | ❌ NO | N/A | ❌ NO |
+| 12 | UI-7 Save Smoke Check | CLOSED | — | ✅ YES | ❌ NO | N/A | ❌ NO |
+| 13 | UI-8 TMDb API Key Secure Settings | CLOSED | `10d2cf0` | ✅ YES | ✅ YES | ❌ NO | ❌ NO |
+| 14 | UI-8 Command Contract Tests | CLOSED | `3afdfb4` | N/A | ✅ YES | ❌ NO | ❌ NO |
+| 15 | UI-8 Command Handler Tests | CLOSED | `88c6588` | N/A | ✅ YES | ❌ NO | ❌ NO |
 
 ---
 
@@ -104,7 +112,9 @@
 | 加载 templates / threshold / app config | ✅ YES |
 | 模板可保存 | ✅ YES |
 | 阈值可保存 | ✅ YES |
-| API key 不显示明文 | ✅ YES |
+| API Key 保存 / 清除 | ✅ YES |
+| API Key 不显示明文 | ✅ YES |
+| API Key type=password，保存后清空输入框 | ✅ YES |
 | 不调用 start_rename_session | ✅ YES |
 | 不调用 execute_rename / rollback_task | ✅ YES |
 
@@ -118,7 +128,7 @@
 | Preview | none (reads scanStore) | `src/features/scan/state/scanStore.ts` |
 | Safety | none (reads scanStore) | `src/features/scan/state/scanStore.ts` |
 | Audit | `get_all_tasks`, `get_task`, `get_audit_logs` | `src/api/audit/*.ts` |
-| Settings | `get_app_config`, `get_all_templates`, `set_template`, `get_confidence_threshold`, `set_confidence_threshold` | `src/api/config/*.ts` |
+| Settings | `get_app_config`, `get_all_templates`, `set_template`, `get_confidence_threshold`, `set_confidence_threshold`, `get_tmdb_api_key_status`, `set_tmdb_api_key`, `clear_tmdb_api_key` | `src/api/config/*.ts` |
 
 ### Confirmation
 
@@ -146,11 +156,45 @@
 | execute_rename | NO | NO | NO | NO |
 | rollback_task | NO | NO | NO | NO |
 
-**注**：`execute_rename` / `rollback_task` 字符串仅出现在 API 文档注释中（标记为 DEFERRED），不存在可调用的 wrapper 或 invoke 调用。
+---
+
+## 7. TMDb API Key Security Matrix
+
+### Frontend
+
+| Item | Status |
+|------|--------|
+| 输入框 type=password | ✅ YES |
+| 保存后清空输入框 | ✅ YES |
+| 不回显明文 key | ✅ YES |
+| 不联网 | ✅ YES |
+
+### Backend
+
+| Item | Status |
+|------|--------|
+| get_tmdb_api_key_status 只返回 `configured: bool` | ✅ YES |
+| set_tmdb_api_key 返回值不含明文 | ✅ YES |
+| clear_tmdb_api_key 返回值不含明文 | ✅ YES |
+| empty key 返回错误 | ✅ YES |
+| whitespace key 返回错误 | ✅ YES |
+| error message 不含明文 key | ✅ YES |
+| 不联网 | ✅ YES |
+
+### Tests
+
+| Item | Status |
+|------|--------|
+| do_get handler test | ✅ PASS |
+| do_set handler test | ✅ PASS |
+| do_clear handler test | ✅ PASS |
+| empty/whitespace error handler test | ✅ PASS |
+| serialization no plaintext test | ✅ PASS |
+| integration contract tests | ✅ PASS |
 
 ---
 
-## 7. UI Genealogy Audit
+## 8. UI Genealogy Audit
 
 | Item | Status |
 |------|--------|
@@ -166,19 +210,22 @@
 
 ---
 
-## 8. Verification Results
+## 9. Verification Results
 
 | Check | Result |
 |-------|--------|
-| `npm run build` | ✅ PASS (83 modules) |
+| `cargo fmt --check` | ✅ PASS |
+| `cargo check` | ✅ PASS |
+| `cargo test` | ✅ **315 tests PASS** |
+| `cargo clippy --all-targets -- -D warnings` | ✅ PASS |
+| `npm run build` | ✅ PASS (84 modules) |
 | `npx tsc --noEmit` | ✅ PASS |
 | `npm run lint` | ✅ PASS |
-| `cargo test` | ✅ 296 tests PASS |
 | `git diff --check` | ✅ PASS |
 
 ---
 
-## 9. Real Window Verification Summary
+## 10. Real Window Verification Summary
 
 | Ticket | Real Window Check | Verified |
 |--------|------------------|----------|
@@ -191,5 +238,21 @@
 | UI-7 | Settings loading：不再卡在"加载配置中" | ✅ |
 | UI-7 | Template save：修改 → 保存 → 显示成功 | ✅ |
 | UI-7 | Threshold save：70→71→保存→70→保存→按钮 disabled | ✅ |
+| UI-8 | TMDb Key Save：输入 → 保存 → Configured → 输入清空 | ✅ |
+| UI-8 | TMDb Key Clear：清除 → Not Configured | ✅ |
+
+---
+
+## 11. Deferred Items
+
+| Item | Status | Reason |
+|------|--------|--------|
+| execute_rename command | DEFERRED | 需要前端确认 UI |
+| rollback_task command | DEFERRED | 需要前端确认 UI |
+| Real Rename UI | DEFERRED | 当前 UI 冻结 |
+| Rollback UI | DEFERRED | 当前 UI 冻结 |
+| Tauri dialog Browse | DEFERRED | 未启用，按钮 disabled |
+
+---
 
 **说明**：最终视觉验收由用户肉眼确认，已覆盖所有关键路径验收。
