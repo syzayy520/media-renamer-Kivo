@@ -3,6 +3,7 @@
 
 import { create } from 'zustand';
 import { startRenameSession } from '../../../api/session/startRenameSession';
+import { toErrorMessage } from '../../../api/invoke';
 import type { PipelineResult } from '../../../api/session/types';
 
 interface ScanState {
@@ -48,9 +49,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
       const data = await startRenameSession({ directory: directory.trim() });
       set({ result: data, error: null, isScanning: false });
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : String(err);
-      set({ error: message, isScanning: false });
+      set({ error: toErrorMessage(err), isScanning: false });
     }
   },
 }));

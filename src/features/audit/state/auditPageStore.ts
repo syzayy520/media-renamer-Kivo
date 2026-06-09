@@ -6,19 +6,7 @@ import type { RenameTask, AuditLogEntry } from '../../../api/audit/types';
 import { getAllTasks } from '../../../api/audit/getAllTasks';
 import { getTask } from '../../../api/audit/getTask';
 import { getAuditLogs } from '../../../api/audit/getAuditLogs';
-
-function toErrorMessage(err: unknown): string {
-  if (typeof err === 'string') return err;
-  if (err instanceof Error) return err.message;
-  if (err && typeof err === 'object') {
-    const obj = err as Record<string, unknown>;
-    if (typeof obj.message === 'string') return obj.message;
-    if (typeof obj.error === 'string') return obj.error;
-    if (typeof obj.reason === 'string') return obj.reason;
-    try { return JSON.stringify(err); } catch { /* fall through */ }
-  }
-  return 'Unknown audit error';
-}
+import { toErrorMessage } from '../../../api/invoke';
 
 interface AuditPageState {
   tasks: RenameTask[];

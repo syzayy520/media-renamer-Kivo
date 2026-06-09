@@ -7,6 +7,7 @@ import {
   setTmdbApiKey,
   clearTmdbApiKey,
 } from '../../../api/config/tmdbApiKey';
+import { toErrorMessage } from '../../../api/invoke';
 import { Badge } from '../../../shared/ui/Badge';
 
 interface ApiKeyStatusPanelProps {
@@ -27,8 +28,7 @@ export function ApiKeyStatusPanel({ onStatusChange }: ApiKeyStatusPanelProps) {
         const status = await getTmdbApiKeyStatus();
         setConfigured(status.configured);
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        setError(msg);
+        setError(toErrorMessage(err));
       }
     };
     load();

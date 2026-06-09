@@ -6,7 +6,7 @@ import { invoke as tauriInvoke } from '@tauri-apps/api/core';
 /**
  * 从 unknown error 中提取可读消息
  */
-function extractMessage(err: unknown): string {
+export function toErrorMessage(err: unknown): string {
   if (typeof err === 'string') return err;
   if (err instanceof Error) return err.message;
   if (err && typeof err === 'object') {
@@ -20,7 +20,7 @@ function extractMessage(err: unknown): string {
       // fall through
     }
   }
-  return 'Unknown scan error';
+  return 'Unknown error';
 }
 
 /**
@@ -33,6 +33,6 @@ export async function invokeCommand<T>(
   try {
     return await tauriInvoke<T>(command, args);
   } catch (err: unknown) {
-    throw new Error(extractMessage(err), { cause: err });
+    throw new Error(toErrorMessage(err), { cause: err });
   }
 }

@@ -3,6 +3,7 @@
 
 import { useEffect } from 'react';
 import { useSettingsPageStore } from '../state/settingsPageStore';
+import { toErrorMessage } from '../../../api/invoke';
 import { getAppConfig } from '../../../api/config/getAppConfig';
 import { getAllTemplates } from '../../../api/config/getAllTemplates';
 import { setTemplate } from '../../../api/config/setTemplate';
@@ -47,8 +48,7 @@ export function SettingsPage() {
         setTemplates(tpls);
         setConfidenceThreshold(threshold);
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        setError(msg);
+        setError(toErrorMessage(err));
       }
     };
     load();
