@@ -15,7 +15,8 @@ interface ApiKeyStatusPanelProps {
 }
 
 export function ApiKeyStatusPanel({ onStatusChange }: ApiKeyStatusPanelProps) {
-  const [configured, setConfigured] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [configured, setConfigured] = useState(false);
   const [input, setInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -29,6 +30,8 @@ export function ApiKeyStatusPanel({ onStatusChange }: ApiKeyStatusPanelProps) {
         setConfigured(status.configured);
       } catch (err: unknown) {
         setError(toErrorMessage(err));
+      } finally {
+        setIsLoading(false);
       }
     };
     load();
@@ -45,8 +48,7 @@ export function ApiKeyStatusPanel({ onStatusChange }: ApiKeyStatusPanelProps) {
       setSuccess('API Key 已保存');
       onStatusChange?.('saved');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
+      setError(toErrorMessage(err));
     } finally {
       setIsSaving(false);
     }
@@ -63,8 +65,7 @@ export function ApiKeyStatusPanel({ onStatusChange }: ApiKeyStatusPanelProps) {
       setSuccess('API Key 已清除');
       onStatusChange?.('cleared');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
+      setError(toErrorMessage(err));
     } finally {
       setIsClearing(false);
     }
@@ -79,7 +80,7 @@ export function ApiKeyStatusPanel({ onStatusChange }: ApiKeyStatusPanelProps) {
 
       {/* 状态 */}
       <div className="mb-4 flex items-center gap-3">
-        {configured === null ? (
+        {isLoading ? (
           <Badge variant="info">加载中...</Badge>
         ) : configured ? (
           <Badge variant="success">Configured</Badge>
