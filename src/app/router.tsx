@@ -7,12 +7,14 @@ import { PreviewPage } from '../features/preview/page/PreviewPage';
 import { SafetyPage } from '../features/safety/page/SafetyPage';
 import { AuditPage } from '../features/audit/page/AuditPage';
 import { SettingsPage } from '../features/settings/page/SettingsPage';
+import { PreviewWorkbenchPage } from '../features/preview-workbench/page/PreviewWorkbenchPage';
 
 export function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<ScanPage />} />
       <Route path="/preview" element={<PreviewPage />} />
+      <Route path="/preview-workbench" element={<PreviewWorkbenchPage />} />
       <Route path="/safety" element={<SafetyPage />} />
       <Route path="/audit" element={<AuditPage />} />
       <Route path="/settings" element={<SettingsPage />} />
