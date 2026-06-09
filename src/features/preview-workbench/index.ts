@@ -12,3 +12,6 @@ export { RenamePreviewPanel } from './rename-preview/RenamePreviewPanel';
 export { RenamePreviewEmptyState } from './rename-preview/RenamePreviewEmptyState';
 export { RenamePathPreview } from './rename-preview/RenamePathPreview';
 export { RenameSafetyNotice } from './rename-preview/RenameSafetyNotice';
+export { DryRunActionBar } from './action-bar/DryRunActionBar';
+export { DryRunActionButton } from './action-bar/DryRunActionButton';
+export { DryRunActionStatus } from './action-bar/DryRunActionStatus';

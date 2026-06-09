@@ -4,6 +4,7 @@
 import { FileQueuePanel } from '../file-list/FileQueuePanel';
 import { CandidatePanel } from '../candidate-list/CandidatePanel';
 import { RenamePreviewPanel } from '../rename-preview/RenamePreviewPanel';
+import { DryRunActionBar } from '../action-bar/DryRunActionBar';
 
 export function PreviewWorkbenchPage() {
   return (
@@ -46,32 +47,7 @@ export function PreviewWorkbenchPage() {
       </div>
 
       {/* 底部：Dry-run Action Bar */}
-      <div className="flex h-[56px] shrink-0 items-center justify-between border-t border-white/10 bg-black/40 px-6">
-        <span className="text-xs text-white/40">Action Bar — 后续票（P2-006）启用</span>
-        <div className="flex gap-2">
-          <button
-            disabled
-            title="后续票启用"
-            className="cursor-not-allowed rounded-md bg-white/5 px-3 py-1.5 text-xs text-white/30 ring-1 ring-white/10"
-          >
-            Apply Candidate
-          </button>
-          <button
-            disabled
-            title="后续票启用"
-            className="cursor-not-allowed rounded-md bg-white/5 px-3 py-1.5 text-xs text-white/30 ring-1 ring-white/10"
-          >
-            Clear Selection
-          </button>
-          <button
-            disabled
-            title="后续票启用"
-            className="cursor-not-allowed rounded-md bg-white/5 px-3 py-1.5 text-xs text-white/30 ring-1 ring-white/10"
-          >
-            Export Plan
-          </button>
-        </div>
-      </div>
+      <DryRunActionBar />
     </div>
   );
 }
