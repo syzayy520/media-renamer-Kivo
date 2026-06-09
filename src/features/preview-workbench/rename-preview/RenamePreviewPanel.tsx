@@ -1,17 +1,21 @@
 // features/preview-workbench/rename-preview/RenamePreviewPanel.tsx — 右栏重命名预览面板
 // 职责：只读展示 scanStore 中的 preview item 详情，不执行 rename
 // 集成选择状态：根据 selectedPreviewId 查找对应 preview item
+// 集成安全摘要：在预览下方显示安全摘要面板
 
 import { useMemo } from 'react';
 import { useScanStore } from '../../scan/state/scanStore';
 import { useWorkbenchSelectionStore } from '../state/workbenchSelectionStore';
-import type { RenamePreviewItem } from '../../../api/session/types';
+import type { RenamePreviewItem, SafetyReport } from '../../../api/session/types';
 import { RenamePreviewEmptyState } from './RenamePreviewEmptyState';
 import { RenamePathPreview } from './RenamePathPreview';
 import { RenameSafetyNotice } from './RenameSafetyNotice';
+import { SafetySummaryPanel } from '../safety-summary/SafetySummaryPanel';
 
 export function RenamePreviewPanel() {
-  const result = useScanStore((s: { result: { previews: RenamePreviewItem[] } | null }) => s.result);
+  const result = useScanStore(
+    (s: { result: { previews: RenamePreviewItem[]; safety: SafetyReport } | null }) => s.result,
+  );
   const selectedPreviewId = useWorkbenchSelectionStore((s) => s.selectedPreviewId);
 
   // 根据 selectedPreviewId 查找对应的 preview item
@@ -68,6 +72,11 @@ export function RenamePreviewPanel() {
 
       {/* 安全提示 */}
       <RenameSafetyNotice />
+
+      {/* 安全摘要面板 */}
+      <div className="mt-4 border-t border-white/10 pt-4">
+        <SafetySummaryPanel />
+      </div>
     </div>
   );
 }

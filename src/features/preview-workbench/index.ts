@@ -16,6 +16,11 @@ export { DryRunActionBar } from './action-bar/DryRunActionBar';
 export { DryRunActionButton } from './action-bar/DryRunActionButton';
 export { DryRunActionStatus } from './action-bar/DryRunActionStatus';
 
+// 安全摘要
+export { SafetySummaryPanel } from './safety-summary/SafetySummaryPanel';
+export { SafetySummaryEmptyState } from './safety-summary/SafetySummaryEmptyState';
+export { SafetySummaryItem } from './safety-summary/SafetySummaryItem';
+
 // 状态管理
 export { useWorkbenchSelectionStore } from './state/workbenchSelectionStore';
 export {
@@ -33,3 +38,9 @@ export type {
   WorkbenchSelectionStore,
   SelectionSummary,
 } from './types/selection';
+
+export type {
+  SafetySummaryData,
+  SafetySummaryPanelProps,
+  SafetySummaryItemProps,
+} from './types/safetySummary';
