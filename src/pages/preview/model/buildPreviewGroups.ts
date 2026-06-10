@@ -108,7 +108,7 @@ function splitParentDirectoryIntoMediaGroups(items: RenamePreviewItem[], scanRoo
 function createFolderGroup(groupId: number, parentDir: string, items: RenamePreviewItem[], originalName: string): FolderGroup {
   const children = items.map((item) => toFileItem(item));
   const status = aggregateGroupStatus(children, false);
-  const targetFolder = inferTargetFolder(children);
+  const targetFolder = inferTargetFolder(children, originalName);
   const mediaType = inferGroupMediaType(items);
 
   return {
@@ -144,7 +144,7 @@ function isStrongTvGroup(items: RenamePreviewItem[]): boolean {
     return false;
   }
 
-  const showKeys = new Set(episodeLike.map((item) => normalizeKey(item.parsed_info.title || inferTitleFromName(item))));
+  const showKeys = new Set(episodeLike.map((item) => normalizeKey(preferredParsedTitle(item) || inferTitleFromName(item))));
   return showKeys.size <= 2;
 }
 
@@ -161,19 +161,37 @@ function hasEpisodeSignal(item: RenamePreviewItem): boolean {
 }
 
 function mediaIdentityKey(item: RenamePreviewItem): string {
-  const title = inferTitleFromName(item) || item.parsed_info.title || getBasename(item.parsed_info.media_item.file_name);
+  const title = inferTitleFromName(item) || preferredParsedTitle(item) || getBasename(item.parsed_info.media_item.file_name);
   const year = item.parsed_info.year || inferYearFromName(item.original_name) || inferYearFromName(item.proposed_name) || '';
   return normalizeKey(`${title}-${year}`);
 }
 
+function preferredParsedTitle(item: RenamePreviewItem): string {
+  const title = item.parsed_info.title || '';
+  return cleanTitleText(title);
+}
+
 function inferTitleFromName(item: RenamePreviewItem): string {
   const candidate = item.proposed_name || item.original_name || item.parsed_info.media_item.file_name;
-  const withoutExt = stripExtension(candidate);
-  return withoutExt
+  return cleanTitleText(stripExtension(candidate));
+}
+
+function cleanTitleText(value: string): string {
+  const normalized = value
     .replace(/^\.+/, '')
     .replace(/[._]+/g, ' ')
-    .replace(/\s*\(?(19|20)\d{2}\)?\s*/g, ' ')
-    .replace(/\b(720p|1080p|2160p|4k|bluray|blu-ray|web-dl|webrip|hdtv|remux|x264|x265|hevc|h264|h265)\b/gi, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const yearMatch = normalized.match(/^(.*?)(?:\s*\(?((?:19|20)\d{2})\)?)(?:\s|$)/);
+  const beforeYear = yearMatch?.[1]?.trim();
+  if (beforeYear) {
+    return beforeYear.replace(/\s+/g, ' ').trim();
+  }
+
+  return normalized
+    .replace(/\b(720p|1080p|2160p|4k|bluray|blu ray|blu-ray|web dl|web-dl|webrip|hdtv|remux|unrated|proper|repack|extended|gb|gbr|usa|x264|x265|hevc|h264|h265|vc1|vc|10bit|8bit|hdr|dv)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -181,11 +199,11 @@ function inferTitleFromName(item: RenamePreviewItem): string {
 function inferOriginalGroupName(items: RenamePreviewItem[]): string {
   const ref = items.find((item) => isVideoItem(item)) || items[0];
   if (!ref) return '';
-  const title = inferTitleFromName(ref);
+  const title = inferTitleFromName(ref) || preferredParsedTitle(ref);
   const year = ref.parsed_info.year || inferYearFromName(ref.original_name) || inferYearFromName(ref.proposed_name);
   if (title && year) return `${title} (${year})`;
   if (title) return title;
-  return stripExtension(ref.original_name || ref.parsed_info.media_item.file_name);
+  return stripExtension(ref.original_name || ref.parsed_info.media_item.file_name).replace(/^\.+/, '');
 }
 
 function inferYearFromName(name: string): number | null {
@@ -245,11 +263,23 @@ function inferGroupMediaType(items: RenamePreviewItem[]): GroupMediaType {
   return 'Unknown';
 }
 
-function inferTargetFolder(children: PreviewFileItem[]): string {
+function inferTargetFolder(children: PreviewFileItem[], fallbackName: string): string {
   const video = children.find((c) => c.file_role === 'MainVideo');
   const ref = video || children[0];
-  if (!ref) return '';
-  return stripExtension(ref.target_name).replace(/\.+$/, '').trim();
+  if (!ref) return fallbackName;
+
+  const fromTarget = stripExtension(ref.target_name).replace(/^\.+/, '').replace(/\.+$/, '').trim();
+  if (!fromTarget || looksLikeRawReleaseName(fromTarget)) {
+    return fallbackName;
+  }
+
+  return fromTarget;
+}
+
+function looksLikeRawReleaseName(name: string): boolean {
+  const lowered = name.toLowerCase();
+  const technicalTokens = ['1080p', '2160p', '720p', 'bluray', 'remux', 'web-dl', 'webrip', 'hdtv', 'x264', 'x265', 'hevc', 'truehd', 'dts'];
+  return name.startsWith('.') || technicalTokens.filter((token) => lowered.includes(token)).length >= 2;
 }
 
 function inferFileRole(fileName: string, extension: string): FileRole {
