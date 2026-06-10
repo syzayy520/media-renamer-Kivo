@@ -50,13 +50,13 @@ const initialResultState: ExecutionResultState = {
   can_rollback: false,
 };
 
-export const useExecutionStore = create<ExecutionState>((set, get) => ({
+export const useExecutionStore = create<ExecutionState>((set) => ({
   uiState: 'idle',
   confirmState: initialConfirmState,
   progressState: initialProgressState,
   resultState: initialResultState,
 
-  startExecution: async (mode: ExecutionMode) => {
+  startExecution: async (_mode: ExecutionMode) => {
     const { setLoading, setError } = useUiFeedbackStore.getState();
     setLoading(true);
     setError(null);

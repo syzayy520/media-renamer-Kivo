@@ -63,7 +63,7 @@ export function ExecutionConfirmPanel({
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-text-secondary">可执行:</span>
-                <Badge variant={safety_report.can_execute ? 'success' : 'error'} size="sm">
+                <Badge variant={safety_report.can_execute ? 'success' : 'danger'} size="sm">
                   {safety_report.can_execute ? '是' : '否'}
                 </Badge>
               </div>
@@ -99,7 +99,7 @@ export function ExecutionConfirmPanel({
             取消
           </Button>
           <Button
-            variant={has_blockers ? 'disabled' : 'primary'}
+            variant={has_blockers ? 'danger' : 'primary'}
             onClick={onConfirm}
             disabled={has_blockers || isLoading}
             icon={isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}

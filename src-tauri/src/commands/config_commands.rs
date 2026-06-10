@@ -11,6 +11,7 @@ use crate::config::secret::api_key_store;
 use crate::config::template_manager::{self, RenameRule};
 use crate::config::threshold;
 use crate::parse::movie_parser::MediaType;
+use crate::tmdb_search::command::TmdbSearchState;
 
 /// 获取配置目录路径
 fn config_dir(app_handle: &tauri::AppHandle) -> PathBuf {
@@ -159,6 +160,72 @@ mod tests {
         let json_false = serde_json::to_string(&status_false).unwrap();
         assert_eq!(json_false, r#"{"configured":false}"#);
     }
+
+    // === TMDb Config Status tests ===
+
+    #[test]
+    fn test_do_get_tmdb_config_status_not_configured() {
+        let dir = tempfile::tempdir().unwrap();
+        let status = do_get_tmdb_config_status(dir.path(), false).unwrap();
+        assert!(!status.api_key_configured);
+        assert!(!status.gate_enabled);
+        assert_eq!(status.status, TmdbStatusLevel::NotConfigured);
+    }
+
+    #[test]
+    fn test_do_get_tmdb_config_status_gate_disabled() {
+        let dir = tempfile::tempdir().unwrap();
+        do_set_tmdb_api_key(dir.path(), "test-key").unwrap();
+        let status = do_get_tmdb_config_status(dir.path(), false).unwrap();
+        assert!(status.api_key_configured);
+        assert!(!status.gate_enabled);
+        assert_eq!(status.status, TmdbStatusLevel::GateDisabled);
+    }
+
+    #[test]
+    fn test_do_get_tmdb_config_status_ready() {
+        let dir = tempfile::tempdir().unwrap();
+        do_set_tmdb_api_key(dir.path(), "test-key").unwrap();
+        let status = do_get_tmdb_config_status(dir.path(), true).unwrap();
+        assert!(status.api_key_configured);
+        assert!(status.gate_enabled);
+        assert_eq!(status.status, TmdbStatusLevel::Ready);
+    }
+
+    #[test]
+    fn test_tmdb_config_status_serialization_no_sensitive_data() {
+        let status = TmdbConfigStatus {
+            api_key_configured: true,
+            gate_enabled: true,
+            status: TmdbStatusLevel::Ready,
+            message: "Ready".to_string(),
+        };
+        let json = serde_json::to_string(&status).unwrap();
+        // Verify no actual API key values are present (long alphanumeric strings)
+        // Field names like "api_key_configured" are acceptable - only values matter
+        assert!(!json.contains("sk-"));
+        assert!(!json.contains("Bearer "));
+        assert!(!json.contains("tmdb_key="));
+        // Verify the status structure is complete and correct
+        assert!(json.contains("api_key_configured"));
+        assert!(json.contains("gate_enabled"));
+        assert!(json.contains("Ready"));
+    }
+
+    #[test]
+    fn test_tmdb_status_level_serialization() {
+        let levels = vec![
+            TmdbStatusLevel::NotConfigured,
+            TmdbStatusLevel::GateDisabled,
+            TmdbStatusLevel::Ready,
+            TmdbStatusLevel::Connected,
+            TmdbStatusLevel::ConnectionFailed,
+        ];
+        for level in levels {
+            let json = serde_json::to_string(&level).unwrap();
+            assert!(!json.is_empty());
+        }
+    }
 }
 
 /// TMDb API Key 状态响应
@@ -212,4 +279,209 @@ pub fn set_tmdb_api_key(
 #[tauri::command]
 pub fn clear_tmdb_api_key(app_handle: tauri::AppHandle) -> Result<TmdbApiKeyStatus, String> {
     do_clear_tmdb_api_key(&config_dir(&app_handle))
+}
+
+// === TMDb Gate Control Commands ===
+
+/// TMDb 配置状态响应
+///
+/// 包含 API key 状态和 gate 状态的综合信息
+/// 不包含任何敏感数据（API key 明文等）
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct TmdbConfigStatus {
+    /// API key 是否已配置
+    pub api_key_configured: bool,
+    /// Gate 是否启用
+    pub gate_enabled: bool,
+    /// 综合状态描述
+    pub status: TmdbStatusLevel,
+    /// 用户可读的状态消息
+    pub message: String,
+}
+
+/// TMDb 状态级别
+#[derive(Debug, Clone, serde::Serialize, PartialEq)]
+pub enum TmdbStatusLevel {
+    /// 未配置 API key
+    NotConfigured,
+    /// 已配置但 gate 关闭
+    GateDisabled,
+    /// 已配置且 gate 开启，待测试
+    Ready,
+    /// 连接测试成功
+    Connected,
+    /// 连接测试失败
+    ConnectionFailed,
+}
+
+/// 获取 TMDb 综合配置状态
+#[tauri::command]
+pub fn get_tmdb_config_status(
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, TmdbSearchState>,
+) -> Result<TmdbConfigStatus, String> {
+    let dir = config_dir(&app_handle);
+    let api_key_status = do_get_tmdb_api_key_status(&dir)?;
+    let gate_enabled = state.is_gate_enabled();
+
+    let (status, message) = if !api_key_status.configured {
+        (
+            TmdbStatusLevel::NotConfigured,
+            "TMDb API key 未配置。请在设置中添加您的 API key。".to_string(),
+        )
+    } else if !gate_enabled {
+        (
+            TmdbStatusLevel::GateDisabled,
+            "TMDb live search 已禁用。请在设置中启用。".to_string(),
+        )
+    } else {
+        (
+            TmdbStatusLevel::Ready,
+            "TMDb 已就绪。可以进行搜索。".to_string(),
+        )
+    };
+
+    Ok(TmdbConfigStatus {
+        api_key_configured: api_key_status.configured,
+        gate_enabled,
+        status,
+        message,
+    })
+}
+
+/// 获取 TMDb gate 状态
+#[tauri::command]
+pub fn get_tmdb_gate_status(
+    state: tauri::State<'_, TmdbSearchState>,
+) -> Result<bool, String> {
+    Ok(state.is_gate_enabled())
+}
+
+/// 设置 TMDb gate 启用/禁用
+#[tauri::command]
+pub fn set_tmdb_gate_enabled(
+    enabled: bool,
+    state: tauri::State<'_, TmdbSearchState>,
+) -> Result<bool, String> {
+    if enabled {
+        state.enable_gate();
+    } else {
+        state.disable_gate();
+    }
+    Ok(state.is_gate_enabled())
+}
+
+/// 测试 TMDb 连接
+///
+/// 仅在用户主动调用时执行，不会自动联网
+/// 测试结果不包含任何敏感信息
+#[tauri::command]
+pub async fn test_tmdb_connection(
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, TmdbSearchState>,
+) -> Result<TmdbConfigStatus, String> {
+    let dir = config_dir(&app_handle);
+    let api_key_status = do_get_tmdb_api_key_status(&dir)?;
+    let gate_enabled = state.is_gate_enabled();
+
+    // Pre-checks
+    if !api_key_status.configured {
+        return Ok(TmdbConfigStatus {
+            api_key_configured: false,
+            gate_enabled,
+            status: TmdbStatusLevel::NotConfigured,
+            message: "无法测试：TMDb API key 未配置。".to_string(),
+        });
+    }
+
+    if !gate_enabled {
+        return Ok(TmdbConfigStatus {
+            api_key_configured: true,
+            gate_enabled: false,
+            status: TmdbStatusLevel::GateDisabled,
+            message: "无法测试：TMDb live search 已禁用。".to_string(),
+        });
+    }
+
+    // Execute test search with minimal query
+    let service = crate::tmdb_search::service::LiveSearchService::new(
+        state.api_key_provider.clone(),
+        state.gate.clone(),
+    );
+
+    let test_input = crate::tmdb_search_contract::SearchTmdbCandidatesInput {
+        query: "test".to_string(),
+        media_type: crate::tmdb_search_contract::TmdbSearchMediaType::Movie,
+        language: "en".to_string(),
+        year: None,
+        page: Some(1),
+    };
+
+    let output = service.search(test_input).await;
+
+    if let Some(error) = output.error {
+        let message = match error.code {
+            crate::tmdb_search_contract::TmdbSearchErrorCode::ApiKeyInvalid => {
+                "API key 无效。请检查您的 TMDb API key。".to_string()
+            }
+            crate::tmdb_search_contract::TmdbSearchErrorCode::RateLimited => {
+                "TMDb 请求频率限制。请稍后再试。".to_string()
+            }
+            crate::tmdb_search_contract::TmdbSearchErrorCode::NetworkError => {
+                "网络连接失败。请检查您的网络连接。".to_string()
+            }
+            _ => {
+                format!("连接测试失败：{}", error.message)
+            }
+        };
+
+        Ok(TmdbConfigStatus {
+            api_key_configured: true,
+            gate_enabled: true,
+            status: TmdbStatusLevel::ConnectionFailed,
+            message,
+        })
+    } else {
+        Ok(TmdbConfigStatus {
+            api_key_configured: true,
+            gate_enabled: true,
+            status: TmdbStatusLevel::Connected,
+            message: "TMDb 连接测试成功！".to_string(),
+        })
+    }
+}
+
+// === Internal helpers (testable without AppHandle) ===
+
+/// 内部：获取 TMDb 配置状态（用于测试）
+#[allow(dead_code)]
+fn do_get_tmdb_config_status(
+    config_dir: &std::path::Path,
+    gate_enabled: bool,
+) -> Result<TmdbConfigStatus, String> {
+    let api_key_status = do_get_tmdb_api_key_status(config_dir)?;
+
+    let (status, message) = if !api_key_status.configured {
+        (
+            TmdbStatusLevel::NotConfigured,
+            "TMDb API key 未配置。".to_string(),
+        )
+    } else if !gate_enabled {
+        (
+            TmdbStatusLevel::GateDisabled,
+            "TMDb live search 已禁用。".to_string(),
+        )
+    } else {
+        (
+            TmdbStatusLevel::Ready,
+            "TMDb 已就绪。".to_string(),
+        )
+    };
+
+    Ok(TmdbConfigStatus {
+        api_key_configured: api_key_status.configured,
+        gate_enabled,
+        status,
+        message,
+    })
 }

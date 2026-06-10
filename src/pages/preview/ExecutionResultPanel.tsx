@@ -1,6 +1,6 @@
 import { CheckCircle, XCircle, AlertTriangle, RotateCcw, Download } from 'lucide-react';
 import { Button, Card, Badge } from '../../components/ui';
-import type { ExecutionResultState, SafeExecuteOutput } from '../../types';
+import type { ExecutionResultState } from '../../types';
 
 interface ExecutionResultPanelProps {
   state: ExecutionResultState;
@@ -138,7 +138,7 @@ export function ExecutionResultPanel({
                       </div>
                       <div className="text-xs text-error">{result.error}</div>
                     </div>
-                    <Badge variant="error" size="sm">
+                    <Badge variant="danger" size="sm">
                       {result.status}
                     </Badge>
                   </div>
@@ -158,7 +158,7 @@ export function ExecutionResultPanel({
           </Button>
           {can_rollback && (
             <Button
-              variant="warning"
+              variant="secondary"
               icon={<RotateCcw className="w-4 h-4" />}
               onClick={onRollback}
             >

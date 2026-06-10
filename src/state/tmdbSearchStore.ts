@@ -7,6 +7,13 @@ import type {
   TmdbSearchStatus,
 } from '../types';
 
+interface TmdbConfigStatus {
+  api_key_configured: boolean;
+  gate_enabled: boolean;
+  status: string;
+  message: string;
+}
+
 /** 单个预览项的搜索状态 */
 export interface ItemSearchState {
   status: TmdbSearchStatus;
@@ -71,23 +78,18 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
 
   checkTmdbSearchAvailability: async () => {
     try {
-      const output = await invoke<SearchTmdbCandidatesOutput>(
-        'search_tmdb_candidates',
-        {
-          input: {
-            query: '__availability_check__',
-            media_type: 'Movie',
-            language: 'en',
-            year: null,
-            page: null,
-          },
-        },
-      );
+      const configStatus = await invoke<TmdbConfigStatus>('get_tmdb_config_status');
 
-      if (isDisabledResponse(output)) {
+      if (!configStatus.api_key_configured) {
         set({
           tmdbSearchStatus: 'disabled',
-          disabledReason: output.error?.message ?? 'TMDb search is not enabled.',
+          disabledReason: configStatus.message,
+          lastResult: null,
+        });
+      } else if (!configStatus.gate_enabled) {
+        set({
+          tmdbSearchStatus: 'disabled',
+          disabledReason: configStatus.message,
           lastResult: null,
         });
       } else {
@@ -99,7 +101,7 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
     } catch {
       set({
         tmdbSearchStatus: 'disabled',
-        disabledReason: 'TMDb search command is not available.',
+        disabledReason: '无法获取 TMDb 配置状态。',
         lastResult: null,
       });
     }

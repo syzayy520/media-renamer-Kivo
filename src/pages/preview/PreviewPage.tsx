@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { ArrowLeft, ArrowRight, Globe, Play, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Globe, Play } from 'lucide-react';
 import { Button, Card, Badge } from '../../components/ui';
 import { usePipelineStore } from '../../state/pipelineStore';
 import { useUiFeedbackStore } from '../../state/uiFeedbackStore';

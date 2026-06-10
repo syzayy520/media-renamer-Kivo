@@ -1,5 +1,5 @@
 import { Loader2, CheckCircle, XCircle, SkipForward, Ban } from 'lucide-react';
-import { Card, Badge } from '../../components/ui';
+import { Card } from '../../components/ui';
 import type { ExecutionProgressState } from '../../types';
 
 interface ExecutionProgressPanelProps {
