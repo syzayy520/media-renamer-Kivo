@@ -71,6 +71,16 @@ const DEFAULT_ITEM_STATE: ItemSearchState = {
   error: null,
 };
 
+async function readConfigStatus(): Promise<TmdbConfigStatus> {
+  return invoke<TmdbConfigStatus>('get_tmdb_config_status');
+}
+
+function assertTmdbEnabled(configStatus: TmdbConfigStatus) {
+  if (!configStatus.api_key_configured || !configStatus.gate_enabled) {
+    throw new Error(configStatus.message || 'TMDb 未配置或未启用。');
+  }
+}
+
 export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
   tmdbSearchStatus: 'idle',
   lastResult: null,
@@ -80,7 +90,7 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
 
   checkTmdbSearchAvailability: async () => {
     try {
-      const configStatus = await invoke<TmdbConfigStatus>('get_tmdb_config_status');
+      const configStatus = await readConfigStatus();
 
       if (!configStatus.api_key_configured) {
         set({
@@ -110,20 +120,29 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
   },
 
   searchTmdbCandidates: async (query: string, mediaType: 'Movie' | 'Series'): Promise<TmdbCandidate[] | null> => {
-    const { tmdbSearchStatus } = get();
-    if (tmdbSearchStatus === 'disabled') {
-      return null;
+    const configStatus = await readConfigStatus();
+    assertTmdbEnabled(configStatus);
+
+    set({ tmdbSearchStatus: 'loading', disabledReason: null });
+
+    const output = await invoke<SearchTmdbCandidatesOutput>(
+      'search_tmdb_candidates',
+      { input: { query, media_type: mediaType, language: 'zh-CN', year: null, page: 1 } },
+    );
+
+    if (isDisabledResponse(output)) {
+      const message = output.error?.message ?? 'TMDb search is not enabled.';
+      set({ tmdbSearchStatus: 'disabled', disabledReason: message, lastResult: null });
+      throw new Error(message);
     }
-    try {
-      const output = await invoke<SearchTmdbCandidatesOutput>(
-        'search_tmdb_candidates',
-        { input: { query, media_type: mediaType, language: 'zh-CN', year: null, page: 1 } },
-      );
-      if (output.error !== null) return null;
-      return output.candidates;
-    } catch {
-      return null;
+
+    if (output.error !== null) {
+      set({ tmdbSearchStatus: 'error', lastResult: output });
+      throw new Error(output.error.message);
     }
+
+    set({ tmdbSearchStatus: 'success', lastResult: output });
+    return output.candidates;
   },
 
   searchCandidates: async (input: SearchTmdbCandidatesInput) => {
