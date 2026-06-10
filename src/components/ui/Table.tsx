@@ -8,7 +8,7 @@ export function Table({ children, className = '', ...props }: TableProps) {
   return (
     <div className="w-full overflow-x-auto">
       <table
-        className={`w-full text-sm text-left text-text-primary ${className}`}
+        className={`w-full min-w-[1080px] table-fixed text-left text-sm text-text-primary ${className}`}
         {...props}
       >
         {children}
@@ -23,7 +23,7 @@ interface TableHeaderProps extends HTMLAttributes<HTMLTableSectionElement> {
 
 export function TableHeader({ children, className = '', ...props }: TableHeaderProps) {
   return (
-    <thead className={`text-xs text-text-secondary uppercase bg-bg-secondary ${className}`} {...props}>
+    <thead className={`bg-bg-secondary text-xs uppercase text-text-secondary ${className}`} {...props}>
       {children}
     </thead>
   );
@@ -75,7 +75,7 @@ interface TableCellProps extends HTMLAttributes<HTMLTableCellElement> {
 
 export function TableCell({ children, className = '', ...props }: TableCellProps) {
   return (
-    <td className={`px-4 py-3 ${className}`} {...props}>
+    <td className={`px-4 py-3 align-middle ${className}`} {...props}>
       {children}
     </td>
   );
