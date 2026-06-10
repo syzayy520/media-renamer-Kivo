@@ -5,23 +5,25 @@ import { useState, useCallback } from 'react';
 import { Search, Loader2, Key } from 'lucide-react';
 import { Button, Input } from '../../components/ui';
 import { useTmdbSearchStore } from '../../state/tmdbSearchStore';
-import type { RenamePreviewItem } from '../../types';
+import type { RenamePreviewItem, SearchTmdbCandidatesInput } from '../../types';
 
 interface CandidateSearchPanelProps {
   item: RenamePreviewItem;
   onSearchComplete?: () => void;
 }
 
+type SearchMediaType = SearchTmdbCandidatesInput['media_type'];
+
 export function CandidateSearchPanel({ item, onSearchComplete }: CandidateSearchPanelProps) {
   const { tmdbSearchStatus, searchForItem, activeItemId, disabledReason } = useTmdbSearchStore();
 
   const defaultQuery = item.parsed_info.title !== 'Unknown' ? item.parsed_info.title : '';
-  const defaultMediaType = item.parsed_info.media_type === 'Series' || item.parsed_info.media_type === 'Anime'
-    ? 'Tv' as const
-    : 'Movie' as const;
+  const defaultMediaType: SearchMediaType = item.parsed_info.media_type === 'Series' || item.parsed_info.media_type === 'Anime'
+    ? 'tv'
+    : 'movie';
 
   const [query, setQuery] = useState(defaultQuery);
-  const [mediaType, setMediaType] = useState<'Movie' | 'Tv'>(defaultMediaType);
+  const [mediaType, setMediaType] = useState<SearchMediaType>(defaultMediaType);
 
   const isLoading = activeItemId === item.id && tmdbSearchStatus === 'loading';
   const isDisabled = tmdbSearchStatus === 'disabled';
@@ -48,7 +50,7 @@ export function CandidateSearchPanel({ item, onSearchComplete }: CandidateSearch
 
   if (isDisabled) {
     return (
-      <div className="flex items-center gap-3 p-4 bg-bg-secondary rounded-lg border border-border border-warning/20">
+      <div className="flex items-center gap-3 p-4 bg-bg-secondary rounded-lg border border-warning/20">
         <Key className="w-5 h-5 text-warning shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-sm text-text-primary font-medium">TMDb 搜索不可用</p>
@@ -78,12 +80,12 @@ export function CandidateSearchPanel({ item, onSearchComplete }: CandidateSearch
         <label className="block text-xs text-text-secondary mb-1">类型</label>
         <select
           value={mediaType}
-          onChange={(e) => setMediaType(e.target.value as 'Movie' | 'Tv')}
+          onChange={(e) => setMediaType(e.target.value as SearchMediaType)}
           disabled={isLoading}
           className="w-full h-10 px-3 rounded-md border border-border bg-bg-primary text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
         >
-          <option value="Movie">电影</option>
-          <option value="Tv">剧集</option>
+          <option value="movie">电影</option>
+          <option value="tv">剧集</option>
         </select>
       </div>
 
