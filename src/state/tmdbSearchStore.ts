@@ -14,7 +14,7 @@ interface TmdbConfigStatus {
   message: string;
 }
 
-type TmdbSearchMediaType = 'Movie' | 'Tv' | 'Series';
+type TmdbSearchMediaType = 'Movie' | 'Tv' | 'Series' | 'movie' | 'tv';
 
 /** 单个预览项的搜索状态 */
 export interface ItemSearchState {
@@ -58,8 +58,11 @@ interface TmdbSearchState {
 
 const DISABLED_GATE_MESSAGE = 'TMDb live search is not enabled.';
 
-function normalizeSearchMediaType(mediaType: TmdbSearchMediaType): 'Movie' | 'Tv' {
-  return mediaType === 'Series' ? 'Tv' : mediaType;
+function normalizeSearchMediaType(mediaType: TmdbSearchMediaType): 'movie' | 'tv' {
+  if (mediaType === 'Tv' || mediaType === 'Series' || mediaType === 'tv') {
+    return 'tv';
+  }
+  return 'movie';
 }
 
 function isDisabledResponse(output: SearchTmdbCandidatesOutput): boolean {
