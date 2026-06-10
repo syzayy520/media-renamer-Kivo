@@ -33,7 +33,7 @@ export function ScanPage() {
           <h1 className="text-3xl font-bold leading-tight text-text-primary">
             媒体文件重命名
           </h1>
-          <p className="max-w-2xl text-sm leading-6 text-text-secondary break-keep">
+          <p className="w-[760px] max-w-full whitespace-normal text-sm leading-6 text-text-secondary">
             选择本地媒体目录，生成重命名预览，再进入安全检查和执行流程。
           </p>
         </div>
