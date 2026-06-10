@@ -3,9 +3,12 @@ import { FolderOpen, Play, Settings, Clock } from 'lucide-react';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Input, LoadingSpinner } from '../components/ui';
 import { usePipelineStore } from '../state/pipelineStore';
 import { useUiFeedbackStore } from '../state/uiFeedbackStore';
+import { selectScanDirectory } from './scan/selectScanDirectory';
 
 export function ScanPage() {
   const [directory, setDirectory] = useState('');
+  const [isPickingDirectory, setIsPickingDirectory] = useState(false);
+  const [pickerError, setPickerError] = useState<string | null>(null);
   const { startRenameSession, pipelineResult } = usePipelineStore();
   const { isLoading, error } = useUiFeedbackStore();
 
@@ -20,9 +23,18 @@ export function ScanPage() {
   };
 
   const handleSelectFolder = async () => {
-    const path = prompt('请输入目录路径:');
-    if (path) {
-      setDirectory(path);
+    try {
+      setIsPickingDirectory(true);
+      setPickerError(null);
+      const selectedDirectory = await selectScanDirectory();
+
+      if (selectedDirectory) {
+        setDirectory(selectedDirectory);
+      }
+    } catch (err) {
+      setPickerError(err instanceof Error ? err.message : '打开目录选择器失败');
+    } finally {
+      setIsPickingDirectory(false);
     }
   };
 
@@ -51,7 +63,7 @@ export function ScanPage() {
               <CardContent>
                 <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
                   <Input
-                    placeholder="输入目录路径..."
+                    placeholder="选择或输入目录路径..."
                     value={directory}
                     onChange={(event) => setDirectory(event.target.value)}
                     className="font-path"
@@ -59,15 +71,17 @@ export function ScanPage() {
                   <Button
                     variant="secondary"
                     onClick={handleSelectFolder}
+                    disabled={isLoading || isPickingDirectory}
+                    isLoading={isPickingDirectory}
                     icon={<FolderOpen className="h-4 w-4" />}
                   >
                     浏览
                   </Button>
                 </div>
 
-                {error && (
+                {(error || pickerError) && (
                   <div className="mt-4 rounded-xl border border-danger/30 bg-danger/10 p-3">
-                    <p className="text-sm leading-6 text-danger">{error}</p>
+                    <p className="text-sm leading-6 text-danger">{pickerError ?? error}</p>
                   </div>
                 )}
               </CardContent>
@@ -76,7 +90,7 @@ export function ScanPage() {
             <div className="flex justify-start lg:justify-end">
               <Button
                 onClick={handleStartScan}
-                disabled={!directory.trim() || isLoading}
+                disabled={!directory.trim() || isLoading || isPickingDirectory}
                 isLoading={isLoading}
                 icon={<Play className="h-4 w-4" />}
               >
