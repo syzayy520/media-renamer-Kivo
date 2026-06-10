@@ -15,6 +15,16 @@
   --color-warning: #ffa726;
   --color-danger: #ef5350;
 
+  /* V3 workbench aliases */
+  --color-surface: #0f3460;
+  --color-surface-subtle: #16213e;
+  --color-surface-subtler: #102a4d;
+  --color-surface-hover: #1f4d7a;
+  --color-border: rgba(230, 230, 230, 0.18);
+  --color-primary: #4fc3f7;
+  --color-error: #ef5350;
+  --color-text-tertiary: #7f8da3;
+
   /* 置信度颜色 */
   --color-confidence-high: #66bb6a;
   --color-confidence-medium: #ffa726;
