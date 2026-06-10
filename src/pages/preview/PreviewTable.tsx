@@ -33,7 +33,7 @@ function getMetadataSourceBadge(source: MetadataSource) {
       return (
         <Tooltip content="来源: TMDb 在线搜索">
           <Badge variant="info" size="sm" className="gap-1">
-            <Globe className="w-3 h-3" />
+            <Globe className="h-3 w-3" />
             TMDb
           </Badge>
         </Tooltip>
@@ -42,7 +42,7 @@ function getMetadataSourceBadge(source: MetadataSource) {
       return (
         <Tooltip content="来源: 手动编辑">
           <Badge variant="warning" size="sm" className="gap-1">
-            <Edit className="w-3 h-3" />
+            <Edit className="h-3 w-3" />
             手动
           </Badge>
         </Tooltip>
@@ -51,7 +51,7 @@ function getMetadataSourceBadge(source: MetadataSource) {
       return (
         <Tooltip content="来源: 本地规则解析">
           <Badge variant="default" size="sm" className="gap-1">
-            <Database className="w-3 h-3" />
+            <Database className="h-3 w-3" />
             本地
           </Badge>
         </Tooltip>
@@ -66,26 +66,26 @@ function getTmdbStatusIndicator(itemState: ItemSearchState | undefined) {
     case 'loading':
       return (
         <Tooltip content="正在搜索 TMDb...">
-          <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+          <div className="h-2 w-2 rounded-full bg-accent animate-pulse" />
         </Tooltip>
       );
     case 'success':
       if (itemState.results.length > 0) {
         return (
           <Tooltip content={`找到 ${itemState.results.length} 个候选`}>
-            <div className="w-2 h-2 rounded-full bg-success" />
+            <div className="h-2 w-2 rounded-full bg-success" />
           </Tooltip>
         );
       }
       return (
         <Tooltip content="未找到匹配结果">
-          <div className="w-2 h-2 rounded-full bg-text-secondary/40" />
+          <div className="h-2 w-2 rounded-full bg-text-secondary/40" />
         </Tooltip>
       );
     case 'error':
       return (
         <Tooltip content={`搜索出错: ${itemState.error ?? '未知错误'}`}>
-          <div className="w-2 h-2 rounded-full bg-error" />
+          <div className="h-2 w-2 rounded-full bg-danger" />
         </Tooltip>
       );
     default:
@@ -97,7 +97,7 @@ function getStatusBadge(item: RenamePreviewItem) {
   if (item.should_skip) {
     return (
       <Badge variant="default" className="gap-1">
-        <SkipForward className="w-3 h-3" />
+        <SkipForward className="h-3 w-3" />
         跳过
       </Badge>
     );
@@ -105,16 +105,16 @@ function getStatusBadge(item: RenamePreviewItem) {
   if (item.needs_manual_review) {
     return (
       <Badge variant="warning" className="gap-1">
-        <AlertTriangle className="w-3 h-3" />
+        <AlertTriangle className="h-3 w-3" />
         需审核
       </Badge>
     );
   }
   if (item.conflicts.length > 0) {
-    const blocking = item.conflicts.some((c) => c.blocking);
+    const blocking = item.conflicts.some((conflict) => conflict.blocking);
     return (
       <Badge variant={blocking ? 'danger' : 'warning'} className="gap-1">
-        <ShieldAlert className="w-3 h-3" />
+        <ShieldAlert className="h-3 w-3" />
         {blocking ? '阻断冲突' : '有冲突'}
       </Badge>
     );
@@ -122,17 +122,25 @@ function getStatusBadge(item: RenamePreviewItem) {
   if (item.metadata_source === 'Tmdb') {
     return (
       <Badge variant="info" className="gap-1">
-        <CheckCircle2 className="w-3 h-3" />
+        <CheckCircle2 className="h-3 w-3" />
         TMDb 已应用
       </Badge>
     );
   }
   return (
     <Badge variant="success" className="gap-1">
-      <CheckCircle2 className="w-3 h-3" />
+      <CheckCircle2 className="h-3 w-3" />
       就绪
     </Badge>
   );
+}
+
+function showPendingEditNotice() {
+  window.alert('手动编辑文件名功能还未接入，后续会在预览表格内打开安全编辑面板。');
+}
+
+function showPendingSkipNotice() {
+  window.alert('跳过/取消跳过功能还未接入，后续会在预览表格内直接切换。');
 }
 
 export function PreviewTable({
@@ -157,19 +165,19 @@ export function PreviewTable({
               className="rounded border-text-secondary/30"
             />
           </TableHead>
-          <TableHead>原始文件名</TableHead>
-          <TableHead>新文件名</TableHead>
-          <TableHead>类型</TableHead>
-          <TableHead>来源</TableHead>
-          <TableHead>置信度</TableHead>
-          <TableHead>状态</TableHead>
-          <TableHead className="w-24">操作</TableHead>
+          <TableHead className="w-[260px]">原始文件名</TableHead>
+          <TableHead className="w-[320px]">新文件名</TableHead>
+          <TableHead className="w-[100px]">类型</TableHead>
+          <TableHead className="w-[100px]">来源</TableHead>
+          <TableHead className="w-[100px]">置信度</TableHead>
+          <TableHead className="w-[150px]">状态</TableHead>
+          <TableHead className="w-[110px] text-right">操作</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {items.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center py-8">
+            <TableCell colSpan={8} className="py-8 text-center">
               <EmptyState
                 title="没有找到文件"
                 description="尝试调整搜索条件或返回扫描"
@@ -190,14 +198,18 @@ export function PreviewTable({
                   />
                 </TableCell>
                 <TableCell>
-                  <div className="max-w-xs truncate font-mono text-sm">
-                    {item.original_name}
-                  </div>
+                  <Tooltip content={item.original_name}>
+                    <div className="w-full truncate font-mono text-sm leading-6 text-text-primary">
+                      {item.original_name}
+                    </div>
+                  </Tooltip>
                 </TableCell>
                 <TableCell>
-                  <div className="max-w-xs truncate font-mono text-sm text-accent">
-                    {item.proposed_name}
-                  </div>
+                  <Tooltip content={item.proposed_name}>
+                    <div className="w-full truncate font-mono text-sm leading-6 text-accent">
+                      {item.proposed_name}
+                    </div>
+                  </Tooltip>
                 </TableCell>
                 <TableCell>
                   <Badge variant="info">{item.media_type}</Badge>
@@ -215,7 +227,7 @@ export function PreviewTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-1">
+                  <div className="flex justify-end gap-1">
                     {tmdbEnabled && (
                       <Tooltip content="TMDb 搜索">
                         <Button
@@ -223,18 +235,18 @@ export function PreviewTable({
                           size="sm"
                           onClick={() => onTmdbSearch?.(item)}
                         >
-                          <Search className="w-4 h-4" />
+                          <Search className="h-4 w-4" />
                         </Button>
                       </Tooltip>
                     )}
                     <Tooltip content="编辑文件名">
-                      <Button variant="ghost" size="sm">
-                        <Edit className="w-4 h-4" />
+                      <Button variant="ghost" size="sm" onClick={showPendingEditNotice}>
+                        <Edit className="h-4 w-4" />
                       </Button>
                     </Tooltip>
                     <Tooltip content={item.should_skip ? '取消跳过' : '跳过此文件'}>
-                      <Button variant="ghost" size="sm">
-                        <X className="w-4 h-4" />
+                      <Button variant="ghost" size="sm" onClick={showPendingSkipNotice}>
+                        <X className="h-4 w-4" />
                       </Button>
                     </Tooltip>
                   </div>
