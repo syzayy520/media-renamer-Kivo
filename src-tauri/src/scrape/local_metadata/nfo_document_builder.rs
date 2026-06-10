@@ -79,13 +79,13 @@ fn escape_xml(value: &str) -> String {
         .replace('<', "&lt;")
         .replace('>', "&gt;")
         .replace('"', "&quot;")
-        .replace(''', "&apos;")
+        .replace('\'', "&apos;")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tmdb_search_contract::{TmdbCandidateSource, TmdbSearchMediaType};
+    use crate::tmdb_search_contract::TmdbSearchMediaType;
 
     fn make_candidate() -> TmdbCandidate {
         TmdbCandidate {
