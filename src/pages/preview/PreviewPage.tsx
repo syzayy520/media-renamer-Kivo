@@ -22,8 +22,6 @@ import type {
 } from '../../types';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 
-// ─── Presets & Strategies (same definitions as NamingRulePanel) ──────────────
-
 const PRESETS: Array<{ id: string; label: string; desc: string }> = [
   { id: 'clean-library', label: '清爽媒体库', desc: '中文标题 (年份).mkv' },
   { id: 'bilingual-library', label: '中英双语', desc: '中文 - 英文 (年份).mkv' },
@@ -56,7 +54,18 @@ function buildCleanLibraryRule(): NamingRule {
 
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w185';
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
+function buildTmdbQuery(group: FolderGroup): string {
+  const mainVideo = group.children.find((child) => child.file_role === 'MainVideo');
+  const rawName = group.target_folder_name || mainVideo?.target_name || group.original_folder_name;
+  return rawName
+    .replace(/\.[a-z0-9]{2,5}$/i, '')
+    .replace(/^\.+/, '')
+    .replace(/[._]+/g, ' ')
+    .replace(/\s*\((19|20)\d{2}\)\s*/g, ' ')
+    .replace(/\b(720p|1080p|2160p|4k|bluray|blu ray|web dl|webrip|hdtv|remux|x264|x265|hevc|h264|h265|10bit|hdr|dv)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 export function PreviewPage() {
   const navigate = useNavigate();
@@ -71,7 +80,6 @@ export function PreviewPage() {
     startExecution, confirmExecution, cancelExecution, resetExecution,
   } = useExecutionStore();
 
-  // ── Local state ──────────────────────────────────────────────────────────
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [currentNamingRule, setCurrentNamingRule] = useState<NamingRule>(buildCleanLibraryRule());
@@ -82,19 +90,13 @@ export function PreviewPage() {
     clean_empty_folders_after: false,
   });
 
-  // Edit modal
   const [editModal, setEditModal] = useState<{ open: boolean; mode: 'file' | 'group'; targetId: string; currentName: string; previewPath: string } | null>(null);
-
-  // TMDb
   const [tmdbCandidates, setTmdbCandidates] = useState<TmdbCandidate[]>([]);
   const [tmdbLoading, setTmdbLoading] = useState(false);
   const [tmdbError, setTmdbError] = useState<string | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<TmdbCandidate | null>(null);
-
-  // Debounce ref for naming rule changes
   const namingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Derived ──────────────────────────────────────────────────────────────
   const scanRoot = pipelineResult?.scan?.scan_path;
   const planTree = useMemo(() => {
     if (!pipelineResult) return null;
@@ -104,7 +106,13 @@ export function PreviewPage() {
   const groups: FolderGroup[] = planTree?.groups ?? [];
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) ?? null;
 
-  // ── Naming Rule change → backend ─────────────────────────────────────────
+  useEffect(() => {
+    if (groups.length === 0) return;
+    if (!selectedGroupId || !groups.some((group) => group.id === selectedGroupId)) {
+      setSelectedGroupId(groups[0].id);
+    }
+  }, [groups, selectedGroupId]);
+
   const triggerNamingApply = useCallback((rule: NamingRule, strategy: TitleStrategy) => {
     if (namingDebounceRef.current) clearTimeout(namingDebounceRef.current);
     namingDebounceRef.current = setTimeout(() => {
@@ -116,13 +124,11 @@ export function PreviewPage() {
     return () => { if (namingDebounceRef.current) clearTimeout(namingDebounceRef.current); };
   }, []);
 
-  // ── Folder Policy change → backend ───────────────────────────────────────
   const handleFolderPolicyChange = useCallback((config: FolderPolicyConfig) => {
     setFolderPolicyConfig(config);
     applyFolderPolicy(config.policy);
   }, [applyFolderPolicy]);
 
-  // ── Tree actions ─────────────────────────────────────────────────────────
   const handleToggleExpand = useCallback((groupId: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
@@ -133,24 +139,21 @@ export function PreviewPage() {
     setSelectedGroupId(groupId);
   }, []);
 
-  const handleSelectGroup = useCallback((groupId: string) => {
-    setSelectedGroupId(groupId);
-  }, []);
-
-  // ── TMDb search ──────────────────────────────────────────────────────────
-  const handleTmdbSearch = useCallback(async () => {
-    if (!selectedGroup) return;
+  const searchTmdbForGroup = useCallback(async (group: FolderGroup) => {
+    setSelectedGroupId(group.id);
     setTmdbLoading(true);
     setTmdbError(null);
     setTmdbCandidates([]);
     setSelectedCandidate(null);
     try {
-      const firstChild = selectedGroup.children[0];
-      const rawName = firstChild?.target_name || selectedGroup.target_folder_name;
-      const searchName = rawName.replace(/\.[^.]+$/, '');
+      const query = buildTmdbQuery(group);
+      if (!query) {
+        setTmdbError('无法从当前媒体组生成 TMDb 搜索词');
+        return;
+      }
       const result = await searchTmdbCandidates(
-        searchName,
-        selectedGroup.media_type === 'Tv' ? 'Series' : 'Movie',
+        query,
+        group.media_type === 'Tv' ? 'Series' : 'Movie',
       );
       if (result) setTmdbCandidates(result);
     } catch (err) {
@@ -158,12 +161,22 @@ export function PreviewPage() {
     } finally {
       setTmdbLoading(false);
     }
-  }, [selectedGroup, searchTmdbCandidates]);
+  }, [searchTmdbCandidates]);
+
+  const handleTmdbSearch = useCallback(async () => {
+    if (!selectedGroup) return;
+    await searchTmdbForGroup(selectedGroup);
+  }, [selectedGroup, searchTmdbForGroup]);
+
+  const handleGroupTmdbSearch = useCallback((groupId: string) => {
+    const group = groups.find((item) => item.id === groupId);
+    if (!group) return;
+    void searchTmdbForGroup(group);
+  }, [groups, searchTmdbForGroup]);
 
   const handleApplyCandidate = useCallback(async (candidate: TmdbCandidate) => {
     if (!selectedGroup) return;
     try {
-      // Apply to the main video file in the group
       const mainVideo = selectedGroup.children.find((c) => c.file_role === 'MainVideo');
       const targetId = mainVideo?.id || selectedGroup.children[0]?.id;
       if (!targetId) return;
@@ -175,7 +188,6 @@ export function PreviewPage() {
     }
   }, [selectedGroup, applyTmdbCandidate, refreshSafetySummary]);
 
-  // ── Edit modal ───────────────────────────────────────────────────────────
   const openGroupEdit = useCallback((groupId: string) => {
     const group = groups.find((g) => g.id === groupId);
     if (!group || group.children.length === 0) return;
@@ -213,7 +225,6 @@ export function PreviewPage() {
     group.children.forEach((child) => togglePreviewSkipped(child.id));
   }, [groups, togglePreviewSkipped]);
 
-  // ── Render ───────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <Card className="p-6">
@@ -236,7 +247,6 @@ export function PreviewPage() {
 
   return (
     <div className="flex flex-col gap-3 h-[calc(100vh-6rem)]">
-      {/* ═══ Header ═══ */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" icon={<ArrowLeft className="h-4 w-4" />} onClick={() => navigate('/scan')}>
@@ -258,7 +268,6 @@ export function PreviewPage() {
         </div>
       </div>
 
-      {/* TMDb Disabled Banner */}
       {tmdbSearchStatus === 'disabled' && (
         <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 shrink-0">
           <Globe className="h-4 w-4 shrink-0 text-warning" />
@@ -270,11 +279,8 @@ export function PreviewPage() {
         </div>
       )}
 
-      {/* ═══ Three-Column Body ═══ */}
       <div className="flex-1 flex gap-3 min-h-0">
-        {/* --- Left Sidebar (260px) --- */}
         <div className="w-[260px] shrink-0 flex flex-col gap-3 overflow-y-auto">
-          {/* Naming Presets */}
           <div className="rounded-xl border border-border bg-surface p-3">
             <div className="flex items-center gap-1.5 mb-2">
               <Settings className="h-3.5 w-3.5 text-text-secondary" />
@@ -285,7 +291,6 @@ export function PreviewPage() {
               selectedId={selectedPreset}
               onSelect={(id) => {
                 setSelectedPreset(id);
-                // Apply preset's NamingRule
                 const rule = buildCleanLibraryRule();
                 rule.name = id;
                 const preset = PRESETS.find((p) => p.id === id);
@@ -298,7 +303,6 @@ export function PreviewPage() {
             />
           </div>
 
-          {/* Folder Policy */}
           <div className="rounded-xl border border-border bg-surface p-3">
             <div className="flex items-center gap-1.5 mb-2">
               <Folder className="h-3.5 w-3.5 text-text-secondary" />
@@ -327,7 +331,6 @@ export function PreviewPage() {
             </label>
           </div>
 
-          {/* Title Strategy */}
           <div className="rounded-xl border border-border bg-surface p-3">
             <div className="flex items-center gap-1.5 mb-2">
               <Info className="h-3.5 w-3.5 text-text-secondary" />
@@ -353,7 +356,6 @@ export function PreviewPage() {
             </div>
           </div>
 
-          {/* Token Order */}
           <div className="rounded-xl border border-border bg-surface p-3">
             <div className="flex items-center gap-1.5 mb-2">
               <Edit3 className="h-3.5 w-3.5 text-text-secondary" />
@@ -376,14 +378,13 @@ export function PreviewPage() {
           </div>
         </div>
 
-        {/* --- Center: Folder Tree (flex-1) --- */}
         <div className="flex-1 min-w-0 flex flex-col min-h-0">
           <Card className="flex-1 min-h-0 overflow-y-auto p-0">
             <PreviewPlanTree
               groups={groups}
               expandedGroups={expandedGroups}
               onGroupToggleExpand={handleToggleExpand}
-              onGroupTmdbSearch={handleSelectGroup}
+              onGroupTmdbSearch={handleGroupTmdbSearch}
               onGroupEdit={openGroupEdit}
               onGroupSkip={handleGroupSkip}
               onFileEdit={openFileEdit}
@@ -392,9 +393,7 @@ export function PreviewPage() {
           </Card>
         </div>
 
-        {/* --- Right Inspector (320px) --- */}
         <div className="w-[320px] shrink-0 flex flex-col gap-3 overflow-y-auto">
-          {/* Group Info */}
           {selectedGroup && (
             <Card className="p-3">
               <div className="flex items-center gap-2 mb-2">
@@ -413,13 +412,12 @@ export function PreviewPage() {
                 <div>新路径：{selectedGroup.target_path}</div>
               </div>
 
-              {/* TMDb Search */}
               <div className="mt-3 pt-3 border-t border-border">
                 <Button
                   variant="primary"
                   size="sm"
                   icon={<Globe className="h-3.5 w-3.5" />}
-                  onClick={handleTmdbSearch}
+                  onClick={() => handleTmdbSearch()}
                   isLoading={tmdbLoading}
                   className="w-full"
                 >
@@ -435,7 +433,6 @@ export function PreviewPage() {
             </Card>
           )}
 
-          {/* TMDb Candidates */}
           {tmdbCandidates.length > 0 && (
             <Card className="p-0 overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-surface-subtle">
@@ -455,7 +452,6 @@ export function PreviewPage() {
                     }`}
                     onClick={() => setSelectedCandidate(c)}
                   >
-                    {/* Poster */}
                     <div className="w-12 h-18 shrink-0 rounded bg-surface-hover overflow-hidden">
                       {c.poster_path ? (
                         <img
@@ -470,7 +466,6 @@ export function PreviewPage() {
                         </div>
                       )}
                     </div>
-                    {/* Info */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-medium text-text-primary truncate">{c.title}</span>
@@ -493,7 +488,6 @@ export function PreviewPage() {
                         <p className="text-xs text-text-tertiary mt-1 line-clamp-2">{c.overview}</p>
                       )}
                     </div>
-                    {/* Apply button */}
                     <div className="shrink-0 flex items-center">
                       <Button
                         variant="primary"
@@ -509,7 +503,6 @@ export function PreviewPage() {
             </Card>
           )}
 
-          {/* TMDb Error / Loading */}
           {tmdbLoading && (
             <Card className="p-4 flex items-center justify-center gap-2">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -522,7 +515,6 @@ export function PreviewPage() {
             </Card>
           )}
 
-          {/* Scrape Preview (when candidate selected) */}
           {selectedCandidate && (
             <Card className="p-3">
               <div className="flex items-center gap-1.5 mb-2">
@@ -576,7 +568,6 @@ export function PreviewPage() {
         </div>
       </div>
 
-      {/* ═══ Edit Modal (replaces window.prompt) ═══ */}
       {editModal?.open && (
         <EditNameModal
           mode={editModal.mode}
@@ -587,7 +578,6 @@ export function PreviewPage() {
         />
       )}
 
-      {/* ═══ Execution Panels ═══ */}
       {uiState === 'confirming' && confirmState && (
         <div className="shrink-0">
           <ExecutionConfirmPanel
@@ -617,8 +607,6 @@ export function PreviewPage() {
   );
 }
 
-// ─── Edit Name Modal ──────────────────────────────────────────────────────────
-
 function EditNameModal({
   mode,
   currentName,
@@ -643,7 +631,6 @@ function EditNameModal({
     }
   }, [value, currentName, onConfirm, onCancel]);
 
-  // Handle Enter key
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSubmit();
     if (e.key === 'Escape') onCancel();
@@ -655,7 +642,6 @@ function EditNameModal({
         className="bg-surface rounded-xl border border-border shadow-xl w-[480px] max-w-[95vw] p-0 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-subtle">
           <div className="flex items-center gap-2">
             <Edit3 className="h-4 w-4 text-text-secondary" />
@@ -668,7 +654,6 @@ function EditNameModal({
           </Button>
         </div>
 
-        {/* Body */}
         <div className="p-4 space-y-3">
           <div>
             <label className="text-xs text-text-secondary mb-1 block">原名称</label>
@@ -695,7 +680,6 @@ function EditNameModal({
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border bg-surface-subtle">
           <Button variant="secondary" size="sm" onClick={onCancel}>取消</Button>
           <Button variant="primary" size="sm" icon={<Check className="h-4 w-4" />} onClick={handleSubmit}>
