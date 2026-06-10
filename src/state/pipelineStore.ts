@@ -15,6 +15,7 @@ interface PipelineState {
   startRenameSession: (directory: string) => Promise<PipelineResult>;
   applyTmdbCandidate: (itemId: string, candidate: TmdbCandidate) => Promise<ApplyTmdbCandidateOutput>;
   refreshSafetySummary: () => Promise<SafetyReport | null>;
+  updatePreviewProposedName: (itemId: string, proposedName: string) => void;
 }
 
 export const usePipelineStore = create<PipelineState>((set, get) => ({
@@ -98,5 +99,35 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
       console.error('Failed to refresh safety summary:', err);
       return null;
     }
+  },
+
+  updatePreviewProposedName: (itemId: string, proposedName: string) => {
+    const { pipelineResult } = get();
+    if (!pipelineResult) {
+      return;
+    }
+
+    const updatedPreviews = pipelineResult.previews.map((item) => {
+      if (item.id !== itemId) {
+        return item;
+      }
+
+      const targetPath = item.target_path.replace(item.proposed_name, proposedName);
+
+      return {
+        ...item,
+        proposed_name: proposedName,
+        target_path: targetPath,
+        metadata_source: 'Manual' as const,
+        needs_manual_review: false,
+      };
+    });
+
+    set({
+      pipelineResult: {
+        ...pipelineResult,
+        previews: updatedPreviews,
+      },
+    });
   },
 }));
