@@ -784,7 +784,7 @@ function ScrapePreviewCard({ selectedCandidate, selectedGroup }: { selectedCandi
         <div><span className="text-text-tertiary">评分：</span>{selectedCandidate.vote_average != null ? `${selectedCandidate.vote_average.toFixed(1)} / 10` : '无'}</div>
         <div><span className="text-text-tertiary">简介：</span><span className="line-clamp-3">{selectedCandidate.overview || '无'}</span></div>
         <div><span className="text-text-tertiary">TMDb ID：</span>{selectedCandidate.tmdb_id}</div>
-        <div><span className="text-text-tertiary">写入内容：</span><Badge variant="default" size="sm">NFO + poster + fanart</Badge></div>
+        <div><span className="text-text-tertiary">写入内容：</span><Badge variant="default" size="sm">NFO + 图片URL</Badge></div>
       </div>
       <ScrapeWriteActions candidate={selectedCandidate} group={selectedGroup} />
     </Card>
