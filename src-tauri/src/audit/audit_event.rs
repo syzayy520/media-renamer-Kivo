@@ -20,10 +20,7 @@ pub enum AuditEvent {
         blocking_reasons: Vec<String>,
     },
     /// 用户确认
-    UserConfirmed {
-        task_id: String,
-        mode: String,
-    },
+    UserConfirmed { task_id: String, mode: String },
     /// 执行开始
     ExecutionStarted {
         task_id: String,
@@ -47,10 +44,7 @@ pub enum AuditEvent {
         blocked_count: usize,
     },
     /// 回滚计划生成
-    RollbackPlanCreated {
-        task_id: String,
-        entry_count: usize,
-    },
+    RollbackPlanCreated { task_id: String, entry_count: usize },
     /// 回滚执行
     RollbackExecuted {
         task_id: String,
@@ -119,7 +113,10 @@ impl AuditEvent {
                 )
             }
             AuditEvent::UserConfirmed { task_id, mode } => {
-                format!("User confirmed execution for task {} in {} mode", task_id, mode)
+                format!(
+                    "User confirmed execution for task {} in {} mode",
+                    task_id, mode
+                )
             }
             AuditEvent::ExecutionStarted {
                 task_id,

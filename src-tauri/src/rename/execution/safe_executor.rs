@@ -8,8 +8,8 @@ use super::execution_contract::{
     SafeExecuteOutput,
 };
 use super::execution_mode::ExecutionMode;
-use super::skip_filter::filter_actionable;
 use super::single_rename::execute_single_rename;
+use super::skip_filter::filter_actionable;
 use crate::audit::db::TaskStatus;
 use crate::rename::safety_checker;
 use crate::rollback::rollback_plan::RollbackPlan;
@@ -235,10 +235,7 @@ mod tests {
         };
         let output = safe_execute(input);
         assert!(!output.allowed);
-        assert!(output
-            .rejection_reason
-            .unwrap()
-            .contains("用户确认"));
+        assert!(output.rejection_reason.unwrap().contains("用户确认"));
     }
 
     #[test]
@@ -251,10 +248,7 @@ mod tests {
         };
         let output = safe_execute(input);
         assert!(!output.allowed);
-        assert!(output
-            .rejection_reason
-            .unwrap()
-            .contains("安全检查未通过"));
+        assert!(output.rejection_reason.unwrap().contains("安全检查未通过"));
     }
 
     #[test]

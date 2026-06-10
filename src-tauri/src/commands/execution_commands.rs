@@ -32,7 +32,11 @@ mod tests {
     use crate::rename::template::MetadataSource;
     use crate::scan::MediaItem;
 
-    fn make_safe_item(id: &str, source: &str, target: &str) -> crate::rename::template::RenamePreviewItem {
+    fn make_safe_item(
+        id: &str,
+        source: &str,
+        target: &str,
+    ) -> crate::rename::template::RenamePreviewItem {
         crate::rename::template::RenamePreviewItem {
             id: id.to_string(),
             parsed_info: ParsedMediaInfo {
