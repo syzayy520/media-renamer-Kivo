@@ -33,7 +33,6 @@
   --spacing-2xl: 48px;
 }
 
-/* 全局样式 — 使用 @layer base 确保不覆盖 Tailwind 工具类 */
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
@@ -58,23 +57,19 @@
 
   p, h1, h2, h3, h4, span, button, label {
     writing-mode: horizontal-tb;
-  }
-
-  p, h1, h2, h3, h4, label {
-    overflow-wrap: anywhere;
+    word-break: normal;
+    overflow-wrap: normal;
   }
 
   button, a {
     white-space: nowrap;
   }
 
-  /* 路径和代码使用等宽字体 */
   .font-path, code, pre {
     font-family: var(--font-mono);
   }
 }
 
-/* 滚动条样式 */
 @layer utilities {
   ::-webkit-scrollbar {
     width: 8px;
