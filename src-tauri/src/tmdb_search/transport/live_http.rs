@@ -38,26 +38,6 @@ impl LiveHttpTransport {
             gate,
         }
     }
-
-    /// 构建完整的请求 URL（用于测试和调试）
-    ///
-    /// # Arguments
-    /// * `path` - API 路径
-    /// * `params` - 查询参数
-    ///
-    /// # Returns
-    /// 完整的 URL 字符串（api_key 被隐藏）
-    fn build_url_for_debug(&self, path: &str, params: &[(String, String)]) -> String {
-        let mut url = format!("{}{}", TMDB_BASE_URL, path);
-        url.push_str("?api_key=***");
-        for (key, value) in params {
-            url.push('&');
-            url.push_str(key);
-            url.push('=');
-            url.push_str(value);
-        }
-        url
-    }
 }
 
 impl TmdbTransport for LiveHttpTransport {
@@ -169,31 +149,4 @@ mod tests {
         assert!(json.contains("results"));
     }
 
-    #[test]
-    fn test_build_url_for_debug() {
-        let gate = Arc::new(TransportGate::new());
-        let transport = LiveHttpTransport::new("test_key".to_string(), gate);
-
-        let params = vec![
-            ("query".to_string(), "test movie".to_string()),
-            ("language".to_string(), "en".to_string()),
-        ];
-        let url = transport.build_url_for_debug("/search/movie", &params);
-        assert!(url.contains("api_key=***"));
-        assert!(url.contains("query=test movie"));
-        assert!(url.contains("language=en"));
-    }
-
-    #[test]
-    fn test_api_key_hidden_in_debug() {
-        let gate = Arc::new(TransportGate::new());
-        let transport = LiveHttpTransport::new("secret_key_123".to_string(), gate);
-
-        let params = vec![("query".to_string(), "test".to_string())];
-        let url = transport.build_url_for_debug("/search/movie", &params);
-
-        // 验证真实 key 不在 debug URL 中
-        assert!(!url.contains("secret_key_123"));
-        assert!(url.contains("api_key=***"));
-    }
 }

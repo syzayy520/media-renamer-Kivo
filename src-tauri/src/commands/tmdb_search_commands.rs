@@ -29,7 +29,7 @@ pub async fn search_tmdb_candidates(
     }
 
     // Create live search service
-    let service = crate::tmdb_search::command::LiveSearchService::new(
+    let service = crate::tmdb_search::service::LiveSearchService::new(
         state.api_key_provider.clone(),
         state.gate.clone(),
     );

@@ -7,13 +7,13 @@ pub mod command;
 mod mapping;
 mod request;
 mod response;
+pub mod service;
 pub mod tests;
 pub mod transport;
 mod validation;
 
 pub use api_key::{ApiKeyState, ConfigApiKeyProvider, TmdbApiKeyProvider};
 pub use command::search_tmdb_candidates_command_shell;
-pub use command::LiveSearchService;
 pub use command::TmdbSearchState;
 pub use mapping::candidate_mapper::{map_to_candidate, map_to_candidates};
 pub use mapping::error_mapper::{
@@ -27,5 +27,6 @@ pub use request::search_query::{build_search_query, SearchQuery};
 pub use request::search_url::build_search_url;
 pub use response::tmdb_search_response::TmdbSearchResponse;
 pub use response::tmdb_search_result::TmdbSearchResult;
+pub use service::LiveSearchService;
 pub use transport::{LiveHttpTransport, MockTmdbTransport, TmdbTransport, TransportGate};
 pub use validation::search_input_validator::{validate_search_input, ValidatedTmdbSearchInput};

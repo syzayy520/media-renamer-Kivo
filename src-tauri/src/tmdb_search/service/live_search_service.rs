@@ -1,4 +1,4 @@
-// src-tauri/src/tmdb_search/command/live_search_service.rs
+// src-tauri/src/tmdb_search/service/live_search_service.rs
 // Live Search Service
 // 职责：使用 LiveHttpTransport 和 ConfigApiKeyProvider 执行真实 TMDb 搜索
 
