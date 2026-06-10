@@ -13,8 +13,9 @@ use std::sync::{Arc, Mutex};
 ///
 /// 使用示例：
 /// ```rust
-/// let mut mock = MockTmdbTransport::new();
-/// mock.mock_response("/search/movie?query=test", Ok(r#"{"results": []}"#.to_string()));
+/// use app_lib::tmdb_search::MockTmdbTransport;
+/// let mock = MockTmdbTransport::new();
+/// mock.mock_response_simple("/search/movie", Ok(r#"{"results": []}"#.to_string()));
 /// ```
 pub struct MockTmdbTransport {
     /// 存储预设的响应
