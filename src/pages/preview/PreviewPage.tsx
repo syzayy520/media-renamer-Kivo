@@ -1,8 +1,19 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Globe, Play, Settings, X, Folder, Check, AlertTriangle,
-  Star, Edit3, Image, Film, Info,
+  ArrowLeft,
+  Globe,
+  Play,
+  Settings,
+  X,
+  Folder,
+  Check,
+  AlertTriangle,
+  Star,
+  Edit3,
+  Image,
+  Film,
+  Info,
 } from 'lucide-react';
 import { Button, Card, Badge } from '../../components/ui';
 import { usePipelineStore } from '../../state/pipelineStore';
@@ -17,8 +28,13 @@ import { ExecutionConfirmPanel } from './ExecutionConfirmPanel';
 import { ExecutionProgressPanel } from './ExecutionProgressPanel';
 import { ExecutionResultPanel } from './ExecutionResultPanel';
 import type {
-  NamingRule, TitleStrategy, FolderPolicy, FolderPolicyConfig,
-  FolderGroup, TmdbCandidate,
+  NamingRule,
+  TitleStrategy,
+  FolderPolicy,
+  FolderPolicyConfig,
+  FolderGroup,
+  TmdbCandidate,
+  SearchTmdbCandidatesInput,
 } from '../../types';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 
@@ -41,9 +57,13 @@ const STRATEGIES: Array<{ id: TitleStrategy; label: string }> = [
   { id: 'ChineseFolderChinesePrefixPtFile', label: '中文文件夹+中文前缀PT' },
 ];
 
+const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w185';
+type TmdbManualMediaType = SearchTmdbCandidatesInput['media_type'];
+
 function buildCleanLibraryRule(): NamingRule {
   return {
-    name: 'clean-library', description: '清爽媒体库',
+    name: 'clean-library',
+    description: '清爽媒体库',
     tokens: [
       { token: 'ZhTitle', prefix: '', suffix: '', separator: 'Space', empty_policy: 'Hide', case_strategy: 'AsIs', wrapper: 'None', enabled: true },
       { token: 'Year', prefix: '', suffix: '', separator: 'Space', empty_policy: 'Hide', case_strategy: 'AsIs', wrapper: 'Parentheses', enabled: true },
@@ -52,17 +72,25 @@ function buildCleanLibraryRule(): NamingRule {
   };
 }
 
-const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w185';
+function defaultTmdbMediaType(group: FolderGroup | null): TmdbManualMediaType {
+  return group?.media_type === 'Tv' ? 'tv' : 'movie';
+}
 
 function buildTmdbQuery(group: FolderGroup): string {
   const mainVideo = group.children.find((child) => child.file_role === 'MainVideo');
   const rawName = group.target_folder_name || mainVideo?.target_name || group.original_folder_name;
-  return rawName
+  const normalized = rawName
     .replace(/\.[a-z0-9]{2,5}$/i, '')
     .replace(/^\.+/, '')
     .replace(/[._]+/g, ' ')
-    .replace(/\s*\((19|20)\d{2}\)\s*/g, ' ')
-    .replace(/\b(720p|1080p|2160p|4k|bluray|blu ray|web dl|webrip|hdtv|remux|x264|x265|hevc|h264|h265|10bit|hdr|dv)\b/gi, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const beforeYear = normalized.match(/^(.*?)(?:\s*\(?((?:19|20)\d{2})\)?)(?:\s|$)/)?.[1]?.trim();
+  if (beforeYear) return beforeYear;
+
+  return normalized
+    .replace(/\b(720p|1080p|2160p|4k|bluray|blu ray|web dl|web-dl|webrip|hdtv|remux|unrated|proper|repack|extended|gb|gbr|usa|x264|x265|hevc|h264|h265|vc1|vc|10bit|8bit|hdr|dv|truehd|dts|atmos)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -70,14 +98,25 @@ function buildTmdbQuery(group: FolderGroup): string {
 export function PreviewPage() {
   const navigate = useNavigate();
   const {
-    pipelineResult, updatePreviewProposedName, togglePreviewSkipped,
-    refreshSafetySummary, applyNamingRule, applyFolderPolicy, applyTmdbCandidate,
+    pipelineResult,
+    updatePreviewProposedName,
+    togglePreviewSkipped,
+    refreshSafetySummary,
+    applyNamingRule,
+    applyFolderPolicy,
+    applyTmdbCandidate,
   } = usePipelineStore();
   const { isLoading } = useUiFeedbackStore();
-  const { tmdbSearchStatus, disabledReason, searchTmdbCandidates } = useTmdbSearchStore();
+  const { tmdbSearchStatus, disabledReason, searchTmdbCandidates, checkTmdbSearchAvailability } = useTmdbSearchStore();
   const {
-    uiState, confirmState, progressState, resultState,
-    startExecution, confirmExecution, cancelExecution, resetExecution,
+    uiState,
+    confirmState,
+    progressState,
+    resultState,
+    startExecution,
+    confirmExecution,
+    cancelExecution,
+    resetExecution,
   } = useExecutionStore();
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -89,13 +128,23 @@ export function PreviewPage() {
     policy: 'KeepOriginalStructure',
     clean_empty_folders_after: false,
   });
-
-  const [editModal, setEditModal] = useState<{ open: boolean; mode: 'file' | 'group'; targetId: string; currentName: string; previewPath: string } | null>(null);
+  const [editModal, setEditModal] = useState<{
+    open: boolean;
+    mode: 'file' | 'group';
+    targetId: string;
+    currentName: string;
+    previewPath: string;
+  } | null>(null);
+  const [tmdbMediaType, setTmdbMediaType] = useState<TmdbManualMediaType>('movie');
   const [tmdbCandidates, setTmdbCandidates] = useState<TmdbCandidate[]>([]);
   const [tmdbLoading, setTmdbLoading] = useState(false);
   const [tmdbError, setTmdbError] = useState<string | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<TmdbCandidate | null>(null);
   const namingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    checkTmdbSearchAvailability();
+  }, [checkTmdbSearchAvailability]);
 
   const scanRoot = pipelineResult?.scan?.scan_path;
   const planTree = useMemo(() => {
@@ -113,6 +162,13 @@ export function PreviewPage() {
     }
   }, [groups, selectedGroupId]);
 
+  useEffect(() => {
+    setTmdbMediaType(defaultTmdbMediaType(selectedGroup));
+    setTmdbError(null);
+    setTmdbCandidates([]);
+    setSelectedCandidate(null);
+  }, [selectedGroup?.id]);
+
   const triggerNamingApply = useCallback((rule: NamingRule, strategy: TitleStrategy) => {
     if (namingDebounceRef.current) clearTimeout(namingDebounceRef.current);
     namingDebounceRef.current = setTimeout(() => {
@@ -121,7 +177,9 @@ export function PreviewPage() {
   }, [applyNamingRule]);
 
   useEffect(() => {
-    return () => { if (namingDebounceRef.current) clearTimeout(namingDebounceRef.current); };
+    return () => {
+      if (namingDebounceRef.current) clearTimeout(namingDebounceRef.current);
+    };
   }, []);
 
   const handleFolderPolicyChange = useCallback((config: FolderPolicyConfig) => {
@@ -139,39 +197,49 @@ export function PreviewPage() {
     setSelectedGroupId(groupId);
   }, []);
 
-  const searchTmdbForGroup = useCallback(async (group: FolderGroup) => {
+  const searchTmdbForGroup = useCallback(async (group: FolderGroup, mediaType: TmdbManualMediaType) => {
     setSelectedGroupId(group.id);
-    setTmdbLoading(true);
     setTmdbError(null);
     setTmdbCandidates([]);
     setSelectedCandidate(null);
+
+    if (tmdbSearchStatus === 'disabled') {
+      setTmdbError(disabledReason || 'TMDb 未启用，请先到设置配置 API key 并开启 Live Search。');
+      return;
+    }
+
+    setTmdbLoading(true);
     try {
       const query = buildTmdbQuery(group);
       if (!query) {
         setTmdbError('无法从当前媒体组生成 TMDb 搜索词');
         return;
       }
-      const result = await searchTmdbCandidates(
-        query,
-        group.media_type === 'Tv' ? 'Series' : 'Movie',
-      );
-      if (result) setTmdbCandidates(result);
+
+      const result = await searchTmdbCandidates(query, mediaType);
+      if (!result || result.length === 0) {
+        setTmdbError(`没有找到候选：${query}`);
+        return;
+      }
+      setTmdbCandidates(result);
     } catch (err) {
       setTmdbError(err instanceof Error ? err.message : '搜索失败');
     } finally {
       setTmdbLoading(false);
     }
-  }, [searchTmdbCandidates]);
+  }, [disabledReason, searchTmdbCandidates, tmdbSearchStatus]);
 
   const handleTmdbSearch = useCallback(async () => {
     if (!selectedGroup) return;
-    await searchTmdbForGroup(selectedGroup);
-  }, [selectedGroup, searchTmdbForGroup]);
+    await searchTmdbForGroup(selectedGroup, tmdbMediaType);
+  }, [selectedGroup, searchTmdbForGroup, tmdbMediaType]);
 
   const handleGroupTmdbSearch = useCallback((groupId: string) => {
     const group = groups.find((item) => item.id === groupId);
     if (!group) return;
-    void searchTmdbForGroup(group);
+    const mediaType = defaultTmdbMediaType(group);
+    setTmdbMediaType(mediaType);
+    void searchTmdbForGroup(group, mediaType);
   }, [groups, searchTmdbForGroup]);
 
   const handleApplyCandidate = useCallback(async (candidate: TmdbCandidate) => {
@@ -180,7 +248,6 @@ export function PreviewPage() {
       const mainVideo = selectedGroup.children.find((c) => c.file_role === 'MainVideo');
       const targetId = mainVideo?.id || selectedGroup.children[0]?.id;
       if (!targetId) return;
-
       await applyTmdbCandidate(targetId, candidate);
       refreshSafetySummary();
     } catch (err) {
@@ -281,11 +348,7 @@ export function PreviewPage() {
 
       <div className="flex-1 flex gap-3 min-h-0">
         <div className="w-[260px] shrink-0 flex flex-col gap-3 overflow-y-auto">
-          <div className="rounded-xl border border-border bg-surface p-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Settings className="h-3.5 w-3.5 text-text-secondary" />
-              <h3 className="text-xs font-semibold text-text-primary">命名预设</h3>
-            </div>
+          <WorkbenchCard title="命名预设" icon={<Settings className="h-3.5 w-3.5 text-text-secondary" />}>
             <NamingPresetList
               presets={PRESETS}
               selectedId={selectedPreset}
@@ -301,13 +364,9 @@ export function PreviewPage() {
                 }
               }}
             />
-          </div>
+          </WorkbenchCard>
 
-          <div className="rounded-xl border border-border bg-surface p-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Folder className="h-3.5 w-3.5 text-text-secondary" />
-              <h3 className="text-xs font-semibold text-text-primary">文件夹策略</h3>
-            </div>
+          <WorkbenchCard title="文件夹策略" icon={<Folder className="h-3.5 w-3.5 text-text-secondary" />}>
             <FolderPolicySelector
               selected={folderPolicyConfig.policy}
               onSelect={(policy: FolderPolicy) => handleFolderPolicyChange({ ...folderPolicyConfig, policy })}
@@ -315,9 +374,7 @@ export function PreviewPage() {
             {folderPolicyConfig.policy === 'Flatten' && (
               <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-error/30 bg-error/5 px-2 py-1.5">
                 <AlertTriangle className="h-3 w-3 text-error shrink-0 mt-0.5" />
-                <span className="text-xs text-error leading-relaxed">
-                  高风险：将文件移至上级目录，同名文件会冲突。
-                </span>
+                <span className="text-xs text-error leading-relaxed">高风险：将文件移至上级目录，同名文件会冲突。</span>
               </div>
             )}
             <label className="flex items-center gap-1.5 mt-2 text-xs text-text-secondary cursor-pointer">
@@ -329,22 +386,14 @@ export function PreviewPage() {
               />
               清理空文件夹
             </label>
-          </div>
+          </WorkbenchCard>
 
-          <div className="rounded-xl border border-border bg-surface p-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Info className="h-3.5 w-3.5 text-text-secondary" />
-              <h3 className="text-xs font-semibold text-text-primary">标题策略</h3>
-            </div>
+          <WorkbenchCard title="标题策略" icon={<Info className="h-3.5 w-3.5 text-text-secondary" />}>
             <div className="flex flex-wrap gap-1">
               {STRATEGIES.map((s) => (
                 <button
                   key={s.id}
-                  className={`text-xs px-2 py-1 rounded-full transition-colors ${
-                    currentStrategy === s.id
-                      ? 'bg-primary text-white'
-                      : 'bg-surface-hover text-text-secondary hover:text-text-primary'
-                  }`}
+                  className={`text-xs px-2 py-1 rounded-full transition-colors ${currentStrategy === s.id ? 'bg-primary text-white' : 'bg-surface-hover text-text-secondary hover:text-text-primary'}`}
                   onClick={() => {
                     setCurrentStrategy(s.id);
                     triggerNamingApply(currentNamingRule, s.id);
@@ -354,13 +403,9 @@ export function PreviewPage() {
                 </button>
               ))}
             </div>
-          </div>
+          </WorkbenchCard>
 
-          <div className="rounded-xl border border-border bg-surface p-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Edit3 className="h-3.5 w-3.5 text-text-secondary" />
-              <h3 className="text-xs font-semibold text-text-primary">Token 排序</h3>
-            </div>
+          <WorkbenchCard title="Token 排序" icon={<Edit3 className="h-3.5 w-3.5 text-text-secondary" />}>
             <NamingTokenOrderList
               tokens={currentNamingRule.tokens}
               onReorder={(tokens) => {
@@ -375,7 +420,7 @@ export function PreviewPage() {
                 triggerNamingApply(newRule, currentStrategy);
               }}
             />
-          </div>
+          </WorkbenchCard>
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col min-h-0">
@@ -394,40 +439,50 @@ export function PreviewPage() {
         </div>
 
         <div className="w-[320px] shrink-0 flex flex-col gap-3 overflow-y-auto">
-          {selectedGroup && (
+          {selectedGroup ? (
             <Card className="p-3">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm">
-                  {selectedGroup.media_type === 'Movie' ? '🎬' : selectedGroup.media_type === 'Tv' ? '📺' : '📁'}
-                </span>
-                <h3 className="text-sm font-semibold text-text-primary truncate">
-                  {selectedGroup.target_folder_name}
-                </h3>
-                <Badge variant="default" size="sm">
-                  {selectedGroup.media_type} · {selectedGroup.file_count} 文件
-                </Badge>
+                <span className="text-sm">{selectedGroup.media_type === 'Movie' ? '🎬' : selectedGroup.media_type === 'Tv' ? '📺' : '📁'}</span>
+                <h3 className="text-sm font-semibold text-text-primary truncate">{selectedGroup.target_folder_name}</h3>
+                <Badge variant="default" size="sm">{selectedGroup.media_type} · {selectedGroup.file_count} 文件</Badge>
               </div>
               <div className="text-xs text-text-tertiary space-y-1">
                 <div>原路径：{selectedGroup.original_path}</div>
                 <div>新路径：{selectedGroup.target_path}</div>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-border">
+              <div className="mt-3 pt-3 border-t border-border space-y-3">
+                <div>
+                  <div className="mb-1 text-xs text-text-secondary">搜索类型</div>
+                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-bg-primary p-1">
+                    <button
+                      className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors ${tmdbMediaType === 'movie' ? 'bg-primary text-bg-primary' : 'text-text-secondary hover:text-text-primary'}`}
+                      onClick={() => setTmdbMediaType('movie')}
+                    >
+                      电影
+                    </button>
+                    <button
+                      className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors ${tmdbMediaType === 'tv' ? 'bg-primary text-bg-primary' : 'text-text-secondary hover:text-text-primary'}`}
+                      onClick={() => setTmdbMediaType('tv')}
+                    >
+                      电视剧
+                    </button>
+                  </div>
+                </div>
                 <Button
                   variant="primary"
                   size="sm"
                   icon={<Globe className="h-3.5 w-3.5" />}
                   onClick={() => handleTmdbSearch()}
                   isLoading={tmdbLoading}
+                  disabled={tmdbSearchStatus === 'disabled'}
                   className="w-full"
                 >
-                  搜索 TMDb
+                  {tmdbSearchStatus === 'disabled' ? '先启用 TMDb' : '搜索 TMDb'}
                 </Button>
               </div>
             </Card>
-          )}
-
-          {!selectedGroup && (
+          ) : (
             <Card className="p-4 text-center">
               <p className="text-xs text-text-tertiary">在左侧树中选择一个组查看详情</p>
             </Card>
@@ -436,34 +491,21 @@ export function PreviewPage() {
           {tmdbCandidates.length > 0 && (
             <Card className="p-0 overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-surface-subtle">
-                <h3 className="text-xs font-semibold text-text-primary">
-                  TMDb 候选 ({tmdbCandidates.length})
-                </h3>
-                <Button variant="ghost" size="sm" icon={<X className="h-3 w-3" />} onClick={() => { setTmdbCandidates([]); setSelectedCandidate(null); }}>
-                  {''}
-                </Button>
+                <h3 className="text-xs font-semibold text-text-primary">TMDb 候选 ({tmdbCandidates.length})</h3>
+                <Button variant="ghost" size="sm" icon={<X className="h-3 w-3" />} onClick={() => { setTmdbCandidates([]); setSelectedCandidate(null); }}>{''}</Button>
               </div>
               <div className="max-h-80 overflow-y-auto divide-y divide-border">
                 {tmdbCandidates.map((c) => (
                   <div
                     key={c.tmdb_id}
-                    className={`flex gap-3 p-3 cursor-pointer hover:bg-surface-hover transition-colors ${
-                      selectedCandidate?.tmdb_id === c.tmdb_id ? 'bg-primary/5 border-l-2 border-primary' : ''
-                    }`}
+                    className={`flex gap-3 p-3 cursor-pointer hover:bg-surface-hover transition-colors ${selectedCandidate?.tmdb_id === c.tmdb_id ? 'bg-primary/5 border-l-2 border-primary' : ''}`}
                     onClick={() => setSelectedCandidate(c)}
                   >
-                    <div className="w-12 h-18 shrink-0 rounded bg-surface-hover overflow-hidden">
+                    <div className="w-12 h-20 shrink-0 rounded bg-surface-hover overflow-hidden">
                       {c.poster_path ? (
-                        <img
-                          src={`${TMDB_IMAGE_BASE}${c.poster_path}`}
-                          alt={c.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
+                        <img src={`${TMDB_IMAGE_BASE}${c.poster_path}`} alt={c.title} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-text-tertiary">
-                          <Film className="h-5 w-5" />
-                        </div>
+                        <div className="w-full h-full flex items-center justify-center text-text-tertiary"><Film className="h-5 w-5" /></div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -471,31 +513,15 @@ export function PreviewPage() {
                         <span className="text-xs font-medium text-text-primary truncate">{c.title}</span>
                         {c.year && <span className="text-xs text-text-tertiary shrink-0">({c.year})</span>}
                       </div>
-                      {c.original_title && c.original_title !== c.title && (
-                        <div className="text-xs text-text-tertiary truncate">{c.original_title}</div>
-                      )}
+                      {c.original_title && c.original_title !== c.title && <div className="text-xs text-text-tertiary truncate">{c.original_title}</div>}
                       <div className="flex items-center gap-2 mt-1">
-                        {c.vote_average != null && (
-                          <span className="flex items-center gap-0.5 text-xs text-warning">
-                            <Star className="h-3 w-3 fill-current" />{c.vote_average.toFixed(1)}
-                          </span>
-                        )}
-                        <Badge variant="default" size="sm">
-                          {c.media_type === 'Movie' ? '🎬' : '📺'} TMDb {c.tmdb_id}
-                        </Badge>
+                        {c.vote_average != null && <span className="flex items-center gap-0.5 text-xs text-warning"><Star className="h-3 w-3 fill-current" />{c.vote_average.toFixed(1)}</span>}
+                        <Badge variant="default" size="sm">{c.media_type === 'Movie' ? '🎬' : '📺'} TMDb {c.tmdb_id}</Badge>
                       </div>
-                      {c.overview && (
-                        <p className="text-xs text-text-tertiary mt-1 line-clamp-2">{c.overview}</p>
-                      )}
+                      {c.overview && <p className="text-xs text-text-tertiary mt-1 line-clamp-2">{c.overview}</p>}
                     </div>
                     <div className="shrink-0 flex items-center">
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); handleApplyCandidate(c); }}
-                      >
-                        应用
-                      </Button>
+                      <Button variant="primary" size="sm" onClick={(e) => { e.stopPropagation(); handleApplyCandidate(c); }}>应用</Button>
                     </div>
                   </div>
                 ))}
@@ -510,8 +536,8 @@ export function PreviewPage() {
             </Card>
           )}
           {tmdbError && (
-            <Card className="p-3 border-error/30 bg-error/5">
-              <p className="text-xs text-error">{tmdbError}</p>
+            <Card className="p-3 border-danger/30 bg-danger/10">
+              <p className="text-xs text-danger">{tmdbError}</p>
             </Card>
           )}
 
@@ -522,46 +548,21 @@ export function PreviewPage() {
                 <h3 className="text-xs font-semibold text-text-primary">刮削预览</h3>
               </div>
               <div className="space-y-2 text-xs text-text-secondary">
-                <div>
-                  <span className="text-text-tertiary">文件夹：</span>
-                  {selectedGroup?.target_folder_name}
-                </div>
-                <div>
-                  <span className="text-text-tertiary">文件：</span>
-                  {selectedGroup?.children.find((c) => c.file_role === 'MainVideo')?.target_name || selectedGroup?.children[0]?.target_name}
-                </div>
+                <div><span className="text-text-tertiary">文件夹：</span>{selectedGroup?.target_folder_name}</div>
+                <div><span className="text-text-tertiary">文件：</span>{selectedGroup?.children.find((c) => c.file_role === 'MainVideo')?.target_name || selectedGroup?.children[0]?.target_name}</div>
                 <div className="flex gap-2">
                   <span className="text-text-tertiary">Poster：</span>
                   {selectedCandidate.poster_path ? (
-                    <img
-                      src={`${TMDB_IMAGE_BASE}${selectedCandidate.poster_path}`}
-                      alt="Poster"
-                      className="w-16 h-24 rounded object-cover border border-border"
-                    />
+                    <img src={`${TMDB_IMAGE_BASE}${selectedCandidate.poster_path}`} alt="Poster" className="w-16 h-24 rounded object-cover border border-border" />
                   ) : (
                     <span className="text-text-tertiary italic">无</span>
                   )}
                 </div>
-                <div>
-                  <span className="text-text-tertiary">标题：</span>
-                  {selectedCandidate.title} {selectedCandidate.year ? `(${selectedCandidate.year})` : ''}
-                </div>
-                <div>
-                  <span className="text-text-tertiary">评分：</span>
-                  {selectedCandidate.vote_average != null ? `${selectedCandidate.vote_average.toFixed(1)} / 10` : '无'}
-                </div>
-                <div>
-                  <span className="text-text-tertiary">简介：</span>
-                  <span className="line-clamp-3">{selectedCandidate.overview || '无'}</span>
-                </div>
-                <div>
-                  <span className="text-text-tertiary">TMDb ID：</span>
-                  {selectedCandidate.tmdb_id}
-                </div>
-                <div>
-                  <span className="text-text-tertiary">写入模式：</span>
-                  <Badge variant="default" size="sm">仅命名</Badge>
-                </div>
+                <div><span className="text-text-tertiary">标题：</span>{selectedCandidate.title} {selectedCandidate.year ? `(${selectedCandidate.year})` : ''}</div>
+                <div><span className="text-text-tertiary">评分：</span>{selectedCandidate.vote_average != null ? `${selectedCandidate.vote_average.toFixed(1)} / 10` : '无'}</div>
+                <div><span className="text-text-tertiary">简介：</span><span className="line-clamp-3">{selectedCandidate.overview || '无'}</span></div>
+                <div><span className="text-text-tertiary">TMDb ID：</span>{selectedCandidate.tmdb_id}</div>
+                <div><span className="text-text-tertiary">写入模式：</span><Badge variant="default" size="sm">仅命名</Badge></div>
               </div>
             </Card>
           )}
@@ -569,40 +570,34 @@ export function PreviewPage() {
       </div>
 
       {editModal?.open && (
-        <EditNameModal
-          mode={editModal.mode}
-          currentName={editModal.currentName}
-          previewPath={editModal.previewPath}
-          onConfirm={confirmEdit}
-          onCancel={() => setEditModal(null)}
-        />
+        <EditNameModal mode={editModal.mode} currentName={editModal.currentName} previewPath={editModal.previewPath} onConfirm={confirmEdit} onCancel={() => setEditModal(null)} />
       )}
 
       {uiState === 'confirming' && confirmState && (
         <div className="shrink-0">
-          <ExecutionConfirmPanel
-            state={confirmState}
-            onConfirm={() => confirmExecution()}
-            onCancel={cancelExecution}
-            isLoading={false}
-          />
+          <ExecutionConfirmPanel state={confirmState} onConfirm={() => confirmExecution()} onCancel={cancelExecution} isLoading={false} />
         </div>
       )}
       {uiState === 'executing' && progressState && (
-        <div className="shrink-0">
-          <ExecutionProgressPanel state={progressState} />
-        </div>
+        <div className="shrink-0"><ExecutionProgressPanel state={progressState} /></div>
       )}
       {uiState === 'completed' && resultState && (
         <div className="shrink-0">
-          <ExecutionResultPanel
-            state={resultState}
-            onRollback={() => {}}
-            onExport={() => {}}
-            onReset={resetExecution}
-          />
+          <ExecutionResultPanel state={resultState} onRollback={() => {}} onExport={() => {}} onReset={resetExecution} />
         </div>
       )}
+    </div>
+  );
+}
+
+function WorkbenchCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-border bg-surface p-3">
+      <div className="flex items-center gap-1.5 mb-2">
+        {icon}
+        <h3 className="text-xs font-semibold text-text-primary">{title}</h3>
+      </div>
+      {children}
     </div>
   );
 }
@@ -624,11 +619,8 @@ function EditNameModal({
 
   const handleSubmit = useCallback(() => {
     const trimmed = value.trim();
-    if (trimmed && trimmed !== currentName) {
-      onConfirm(trimmed);
-    } else {
-      onCancel();
-    }
+    if (trimmed && trimmed !== currentName) onConfirm(trimmed);
+    else onCancel();
   }, [value, currentName, onConfirm, onCancel]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -637,35 +629,26 @@ function EditNameModal({
   }, [handleSubmit, onCancel]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onCancel}>
-      <div
-        className="bg-surface rounded-xl border border-border shadow-xl w-[480px] max-w-[95vw] p-0 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-subtle">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={onCancel}>
+      <div className="bg-bg-secondary rounded-2xl border border-accent/40 shadow-2xl w-[520px] max-w-[95vw] p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-accent/20 bg-bg-card">
           <div className="flex items-center gap-2">
-            <Edit3 className="h-4 w-4 text-text-secondary" />
-            <h3 className="text-sm font-semibold text-text-primary">
-              {mode === 'group' ? '编辑文件夹名' : '编辑文件名'}
-            </h3>
+            <Edit3 className="h-4 w-4 text-accent" />
+            <h3 className="text-sm font-semibold text-text-primary">{mode === 'group' ? '编辑文件夹名' : '编辑文件名'}</h3>
           </div>
-          <Button variant="ghost" size="sm" icon={<X className="h-4 w-4" />} onClick={onCancel}>
-            {''}
-          </Button>
+          <Button variant="ghost" size="sm" icon={<X className="h-4 w-4" />} onClick={onCancel}>{''}</Button>
         </div>
 
-        <div className="p-4 space-y-3">
+        <div className="p-5 space-y-4">
           <div>
             <label className="text-xs text-text-secondary mb-1 block">原名称</label>
-            <div className="text-sm text-text-primary bg-surface-subtle rounded px-3 py-2 break-all">
-              {currentName}
-            </div>
+            <div className="text-sm text-text-primary bg-bg-primary rounded-xl px-3 py-2 break-all border border-text-secondary/20">{currentName}</div>
           </div>
           <div>
             <label className="text-xs text-text-secondary mb-1 block">新名称</label>
             <input
               type="text"
-              className="w-full rounded-lg border border-border bg-surface-subtle px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+              className="w-full rounded-xl border border-accent/50 bg-bg-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent transition-colors"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -674,17 +657,15 @@ function EditNameModal({
           </div>
           <div>
             <label className="text-xs text-text-secondary mb-1 block">最终路径预览</label>
-            <div className="text-xs text-text-tertiary bg-surface-subtle rounded px-3 py-2 break-all font-mono">
+            <div className="text-xs text-text-secondary bg-bg-primary rounded-xl px-3 py-2 break-all font-mono border border-text-secondary/20">
               {previewPath.replace(currentName, value.trim() || currentName)}
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-border bg-surface-subtle">
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-accent/20 bg-bg-card">
           <Button variant="secondary" size="sm" onClick={onCancel}>取消</Button>
-          <Button variant="primary" size="sm" icon={<Check className="h-4 w-4" />} onClick={handleSubmit}>
-            保存
-          </Button>
+          <Button variant="primary" size="sm" icon={<Check className="h-4 w-4" />} onClick={handleSubmit}>保存</Button>
         </div>
       </div>
     </div>
