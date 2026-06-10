@@ -14,6 +14,8 @@ interface TmdbConfigStatus {
   message: string;
 }
 
+type TmdbSearchMediaType = 'Movie' | 'Tv' | 'Series';
+
 /** 单个预览项的搜索状态 */
 export interface ItemSearchState {
   status: TmdbSearchStatus;
@@ -37,7 +39,7 @@ interface TmdbSearchState {
   /** 检测 TMDb 搜索功能是否可用 */
   checkTmdbSearchAvailability: () => Promise<void>;
   /** 便捷搜索：返回候选列表 */
-  searchTmdbCandidates: (query: string, mediaType: 'Movie' | 'Series') => Promise<TmdbCandidate[] | null>;
+  searchTmdbCandidates: (query: string, mediaType: TmdbSearchMediaType) => Promise<TmdbCandidate[] | null>;
   /** 搜索 TMDb 候选（仅在功能可用时有效） */
   searchCandidates: (input: SearchTmdbCandidatesInput) => Promise<void>;
   /** 为特定预览项搜索候选 */
@@ -55,6 +57,10 @@ interface TmdbSearchState {
 }
 
 const DISABLED_GATE_MESSAGE = 'TMDb live search is not enabled.';
+
+function normalizeSearchMediaType(mediaType: TmdbSearchMediaType): 'Movie' | 'Tv' {
+  return mediaType === 'Series' ? 'Tv' : mediaType;
+}
 
 function isDisabledResponse(output: SearchTmdbCandidatesOutput): boolean {
   return (
@@ -119,7 +125,7 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
     }
   },
 
-  searchTmdbCandidates: async (query: string, mediaType: 'Movie' | 'Series'): Promise<TmdbCandidate[] | null> => {
+  searchTmdbCandidates: async (query: string, mediaType: TmdbSearchMediaType): Promise<TmdbCandidate[] | null> => {
     const configStatus = await readConfigStatus();
     assertTmdbEnabled(configStatus);
 
@@ -127,7 +133,7 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
 
     const output = await invoke<SearchTmdbCandidatesOutput>(
       'search_tmdb_candidates',
-      { input: { query, media_type: mediaType, language: 'zh-CN', year: null, page: 1 } },
+      { input: { query, media_type: normalizeSearchMediaType(mediaType), language: 'zh-CN', year: null, page: 1 } },
     );
 
     if (isDisabledResponse(output)) {
