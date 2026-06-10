@@ -1,5 +1,5 @@
 // commands 模块 - Tauri 命令 API 层
-// 职责：将 config/audit/tmdb_search/rename/rollback 子模块暴露为 Tauri 命令
+// 职责：将 config/audit/tmdb_search/rename/rollback/scrape 子模块暴露为 Tauri 命令
 // 不做业务逻辑，只做参数转换 + 错误映射
 
 pub mod audit_commands;
@@ -7,6 +7,7 @@ pub mod config_commands;
 pub mod execution_commands;
 pub mod rename_commands;
 pub mod rollback_commands;
+pub mod scrape_commands;
 pub mod tmdb_search_commands;
 
 pub use audit_commands::*;
@@ -14,4 +15,5 @@ pub use config_commands::*;
 pub use execution_commands::*;
 pub use rename_commands::*;
 pub use rollback_commands::*;
+pub use scrape_commands::*;
 pub use tmdb_search_commands::*;
