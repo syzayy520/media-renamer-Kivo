@@ -1,24 +1,39 @@
 // src-tauri/src/commands/tmdb_search_commands.rs
 // TMDb Search Tauri Commands
 // 职责：将 tmdb_search command shell 注册为 Tauri 命令
-// 当前状态：disabled gate — 始终返回 disabled 结果，不调用 live network
+// 当前状态：gated execution — 使用 LiveSearchService 执行真实搜索
 
 use crate::tmdb_search::command::search_tmdb_candidates_command_shell;
+use crate::tmdb_search::command::TmdbSearchState;
 use crate::tmdb_search_contract::{SearchTmdbCandidatesInput, SearchTmdbCandidatesOutput};
 
 /// TMDb 搜索候选 command
 ///
-/// 当前状态：disabled gate — 始终返回结构化 disabled 错误。
-/// 不读取 API key、不联网、不调用 transport。
+/// 使用 LiveSearchService 执行真实 TMDb 搜索。
+/// 必须显式启用 transport gate 才能执行网络请求。
 ///
 /// # Arguments
 /// * `input` - 搜索输入（复用 P2-011 contract）
+/// * `state` - Tauri 状态，包含 transport gate 和 API key provider
 ///
 /// # Returns
-/// `SearchTmdbCandidatesOutput` 包含空候选列表和 disabled 错误
+/// `Result<SearchTmdbCandidatesOutput, String>` 包含搜索结果或错误
 #[tauri::command]
 pub async fn search_tmdb_candidates(
     input: SearchTmdbCandidatesInput,
-) -> SearchTmdbCandidatesOutput {
-    search_tmdb_candidates_command_shell(input)
+    state: tauri::State<'_, TmdbSearchState>,
+) -> Result<SearchTmdbCandidatesOutput, String> {
+    // Check if gate is enabled
+    if !state.is_gate_enabled() {
+        return Ok(search_tmdb_candidates_command_shell(input));
+    }
+
+    // Create live search service
+    let service = crate::tmdb_search::command::LiveSearchService::new(
+        state.api_key_provider.clone(),
+        state.gate.clone(),
+    );
+
+    // Execute search
+    Ok(service.search(input).await)
 }

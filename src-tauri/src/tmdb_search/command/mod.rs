@@ -4,6 +4,8 @@
 
 mod search_tmdb_candidates_command;
 pub mod live_search_service;
+pub mod tmdb_search_state;
 
 pub use search_tmdb_candidates_command::search_tmdb_candidates_command_shell;
 pub use live_search_service::LiveSearchService;
+pub use tmdb_search_state::TmdbSearchState;

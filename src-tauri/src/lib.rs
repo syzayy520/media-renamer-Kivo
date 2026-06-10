@@ -19,6 +19,7 @@ use commands::{
 };
 use session::plan_session::{start_rename_session, DbState};
 use tauri::Manager;
+use tmdb_search::command::TmdbSearchState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -43,6 +44,10 @@ pub fn run() {
             let db_path = app_dir.join("media-renamer.db");
             let db_state = DbState::new(&db_path).expect("Failed to initialize database");
             app.manage(db_state);
+
+            // 初始化 TMDb 搜索状态
+            let tmdb_search_state = TmdbSearchState::new(app_dir.clone());
+            app.manage(tmdb_search_state);
 
             Ok(())
         })
