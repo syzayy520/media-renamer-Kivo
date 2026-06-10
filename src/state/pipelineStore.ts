@@ -41,13 +41,13 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
         ...item.parsed_info,
         title: candidate.title,
         year: candidate.year,
-        media_type: candidate.media_type === 'Movie' ? 'Movie' : 'Series',
+        media_type: candidate.media_type,
       };
 
       // Generate new proposed name based on updated info
       // For now, use a simple format: "Title (Year)"
       const yearStr = candidate.year ? ` (${candidate.year})` : '';
-      const newProposedName = `${candidate.title}${yearStr}${item.parsed_info.extension}`;
+      const newProposedName = `${candidate.title}${yearStr}${item.parsed_info.media_item.extension}`;
 
       return {
         ...item,
