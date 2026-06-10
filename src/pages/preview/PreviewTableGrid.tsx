@@ -1,7 +1,7 @@
-import { Edit, Search } from 'lucide-react';
-import { Badge, EmptyState, Tooltip, Button } from '../../components/ui';
+import { Badge, EmptyState } from '../../components/ui';
 import type { RenamePreviewItem } from '../../types';
 import type { ItemSearchState } from '../../state/tmdbSearchStore';
+import { PreviewRowActions } from './PreviewRowActions';
 
 interface PreviewTableGridProps {
   items: RenamePreviewItem[];
@@ -11,6 +11,7 @@ interface PreviewTableGridProps {
   filteredCount: number;
   onTmdbSearch?: (item: RenamePreviewItem) => void;
   onManualEdit?: (item: RenamePreviewItem) => void;
+  onSkipToggle?: (item: RenamePreviewItem) => void;
   itemStates?: Record<string, ItemSearchState>;
   tmdbEnabled?: boolean;
 }
@@ -43,6 +44,7 @@ export function PreviewTableGrid({
   filteredCount,
   onTmdbSearch,
   onManualEdit,
+  onSkipToggle,
   itemStates = {},
   tmdbEnabled = false,
 }: PreviewTableGridProps) {
@@ -58,8 +60,8 @@ export function PreviewTableGrid({
 
   return (
     <div className="w-full overflow-x-auto">
-      <div className="min-w-[1120px]">
-        <div className="grid grid-cols-[44px_minmax(250px,1.35fr)_minmax(330px,1.65fr)_82px_82px_82px_124px_104px] items-center border-b border-text-secondary/20 bg-bg-secondary px-4 py-3 text-xs font-medium uppercase text-text-secondary">
+      <div className="min-w-[1160px]">
+        <div className="grid grid-cols-[44px_minmax(250px,1.35fr)_minmax(330px,1.65fr)_82px_82px_82px_124px_136px] items-center border-b border-text-secondary/20 bg-bg-secondary px-4 py-3 text-xs font-medium uppercase text-text-secondary">
           <input type="checkbox" checked={allSelected} onChange={onSelectAll} />
           <div>原始文件名</div>
           <div>新文件名</div>
@@ -77,7 +79,7 @@ export function PreviewTableGrid({
           return (
             <div
               key={item.id}
-              className={`grid grid-cols-[44px_minmax(250px,1.35fr)_minmax(330px,1.65fr)_82px_82px_82px_124px_104px] items-center border-b border-text-secondary/20 px-4 py-3 hover:bg-bg-secondary/50 ${selected ? 'bg-accent/5' : ''}`}
+              className={`grid grid-cols-[44px_minmax(250px,1.35fr)_minmax(330px,1.65fr)_82px_82px_82px_124px_136px] items-center border-b border-text-secondary/20 px-4 py-3 hover:bg-bg-secondary/50 ${selected ? 'bg-accent/5' : ''}`}
             >
               <input type="checkbox" checked={selected} onChange={() => onSelectItem(item.id)} />
               <div title={item.original_name} className="min-w-0 truncate pr-4 font-mono text-sm leading-6 text-text-primary">
@@ -93,20 +95,13 @@ export function PreviewTableGrid({
                 <StatusBadge item={item} />
                 {tmdbEnabled && itemState?.status === 'loading' && <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />}
               </div>
-              <div className="flex justify-end gap-2">
-                {tmdbEnabled && (
-                  <Tooltip content="TMDb 搜索">
-                    <Button variant="ghost" size="sm" onClick={() => onTmdbSearch?.(item)}>
-                      <Search className="h-4 w-4" />
-                    </Button>
-                  </Tooltip>
-                )}
-                <Tooltip content="编辑文件名">
-                  <Button variant="ghost" size="sm" onClick={() => onManualEdit?.(item)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </Tooltip>
-              </div>
+              <PreviewRowActions
+                item={item}
+                tmdbEnabled={tmdbEnabled}
+                onTmdbSearch={onTmdbSearch}
+                onManualEdit={onManualEdit}
+                onSkipToggle={onSkipToggle}
+              />
             </div>
           );
         })}
