@@ -31,21 +31,21 @@ export function AuditPage() {
 
   return (
     <div className="w-full px-6 py-8">
-      <div className="w-full">
-        <div className="flex items-center justify-between mb-8 gap-4">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-3xl font-bold text-text-primary whitespace-nowrap">
+      <div className="mx-auto w-full max-w-6xl space-y-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold leading-tight text-text-primary">
               审计与安全检查
             </h1>
-            <p className="text-text-secondary mt-2">
+            <p className="mt-2 text-sm leading-6 text-text-secondary">
               查看安全检查结果和任务历史
             </p>
           </div>
-          <div className="flex gap-4 shrink-0">
-            <Button variant="secondary" onClick={handleRefresh} icon={<RefreshCw className="w-4 h-4" />}>
+          <div className="flex shrink-0 gap-3">
+            <Button variant="secondary" onClick={handleRefresh} icon={<RefreshCw className="h-4 w-4" />}>
               刷新
             </Button>
-            <Button variant="secondary" icon={<Download className="w-4 h-4" />}>
+            <Button variant="secondary" icon={<Download className="h-4 w-4" />}>
               导出报告
             </Button>
           </div>
