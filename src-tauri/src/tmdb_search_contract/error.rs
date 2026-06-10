@@ -10,23 +10,23 @@ pub enum TmdbSearchErrorCode {
     /// API key 缺失
     #[serde(rename = "apikey_missing")]
     ApiKeyMissing,
-    
+
     /// API key 无效
     #[serde(rename = "apikey_invalid")]
     ApiKeyInvalid,
-    
+
     /// 速率限制
     #[serde(rename = "rate_limited")]
     RateLimited,
-    
+
     /// 超时
     #[serde(rename = "timeout")]
     Timeout,
-    
+
     /// 网络错误
     #[serde(rename = "network_error")]
     NetworkError,
-    
+
     /// 未知错误
     #[serde(rename = "unknown")]
     Unknown,

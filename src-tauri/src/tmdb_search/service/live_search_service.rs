@@ -45,10 +45,7 @@ impl<P: TmdbApiKeyProvider> LiveSearchService<P> {
     ///
     /// # Returns
     /// `SearchTmdbCandidatesOutput` 包含搜索结果或错误
-    pub async fn search(
-        &self,
-        input: SearchTmdbCandidatesInput,
-    ) -> SearchTmdbCandidatesOutput {
+    pub async fn search(&self, input: SearchTmdbCandidatesInput) -> SearchTmdbCandidatesOutput {
         // Check if gate is enabled
         if !self.gate.is_enabled() {
             return Self::gate_disabled_error();

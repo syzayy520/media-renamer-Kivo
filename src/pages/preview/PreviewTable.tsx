@@ -1,4 +1,4 @@
-import { X, Edit } from 'lucide-react';
+import { X, Edit, Search } from 'lucide-react';
 import { Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState, Tooltip, Button } from '../../components/ui';
 import type { RenamePreviewItem } from '../../types';
 
@@ -8,6 +8,7 @@ interface PreviewTableProps {
   onSelectItem: (id: string) => void;
   onSelectAll: () => void;
   filteredCount: number;
+  onTmdbSearch?: (item: RenamePreviewItem) => void;
 }
 
 function getConfidenceBadge(confidence: number) {
@@ -33,7 +34,7 @@ function getStatusBadge(item: RenamePreviewItem) {
   return <Badge variant="success">就绪</Badge>;
 }
 
-export function PreviewTable({ items, selectedItems, onSelectItem, onSelectAll, filteredCount }: PreviewTableProps) {
+export function PreviewTable({ items, selectedItems, onSelectItem, onSelectAll, filteredCount, onTmdbSearch }: PreviewTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -96,6 +97,15 @@ export function PreviewTable({ items, selectedItems, onSelectItem, onSelectAll, 
               </TableCell>
               <TableCell>
                 <div className="flex gap-1">
+                  <Tooltip content="TMDb 搜索">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onTmdbSearch?.(item)}
+                    >
+                      <Search className="w-4 h-4" />
+                    </Button>
+                  </Tooltip>
                   <Tooltip content="编辑">
                     <Button variant="ghost" size="sm">
                       <Edit className="w-4 h-4" />

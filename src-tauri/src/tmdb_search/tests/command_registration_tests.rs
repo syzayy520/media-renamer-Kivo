@@ -89,10 +89,7 @@ fn test_disabled_output_no_authorization() {
 fn test_disabled_output_no_session() {
     let output = search_tmdb_candidates_command_shell(valid_input());
     let json = serde_json::to_string(&output).unwrap();
-    assert!(
-        !json.contains("session"),
-        "output must not contain session"
-    );
+    assert!(!json.contains("session"), "output must not contain session");
 }
 
 #[test]

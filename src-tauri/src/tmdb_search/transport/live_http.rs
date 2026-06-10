@@ -148,5 +148,4 @@ mod tests {
         let json = result.unwrap();
         assert!(json.contains("results"));
     }
-
 }

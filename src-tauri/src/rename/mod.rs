@@ -3,6 +3,7 @@
 // 允许业务逻辑：是
 
 // 子模块声明
+pub mod candidate_apply;
 pub mod case_conflict_checker;
 pub mod conflict_detector;
 pub mod duplicate_target_checker;

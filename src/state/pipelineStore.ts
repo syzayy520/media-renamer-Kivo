@@ -1,12 +1,20 @@
 import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
-import type { PipelineResult, TmdbCandidate } from '../types';
+import type {
+  ApplyTmdbCandidateInput,
+  ApplyTmdbCandidateOutput,
+  PipelineResult,
+  SafetyReport,
+  SafetySummaryInput,
+  TmdbCandidate,
+} from '../types';
 import { useUiFeedbackStore } from './uiFeedbackStore';
 
 interface PipelineState {
   pipelineResult: PipelineResult | null;
   startRenameSession: (directory: string) => Promise<PipelineResult>;
-  applyTmdbCandidate: (itemId: string, candidate: TmdbCandidate) => void;
+  applyTmdbCandidate: (itemId: string, candidate: TmdbCandidate) => Promise<ApplyTmdbCandidateOutput>;
+  refreshSafetySummary: () => Promise<SafetyReport | null>;
 }
 
 export const usePipelineStore = create<PipelineState>((set, get) => ({
@@ -29,39 +37,66 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
     }
   },
 
-  applyTmdbCandidate: (itemId: string, candidate: TmdbCandidate) => {
+  applyTmdbCandidate: async (itemId: string, candidate: TmdbCandidate) => {
     const { pipelineResult } = get();
-    if (!pipelineResult) return;
+    if (!pipelineResult) {
+      return { result: null, error: 'No pipeline result available', safety: null };
+    }
 
-    const updatedPreviews = pipelineResult.previews.map((item) => {
-      if (item.id !== itemId) return item;
+    const item = pipelineResult.previews.find((p) => p.id === itemId);
+    if (!item) {
+      return { result: null, error: `Preview item not found: ${itemId}`, safety: null };
+    }
 
-      // Update parsed_info with TMDb candidate information
-      const updatedParsedInfo = {
-        ...item.parsed_info,
-        title: candidate.title,
-        year: candidate.year,
-        media_type: candidate.media_type,
-      };
+    try {
+      const input: ApplyTmdbCandidateInput = { item, candidate };
+      const output = await invoke<ApplyTmdbCandidateOutput>('apply_tmdb_candidate', { input });
 
-      // Generate new proposed name based on updated info
-      // For now, use a simple format: "Title (Year)"
-      const yearStr = candidate.year ? ` (${candidate.year})` : '';
-      const newProposedName = `${candidate.title}${yearStr}${item.parsed_info.media_item.extension}`;
+      if (output.result) {
+        // 更新 pipeline result 中对应的预览项
+        const updatedPreviews = pipelineResult.previews.map((p) => {
+          if (p.id === itemId) {
+            return output.result!.updated_item;
+          }
+          return p;
+        });
 
-      return {
-        ...item,
-        parsed_info: updatedParsedInfo,
-        proposed_name: newProposedName,
-        original_name: item.original_name,
-      };
-    });
+        set({
+          pipelineResult: {
+            ...pipelineResult,
+            previews: updatedPreviews,
+          },
+        });
+      }
 
-    set({
-      pipelineResult: {
-        ...pipelineResult,
-        previews: updatedPreviews,
-      },
-    });
+      return output;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return { result: null, error: errorMessage, safety: null };
+    }
+  },
+
+  refreshSafetySummary: async () => {
+    const { pipelineResult } = get();
+    if (!pipelineResult) {
+      return null;
+    }
+
+    try {
+      const input: SafetySummaryInput = { previews: pipelineResult.previews };
+      const safety = await invoke<SafetyReport>('get_safety_summary', { input });
+
+      set({
+        pipelineResult: {
+          ...pipelineResult,
+          safety,
+        },
+      });
+
+      return safety;
+    } catch (err) {
+      console.error('Failed to refresh safety summary:', err);
+      return null;
+    }
   },
 }));

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { ArrowLeft, ArrowRight, Globe } from 'lucide-react';
 import { Button, Card, Badge } from '../../components/ui';
 import { usePipelineStore } from '../../state/pipelineStore';
@@ -8,6 +8,8 @@ import { PreviewToolbar } from './PreviewToolbar';
 import { PreviewTable } from './PreviewTable';
 import { PreviewActionBar } from './PreviewActionBar';
 import { PreviewEmptyState } from './PreviewEmptyState';
+import { TmdbCandidatePanel } from './TmdbCandidatePanel';
+import type { RenamePreviewItem } from '../../types';
 
 export function PreviewPage() {
   const { pipelineResult } = usePipelineStore();
@@ -17,15 +19,17 @@ export function PreviewPage() {
   useEffect(() => {
     checkTmdbSearchAvailability();
   }, [checkTmdbSearchAvailability]);
+
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [filterText, setFilterText] = useState('');
   const [showOnlySelected, setShowOnlySelected] = useState(false);
+  const [activeTmdbItem, setActiveTmdbItem] = useState<RenamePreviewItem | null>(null);
 
   const previews = useMemo(() => pipelineResult?.previews ?? [], [pipelineResult]);
 
   const filteredItems = useMemo(() => {
     return previews.filter((item) => {
-      const matchesFilter = filterText === '' || 
+      const matchesFilter = filterText === '' ||
         item.original_name.toLowerCase().includes(filterText.toLowerCase()) ||
         item.proposed_name.toLowerCase().includes(filterText.toLowerCase());
       const matchesSelection = !showOnlySelected || selectedItems.has(item.id);
@@ -54,6 +58,19 @@ export function PreviewPage() {
       setSelectedItems(new Set(filteredItems.map(item => item.id)));
     }
   };
+
+  const handleTmdbSearch = useCallback((item: RenamePreviewItem) => {
+    setActiveTmdbItem(item);
+  }, []);
+
+  const handleCloseTmdbPanel = useCallback(() => {
+    setActiveTmdbItem(null);
+  }, []);
+
+  const handleTmdbApplied = useCallback((_updatedItem: RenamePreviewItem) => {
+    // 候选已应用，pipelineStore 已更新
+    // 可以选择关闭面板或保持打开
+  }, []);
 
   const selectedCount = selectedItems.size;
 
@@ -98,6 +115,17 @@ export function PreviewPage() {
           </div>
         )}
 
+        {/* TMDb 候选面板（当有活跃搜索项时显示） */}
+        {activeTmdbItem && (
+          <div className="mb-6">
+            <TmdbCandidatePanel
+              item={activeTmdbItem}
+              onClose={handleCloseTmdbPanel}
+              onApplied={handleTmdbApplied}
+            />
+          </div>
+        )}
+
         <PreviewToolbar
           filterText={filterText}
           onFilterTextChange={setFilterText}
@@ -115,6 +143,7 @@ export function PreviewPage() {
             onSelectItem={handleSelectItem}
             onSelectAll={handleSelectAll}
             filteredCount={filteredItems.length}
+            onTmdbSearch={handleTmdbSearch}
           />
         </Card>
 

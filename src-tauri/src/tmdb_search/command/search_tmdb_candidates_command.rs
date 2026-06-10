@@ -107,7 +107,10 @@ mod tests {
         let input = make_valid_input();
         let output = search_tmdb_candidates_command_shell(input);
         let json = serde_json::to_string(&output).unwrap();
-        assert!(!json.contains("api_key"), "output JSON must not contain api_key");
+        assert!(
+            !json.contains("api_key"),
+            "output JSON must not contain api_key"
+        );
     }
 
     #[test]
@@ -115,7 +118,10 @@ mod tests {
         let input = make_valid_input();
         let output = search_tmdb_candidates_command_shell(input);
         let json = serde_json::to_string(&output).unwrap();
-        assert!(!json.contains("apiKey"), "output JSON must not contain apiKey");
+        assert!(
+            !json.contains("apiKey"),
+            "output JSON must not contain apiKey"
+        );
     }
 
     #[test]
@@ -123,7 +129,10 @@ mod tests {
         let input = make_valid_input();
         let output = search_tmdb_candidates_command_shell(input);
         let json = serde_json::to_string(&output).unwrap();
-        assert!(!json.contains("token"), "output JSON must not contain token");
+        assert!(
+            !json.contains("token"),
+            "output JSON must not contain token"
+        );
     }
 
     #[test]
@@ -131,7 +140,10 @@ mod tests {
         let input = make_valid_input();
         let output = search_tmdb_candidates_command_shell(input);
         let json = serde_json::to_string(&output).unwrap();
-        assert!(!json.contains("bearer"), "output JSON must not contain bearer");
+        assert!(
+            !json.contains("bearer"),
+            "output JSON must not contain bearer"
+        );
     }
 
     #[test]

@@ -3,8 +3,17 @@ import { invoke } from '@tauri-apps/api/core';
 import type {
   SearchTmdbCandidatesInput,
   SearchTmdbCandidatesOutput,
+  TmdbCandidate,
   TmdbSearchStatus,
 } from '../types';
+
+/** 单个预览项的搜索状态 */
+interface ItemSearchState {
+  status: TmdbSearchStatus;
+  results: TmdbCandidate[];
+  selectedCandidate: TmdbCandidate | null;
+  error: string | null;
+}
 
 interface TmdbSearchState {
   /** 功能状态：disabled = 后端未启用, idle = 可用未搜索 */
@@ -13,11 +22,25 @@ interface TmdbSearchState {
   lastResult: SearchTmdbCandidatesOutput | null;
   /** 禁用原因（仅 status=disabled 时有值） */
   disabledReason: string | null;
+  /** 当前正在搜索的预览项 ID */
+  activeItemId: string | null;
+  /** 每个预览项的搜索状态 */
+  itemStates: Record<string, ItemSearchState>;
 
   /** 检测 TMDb 搜索功能是否可用 */
   checkTmdbSearchAvailability: () => Promise<void>;
   /** 搜索 TMDb 候选（仅在功能可用时有效） */
   searchCandidates: (input: SearchTmdbCandidatesInput) => Promise<void>;
+  /** 为特定预览项搜索候选 */
+  searchForItem: (itemId: string, input: SearchTmdbCandidatesInput) => Promise<void>;
+  /** 选择候选 */
+  selectCandidate: (itemId: string, candidate: TmdbCandidate) => void;
+  /** 清除选择 */
+  clearSelection: (itemId: string) => void;
+  /** 获取某项的搜索状态 */
+  getItemState: (itemId: string) => ItemSearchState;
+  /** 设置活跃项 */
+  setActiveItem: (itemId: string | null) => void;
   /** 重置状态 */
   reset: () => void;
 }
@@ -32,14 +55,22 @@ function isDisabledResponse(output: SearchTmdbCandidatesOutput): boolean {
   );
 }
 
-export const useTmdbSearchStore = create<TmdbSearchState>((set) => ({
+const DEFAULT_ITEM_STATE: ItemSearchState = {
+  status: 'idle',
+  results: [],
+  selectedCandidate: null,
+  error: null,
+};
+
+export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
   tmdbSearchStatus: 'idle',
   lastResult: null,
   disabledReason: null,
+  activeItemId: null,
+  itemStates: {},
 
   checkTmdbSearchAvailability: async () => {
     try {
-      // 发送一个空查询来检测功能状态
       const output = await invoke<SearchTmdbCandidatesOutput>(
         'search_tmdb_candidates',
         {
@@ -66,7 +97,6 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set) => ({
         });
       }
     } catch {
-      // 命令不存在或调用失败 — 视为禁用
       set({
         tmdbSearchStatus: 'disabled',
         disabledReason: 'TMDb search command is not available.',
@@ -76,7 +106,7 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set) => ({
   },
 
   searchCandidates: async (input: SearchTmdbCandidatesInput) => {
-    const { tmdbSearchStatus } = useTmdbSearchStore.getState();
+    const { tmdbSearchStatus } = get();
     if (tmdbSearchStatus === 'disabled') {
       return;
     }
@@ -115,11 +145,118 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set) => ({
     }
   },
 
+  searchForItem: async (itemId: string, input: SearchTmdbCandidatesInput) => {
+    const { tmdbSearchStatus, itemStates } = get();
+    if (tmdbSearchStatus === 'disabled') {
+      return;
+    }
+
+    set({
+      activeItemId: itemId,
+      itemStates: {
+        ...itemStates,
+        [itemId]: { ...DEFAULT_ITEM_STATE, status: 'loading' },
+      },
+    });
+
+    try {
+      const output = await invoke<SearchTmdbCandidatesOutput>(
+        'search_tmdb_candidates',
+        { input },
+      );
+
+      const currentState = get().itemStates;
+
+      if (isDisabledResponse(output)) {
+        set({
+          tmdbSearchStatus: 'disabled',
+          disabledReason: output.error?.message ?? 'TMDb search is not enabled.',
+          itemStates: {
+            ...currentState,
+            [itemId]: {
+              ...DEFAULT_ITEM_STATE,
+              status: 'disabled',
+              error: output.error?.message ?? null,
+            },
+          },
+        });
+      } else if (output.error !== null) {
+        set({
+          itemStates: {
+            ...currentState,
+            [itemId]: {
+              ...DEFAULT_ITEM_STATE,
+              status: 'error',
+              error: output.error.message,
+            },
+          },
+        });
+      } else {
+        set({
+          lastResult: output,
+          itemStates: {
+            ...currentState,
+            [itemId]: {
+              status: 'success',
+              results: output.candidates,
+              selectedCandidate: null,
+              error: null,
+            },
+          },
+        });
+      }
+    } catch {
+      const currentState = get().itemStates;
+      set({
+        itemStates: {
+          ...currentState,
+          [itemId]: {
+            ...DEFAULT_ITEM_STATE,
+            status: 'error',
+            error: 'TMDb search command failed.',
+          },
+        },
+      });
+    }
+  },
+
+  selectCandidate: (itemId: string, candidate: TmdbCandidate) => {
+    const { itemStates } = get();
+    const current = itemStates[itemId] ?? DEFAULT_ITEM_STATE;
+    set({
+      itemStates: {
+        ...itemStates,
+        [itemId]: { ...current, selectedCandidate: candidate },
+      },
+    });
+  },
+
+  clearSelection: (itemId: string) => {
+    const { itemStates } = get();
+    const current = itemStates[itemId] ?? DEFAULT_ITEM_STATE;
+    set({
+      itemStates: {
+        ...itemStates,
+        [itemId]: { ...current, selectedCandidate: null },
+      },
+    });
+  },
+
+  getItemState: (itemId: string) => {
+    return get().itemStates[itemId] ?? DEFAULT_ITEM_STATE;
+  },
+
+  setActiveItem: (itemId: string | null) => {
+    set({ activeItemId: itemId });
+  },
+
   reset: () => {
     set({
       tmdbSearchStatus: 'idle',
       lastResult: null,
       disabledReason: null,
+      activeItemId: null,
+      itemStates: {},
     });
   },
 }));

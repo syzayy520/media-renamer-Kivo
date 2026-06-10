@@ -42,7 +42,9 @@ impl TmdbApiKeyProvider for ConfigApiKeyProvider {
     fn get_api_key(&self) -> impl std::future::Future<Output = Option<String>> + Send {
         let config_dir = self.config_dir.clone();
         async move {
-            api_key_store::get_api_key("tmdb", &config_dir).ok().flatten()
+            api_key_store::get_api_key("tmdb", &config_dir)
+                .ok()
+                .flatten()
         }
     }
 

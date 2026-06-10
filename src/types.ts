@@ -268,3 +268,31 @@ export interface SearchTmdbCandidatesOutput {
 
 // TMDb 搜索功能状态（前端 UI 用）
 export type TmdbSearchStatus = 'disabled' | 'idle' | 'loading' | 'success' | 'error';
+
+// ─── TMDb Candidate Apply Contract Types ─────────────────────────────────────
+
+// TMDb 候选应用输入
+export interface ApplyTmdbCandidateInput {
+  item: RenamePreviewItem;
+  candidate: TmdbCandidate;
+}
+
+// TMDb 候选应用输出
+export interface ApplyTmdbCandidateOutput {
+  result: PreviewApplyResult | null;
+  error: string | null;
+  safety: SafetyReport | null;
+}
+
+// 预览候选应用结果
+export interface PreviewApplyResult {
+  updated_item: RenamePreviewItem;
+  success: boolean;
+  message: string;
+  warnings: string[];
+}
+
+// 安全摘要输入
+export interface SafetySummaryInput {
+  previews: RenamePreviewItem[];
+}

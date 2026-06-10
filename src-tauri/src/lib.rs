@@ -13,9 +13,10 @@ pub mod tmdb_search;
 pub mod tmdb_search_contract;
 
 use commands::{
-    clear_tmdb_api_key, get_all_tasks, get_all_templates, get_app_config, get_audit_logs,
-    get_confidence_threshold, get_task, get_tmdb_api_key_status, search_tmdb_candidates,
-    set_confidence_threshold, set_template, set_tmdb_api_key,
+    apply_tmdb_candidate, clear_tmdb_api_key, get_all_tasks, get_all_templates, get_app_config,
+    get_audit_logs, get_confidence_threshold, get_safety_summary, get_task,
+    get_tmdb_api_key_status, search_tmdb_candidates, set_confidence_threshold, set_template,
+    set_tmdb_api_key,
 };
 use session::plan_session::{start_rename_session, DbState};
 use tauri::Manager;
@@ -65,6 +66,8 @@ pub fn run() {
             get_all_tasks,
             get_audit_logs,
             search_tmdb_candidates,
+            apply_tmdb_candidate,
+            get_safety_summary,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
