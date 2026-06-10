@@ -8,7 +8,7 @@ import type {
 } from '../types';
 
 /** 单个预览项的搜索状态 */
-interface ItemSearchState {
+export interface ItemSearchState {
   status: TmdbSearchStatus;
   results: TmdbCandidate[];
   selectedCandidate: TmdbCandidate | null;

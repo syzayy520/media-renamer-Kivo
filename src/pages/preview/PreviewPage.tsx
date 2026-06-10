@@ -9,12 +9,13 @@ import { PreviewTable } from './PreviewTable';
 import { PreviewActionBar } from './PreviewActionBar';
 import { PreviewEmptyState } from './PreviewEmptyState';
 import { TmdbCandidatePanel } from './TmdbCandidatePanel';
+import { PreviewReadinessSummary } from './PreviewReadinessSummary';
 import type { RenamePreviewItem } from '../../types';
 
 export function PreviewPage() {
   const { pipelineResult } = usePipelineStore();
   const { isLoading } = useUiFeedbackStore();
-  const { tmdbSearchStatus, disabledReason, checkTmdbSearchAvailability } = useTmdbSearchStore();
+  const { tmdbSearchStatus, disabledReason, itemStates, checkTmdbSearchAvailability } = useTmdbSearchStore();
 
   useEffect(() => {
     checkTmdbSearchAvailability();
@@ -26,6 +27,8 @@ export function PreviewPage() {
   const [activeTmdbItem, setActiveTmdbItem] = useState<RenamePreviewItem | null>(null);
 
   const previews = useMemo(() => pipelineResult?.previews ?? [], [pipelineResult]);
+  const safety = pipelineResult?.safety ?? null;
+  const tmdbEnabled = tmdbSearchStatus !== 'disabled';
 
   const filteredItems = useMemo(() => {
     return previews.filter((item) => {
@@ -126,6 +129,13 @@ export function PreviewPage() {
           </div>
         )}
 
+        <PreviewReadinessSummary
+          previews={previews}
+          itemStates={itemStates}
+          safety={safety}
+          tmdbEnabled={tmdbEnabled}
+        />
+
         <PreviewToolbar
           filterText={filterText}
           onFilterTextChange={setFilterText}
@@ -144,6 +154,8 @@ export function PreviewPage() {
             onSelectAll={handleSelectAll}
             filteredCount={filteredItems.length}
             onTmdbSearch={handleTmdbSearch}
+            itemStates={itemStates}
+            tmdbEnabled={tmdbEnabled}
           />
         </Card>
 
