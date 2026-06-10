@@ -18,7 +18,7 @@ import { ExecutionResultPanel } from './ExecutionResultPanel';
 import type { RenamePreviewItem, ExecutionMode } from '../../types';
 
 export function PreviewPage() {
-  const { pipelineResult, updatePreviewProposedName, refreshSafetySummary } = usePipelineStore();
+  const { pipelineResult, updatePreviewProposedName, togglePreviewSkipped, refreshSafetySummary } = usePipelineStore();
   const { isLoading } = useUiFeedbackStore();
   const { tmdbSearchStatus, disabledReason, itemStates, checkTmdbSearchAvailability } = useTmdbSearchStore();
   const { uiState, confirmState, progressState, resultState, startExecution, confirmExecution, cancelExecution, resetExecution } = useExecutionStore();
@@ -64,6 +64,11 @@ export function PreviewPage() {
     await refreshSafetySummary();
   }, [refreshSafetySummary, updatePreviewProposedName]);
 
+  const handleSkipToggle = useCallback(async (item: RenamePreviewItem) => {
+    togglePreviewSkipped(item.id);
+    await refreshSafetySummary();
+  }, [refreshSafetySummary, togglePreviewSkipped]);
+
   const selectedCount = selectedItems.size;
   const handleStartExecution = useCallback((mode: ExecutionMode) => startExecution(mode), [startExecution]);
   const handleConfirmExecution = useCallback(() => confirmExecution(), [confirmExecution]);
@@ -84,7 +89,6 @@ export function PreviewPage() {
             <Button variant="primary" icon={<ArrowRight className="h-4 w-4" />} onClick={() => handleStartExecution('Confirmed')} disabled={uiState !== 'idle' || !safety?.can_execute}>执行重命名</Button>
           </div>
         </div>
-
         {tmdbSearchStatus === 'disabled' && (
           <div className="flex items-center gap-3 rounded-2xl border border-warning/30 bg-warning/5 px-4 py-3">
             <Globe className="h-4 w-4 shrink-0 text-warning" />
@@ -95,7 +99,6 @@ export function PreviewPage() {
             </div>
           </div>
         )}
-
         {activeTmdbItem && <TmdbCandidatePanel item={activeTmdbItem} onClose={() => setActiveTmdbItem(null)} onApplied={() => undefined} />}
         <PreviewNameEditDialog item={editingItem} onSave={handleSaveManualEdit} onClose={() => setEditingItem(null)} />
         {uiState === 'confirming' && <ExecutionConfirmPanel state={confirmState} onConfirm={handleConfirmExecution} onCancel={handleCancelExecution} isLoading={isLoading} />}
@@ -104,7 +107,7 @@ export function PreviewPage() {
         <PreviewReadinessSummary previews={previews} itemStates={itemStates} safety={safety} tmdbEnabled={tmdbEnabled} />
         <PreviewToolbar filterText={filterText} onFilterTextChange={setFilterText} showOnlySelected={showOnlySelected} onToggleShowOnlySelected={() => setShowOnlySelected(!showOnlySelected)} selectedCount={selectedCount} filteredCount={filteredItems.length} onSelectAll={handleSelectAll} />
         <Card variant="elevated" padding="none" className="overflow-hidden">
-          <PreviewTableEntry items={filteredItems} selectedItems={selectedItems} onSelectItem={handleSelectItem} onSelectAll={handleSelectAll} filteredCount={filteredItems.length} onTmdbSearch={setActiveTmdbItem} onManualEdit={setEditingItem} itemStates={itemStates} tmdbEnabled={tmdbEnabled} />
+          <PreviewTableEntry items={filteredItems} selectedItems={selectedItems} onSelectItem={handleSelectItem} onSelectAll={handleSelectAll} filteredCount={filteredItems.length} onTmdbSearch={setActiveTmdbItem} onManualEdit={setEditingItem} onSkipToggle={handleSkipToggle} itemStates={itemStates} tmdbEnabled={tmdbEnabled} />
         </Card>
         <PreviewActionBar selectedCount={selectedCount} onClearSelection={() => setSelectedItems(new Set())} />
         {isLoading && <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-primary/70"><div className="rounded-2xl bg-bg-card p-6"><p className="text-text-primary">正在处理...</p></div></div>}
