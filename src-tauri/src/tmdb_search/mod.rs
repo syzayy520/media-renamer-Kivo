@@ -11,7 +11,7 @@ pub mod tests;
 pub mod transport;
 mod validation;
 
-pub use api_key::{ApiKeyState, TmdbApiKeyProvider};
+pub use api_key::{ApiKeyState, ConfigApiKeyProvider, TmdbApiKeyProvider};
 pub use command::search_tmdb_candidates_command_shell;
 pub use mapping::candidate_mapper::{map_to_candidate, map_to_candidates};
 pub use mapping::error_mapper::{
