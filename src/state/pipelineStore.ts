@@ -3,9 +3,12 @@ import { invoke } from '@tauri-apps/api/core';
 import type {
   ApplyTmdbCandidateInput,
   ApplyTmdbCandidateOutput,
+  FolderPolicy,
+  NamingRule,
   PipelineResult,
   SafetyReport,
   SafetySummaryInput,
+  TitleStrategy,
   TmdbCandidate,
 } from '../types';
 import { useUiFeedbackStore } from './uiFeedbackStore';
@@ -14,6 +17,8 @@ interface PipelineState {
   pipelineResult: PipelineResult | null;
   startRenameSession: (directory: string) => Promise<PipelineResult>;
   applyTmdbCandidate: (itemId: string, candidate: TmdbCandidate) => Promise<ApplyTmdbCandidateOutput>;
+  applyNamingRule: (namingRule: NamingRule, titleStrategy: TitleStrategy) => Promise<void>;
+  applyFolderPolicy: (folderPolicy: FolderPolicy) => Promise<void>;
   refreshSafetySummary: () => Promise<SafetyReport | null>;
   updatePreviewProposedName: (itemId: string, proposedName: string) => void;
   togglePreviewSkipped: (itemId: string) => void;
@@ -36,6 +41,47 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
       setError(errorMessage);
       setLoading(false);
       throw err;
+    }
+  },
+
+  applyNamingRule: async (namingRule: NamingRule, titleStrategy: TitleStrategy) => {
+    const { pipelineResult } = get();
+    if (!pipelineResult || pipelineResult.previews.length === 0) return;
+
+    try {
+      const { previews } = await invoke<{ previews: typeof pipelineResult.previews }>(
+        'apply_naming_rule',
+        {
+          input: {
+            previews: pipelineResult.previews,
+            naming_rule: namingRule,
+            title_strategy: titleStrategy,
+          },
+        },
+      );
+      set({ pipelineResult: { ...pipelineResult, previews } });
+    } catch (err) {
+      console.error('Failed to apply naming rule:', err);
+    }
+  },
+
+  applyFolderPolicy: async (folderPolicy: FolderPolicy) => {
+    const { pipelineResult } = get();
+    if (!pipelineResult || pipelineResult.previews.length === 0) return;
+
+    try {
+      const { previews } = await invoke<{ previews: typeof pipelineResult.previews }>(
+        'apply_folder_policy',
+        {
+          input: {
+            previews: pipelineResult.previews,
+            folder_policy: folderPolicy,
+          },
+        },
+      );
+      set({ pipelineResult: { ...pipelineResult, previews } });
+    } catch (err) {
+      console.error('Failed to apply folder policy:', err);
     }
   },
 
