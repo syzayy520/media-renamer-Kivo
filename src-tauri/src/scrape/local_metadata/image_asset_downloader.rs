@@ -8,7 +8,17 @@ use crate::scrape::local_metadata::nfo_document_builder::tmdb_image_url;
 const IMAGE_DOWNLOAD_TIMEOUT_SECS: u64 = 20;
 const MAX_IMAGE_BYTES: u64 = 25 * 1024 * 1024;
 
-pub async fn download_image_asset(path: Option<&str>) -> Result<Option<Vec<u8>>, String> {
+pub async fn download_image_asset_safely(path: Option<&str>) -> Result<Option<Vec<u8>>, String> {
+    let owned_path = path.map(str::to_owned);
+    let task = tokio::spawn(async move { download_image_asset(owned_path.as_deref()).await });
+
+    match task.await {
+        Ok(result) => result,
+        Err(error) => Err(format!("image download task failed: {}", error)),
+    }
+}
+
+async fn download_image_asset(path: Option<&str>) -> Result<Option<Vec<u8>>, String> {
     let Some(path) = path else {
         return Ok(None);
     };
