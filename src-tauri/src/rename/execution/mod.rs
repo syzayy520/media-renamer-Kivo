@@ -3,9 +3,16 @@
 // mod.rs 只做 registry / alias / re-export
 
 pub mod conflict_filter;
+pub mod confirmed_rename_executor;
+pub mod dry_run_executor;
+pub mod execution_audit_step;
+pub mod execution_confirmation_gate;
 pub mod execution_contract;
 pub mod execution_mode;
+pub mod execution_rollback_plan_step;
+pub mod execution_safety_gate_check;
 pub mod execution_summary;
+pub mod execution_summary_builder;
 pub mod executor_core;
 pub mod result_recorder;
 pub mod safe_executor;

@@ -1,58 +1,44 @@
-// 安全执行器模块
-// 职责：协调安全执行主流程（门闸 → 回滚计划 → 执行 → 结果）
-// 不做单文件重命名，不做审计写入
+// 安全执行器模块（薄编排层）
+// 职责：协调安全执行主流程
+// 实际逻辑委托给子模块：确认门闸、安全门闸、回滚计划、执行器、审计、摘要
 
 use super::conflict_filter::{filter_non_blocking, get_blocking_items};
+use super::confirmed_rename_executor::execute_confirmed_rename;
+use super::dry_run_executor::execute_dry_run;
+use super::execution_audit_step::format_batch_execution_audit;
+use super::execution_confirmation_gate::check_user_confirmation;
 use super::execution_contract::{
-    ExecutionItemResult, ExecutionItemStatus, ExecutionOutputSummary, SafeExecuteInput,
-    SafeExecuteOutput,
+    ExecutionItemResult, SafeExecuteInput, SafeExecuteOutput,
 };
 use super::execution_mode::ExecutionMode;
-use super::single_rename::execute_single_rename;
+use super::execution_rollback_plan_step::generate_rollback_plan;
+use super::execution_safety_gate_check::check_safety_gate;
+use super::execution_summary_builder::build_execution_summary;
 use super::skip_filter::filter_actionable;
-use crate::audit::db::TaskStatus;
-use crate::rename::safety_checker;
-use crate::rollback::rollback_plan::RollbackPlan;
 
 /// 执行安全重命名
 ///
-/// 主流程：
-/// 1. 检查用户确认
-/// 2. 检查安全门闸（blockers）
-/// 3. 生成回滚计划
+/// 主流程（委托给子模块）：
+/// 1. 检查用户确认 → execution_confirmation_gate
+/// 2. 检查安全门闸 → execution_safety_gate_check
+/// 3. 生成回滚计划 → execution_rollback_plan_step
 /// 4. 过滤跳过项和冲突项
-/// 5. 执行重命名
-/// 6. 更新回滚计划状态
-/// 7. 返回结果
+/// 5. 执行重命名 → dry_run_executor / confirmed_rename_executor
+/// 6. 记录审计 → execution_audit_step
+/// 7. 计算摘要 → execution_summary_builder
 pub fn safe_execute(input: SafeExecuteInput) -> SafeExecuteOutput {
-    // 1. 检查用户确认（Confirmed 模式必须确认）
-    if input.mode == ExecutionMode::Confirmed && !input.user_confirmed {
-        return SafeExecuteOutput {
-            allowed: false,
-            rejection_reason: Some("Confirmed 模式需要用户确认".to_string()),
-            item_results: vec![],
-            summary: None,
-            rollback_plan: None,
-        };
+    // 1. 检查用户确认
+    if let Some(rejection) = check_user_confirmation(&input) {
+        return rejection;
     }
 
     // 2. 检查安全门闸
-    let safety_report = safety_checker::check_all(&input.preview_items);
-    if !safety_report.can_execute {
-        return SafeExecuteOutput {
-            allowed: false,
-            rejection_reason: Some(format!(
-                "安全检查未通过: {}",
-                safety_report.blocking_reasons.join("; ")
-            )),
-            item_results: vec![],
-            summary: None,
-            rollback_plan: None,
-        };
+    if let Some(rejection) = check_safety_gate(&input) {
+        return rejection;
     }
 
     // 3. 生成回滚计划
-    let mut rollback_plan = RollbackPlan::from_preview_items(&input.task_id, &input.preview_items);
+    let mut rollback_plan = generate_rollback_plan(&input.task_id, &input.preview_items);
 
     // 4. 过滤跳过项和冲突项
     let actionable_refs = filter_actionable(&input.preview_items);
@@ -80,63 +66,27 @@ pub fn safe_execute(input: SafeExecuteInput) -> SafeExecuteOutput {
     let skipped_count = input.preview_items.len() - actionable_refs.len();
 
     // 7. 执行非阻塞项
-    for item in &non_blocking_refs {
-        let result = match input.mode {
-            ExecutionMode::DryRun => {
-                // DryRun: 不执行文件操作，返回模拟成功
-                ExecutionItemResult::success(&item.source_path, &item.target_path)
-            }
-            ExecutionMode::Confirmed => {
-                // Confirmed: 执行真实重命名
-                let rename_result = execute_single_rename(item, &input.task_id);
-                let item_result = ExecutionItemResult {
-                    source_path: rename_result.source_path,
-                    target_path: rename_result.target_path,
-                    status: match rename_result.status {
-                        TaskStatus::Completed | TaskStatus::Pending => ExecutionItemStatus::Success,
-                        TaskStatus::Failed => ExecutionItemStatus::Failed,
-                        _ => ExecutionItemStatus::Skipped,
-                    },
-                    error: rename_result.error_message,
-                    rollback_entry: None,
-                };
-
-                // 成功时标记回滚计划
-                if item_result.status == ExecutionItemStatus::Success {
-                    rollback_plan.mark_executed(&item.source_path, &item.target_path);
-                }
-
-                item_result
-            }
-        };
-        item_results.push(result);
-    }
-
-    // 8. 计算摘要
-    let success = item_results
-        .iter()
-        .filter(|r| r.status == ExecutionItemStatus::Success)
-        .count();
-    let failed = item_results
-        .iter()
-        .filter(|r| r.status == ExecutionItemStatus::Failed)
-        .count();
-    let blocked = item_results
-        .iter()
-        .filter(|r| r.status == ExecutionItemStatus::Blocked)
-        .count();
-
-    let summary = ExecutionOutputSummary {
-        total: input.preview_items.len(),
-        success,
-        failed,
-        skipped: skipped_count,
-        blocked,
-        mode: input.mode,
-        has_rollback_plan: rollback_plan.has_rollbackable_entries(),
+    let execution_results = match input.mode {
+        ExecutionMode::DryRun => execute_dry_run(&non_blocking_refs),
+        ExecutionMode::Confirmed => {
+            execute_confirmed_rename(&non_blocking_refs, &input.task_id, &mut rollback_plan)
+        }
     };
+    item_results.extend(execution_results);
 
-    // 9. 返回结果
+    // 8. 记录审计（格式化消息，实际写入由调用方负责）
+    let _audit_messages = format_batch_execution_audit(&input.task_id, &item_results);
+
+    // 9. 计算摘要
+    let summary = build_execution_summary(
+        &item_results,
+        input.preview_items.len(),
+        skipped_count,
+        input.mode,
+        &rollback_plan,
+    );
+
+    // 10. 返回结果
     SafeExecuteOutput {
         allowed: true,
         rejection_reason: None,
@@ -151,6 +101,7 @@ mod tests {
     use super::*;
     use crate::parse::movie_parser::{MediaType, ParsedMediaInfo};
     use crate::rename::template::{MetadataSource, RenamePreviewItem};
+    use crate::rename::execution::ExecutionItemStatus;
     use crate::scan::MediaItem;
 
     fn make_safe_item(id: &str, source: &str, target: &str) -> RenamePreviewItem {
@@ -200,7 +151,7 @@ mod tests {
 
     fn make_unsafe_item(id: &str, source: &str, target: &str) -> RenamePreviewItem {
         let mut item = make_safe_item(id, source, target);
-        item.confidence = 30; // 低置信度会触发安全检查阻塞
+        item.confidence = 30;
         item
     }
 
