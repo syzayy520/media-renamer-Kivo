@@ -4,7 +4,6 @@ import type {
   SearchTmdbCandidatesInput,
   SearchTmdbCandidatesOutput,
   TmdbSearchStatus,
-  MediaType,
 } from '../types';
 
 interface TmdbSearchState {
