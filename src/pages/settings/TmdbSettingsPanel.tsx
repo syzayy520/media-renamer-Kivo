@@ -132,9 +132,9 @@ export function TmdbSettingsPanel() {
   return (
     <Card variant="outlined" padding="lg">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="text-xl font-semibold text-text-primary">TMDb 配置</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary break-keep">
+          <p className="mt-2 w-[760px] max-w-full whitespace-normal text-sm leading-6 text-text-secondary">
             配置 TMDb API key 后可启用在线元数据搜索。API key 仅保存在本地，前端只显示配置状态。
           </p>
         </div>
@@ -178,9 +178,9 @@ export function TmdbSettingsPanel() {
 
         <div className="rounded-2xl border border-text-secondary/15 bg-bg-secondary/40 p-4">
           <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h3 className="text-sm font-medium text-text-primary">Live Search</h3>
-              <p className="mt-1 text-sm leading-6 text-text-secondary break-keep">
+              <p className="mt-1 w-[680px] max-w-full whitespace-normal text-sm leading-6 text-text-secondary">
                 启用后可在预览页使用 TMDb 搜索元数据。
               </p>
             </div>
@@ -223,7 +223,7 @@ export function TmdbSettingsPanel() {
         </div>
 
         <div className="rounded-xl border border-accent/25 bg-accent/10 p-4">
-          <p className="text-sm leading-6 text-accent break-keep">
+          <p className="w-[880px] max-w-full whitespace-normal text-sm leading-6 text-accent">
             安全说明：API key 仅保存在本地，不会上传到任何服务器；前端不会显示完整 key。
           </p>
         </div>
