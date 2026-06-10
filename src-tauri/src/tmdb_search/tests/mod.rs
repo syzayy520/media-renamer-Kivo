@@ -28,3 +28,6 @@ mod api_key_provider_tests;
 
 #[cfg(test)]
 mod command_contract_tests;
+
+#[cfg(test)]
+mod command_registration_tests;
