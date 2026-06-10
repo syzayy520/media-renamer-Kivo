@@ -12,36 +12,32 @@ export function Navigation() {
   ];
 
   return (
-    <nav className="w-full bg-bg-secondary border-b border-text-secondary/20">
-      <div className="w-full px-4">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center shrink-0">
-            <Link to="/" className="text-xl font-bold text-accent whitespace-nowrap">
-              Media Renamer
-            </Link>
-          </div>
-          
-          <div className="flex space-x-4 shrink-0">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-                    isActive
-                      ? 'bg-accent/20 text-accent'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-bg-card'
-                  }`}
-                >
-                  <Icon className="w-4 h-4 mr-2" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
+    <nav className="w-full shrink-0 border-b border-text-secondary/15 bg-bg-secondary">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
+        <Link to="/" className="shrink-0 text-xl font-bold text-accent whitespace-nowrap">
+          Media Renamer
+        </Link>
+        
+        <div className="flex shrink-0 items-center gap-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`inline-flex items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive
+                    ? 'bg-accent/20 text-accent'
+                    : 'text-text-secondary hover:bg-bg-card hover:text-text-primary'
+                }`}
+              >
+                <Icon className="mr-2 h-4 w-4 shrink-0" />
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </nav>
