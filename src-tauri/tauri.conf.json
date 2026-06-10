@@ -15,8 +15,8 @@
         "title": "Media Renamer Kivo",
         "width": 1200,
         "height": 800,
-        "minWidth": 900,
-        "minHeight": 600,
+        "minWidth": 980,
+        "minHeight": 640,
         "resizable": true,
         "fullscreen": false
       }
