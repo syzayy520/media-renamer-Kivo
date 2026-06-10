@@ -252,7 +252,7 @@ export interface TmdbRateLimitState {
 // TMDb 搜索输入
 export interface SearchTmdbCandidatesInput {
   query: string;
-  media_type: 'Movie' | 'Tv';
+  media_type: 'movie' | 'tv';
   language: string;
   year: number | null;
   page: number | null;
@@ -518,8 +518,4 @@ export interface ScrapePreview {
   poster_url: string | null;
   backdrop_url: string | null;
   nfo_fields: Record<string, string>;
-  files_to_write: string[];
-  has_conflict: boolean;
-  conflicts: string[];
-  scrape_mode: ScrapeMode;
 }
