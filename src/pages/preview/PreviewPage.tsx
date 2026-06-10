@@ -86,12 +86,10 @@ export function PreviewPage() {
 
   const handleTmdbApplied = useCallback((_updatedItem: RenamePreviewItem) => {
     // 候选已应用，pipelineStore 已更新
-    // 可以选择关闭面板或保持打开
   }, []);
 
   const selectedCount = selectedItems.size;
 
-  // 执行相关处理函数
   const handleStartExecution = useCallback((mode: ExecutionMode) => {
     startExecution(mode);
   }, [startExecution]);
@@ -109,33 +107,31 @@ export function PreviewPage() {
   }, [resetExecution]);
 
   const handleRollback = useCallback(() => {
-    // TODO: 实现回滚功能
     console.log('Rollback requested');
   }, []);
 
   const handleExportReport = useCallback(() => {
-    // TODO: 实现导出报告功能
     console.log('Export report requested');
   }, []);
 
   return (
     <div className="w-full px-6 py-8">
-      <div className="w-full">
-        <div className="flex items-center justify-between mb-8 gap-4">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-3xl font-bold text-text-primary whitespace-nowrap">
+      <div className="mx-auto w-full max-w-7xl space-y-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold leading-tight text-text-primary">
               重命名预览
             </h1>
-            <p className="text-text-secondary mt-2">
-              共 {previews.length} 个文件，已选择 {selectedCount} 个
+            <p className="mt-2 text-sm leading-6 text-text-secondary break-keep">
+              共 {previews.length} 个文件，已选择 {selectedCount} 个。
             </p>
           </div>
-          <div className="flex gap-4 shrink-0">
-            <Button variant="secondary" icon={<ArrowLeft className="w-4 h-4" />}>
+          <div className="flex flex-wrap gap-3 lg:justify-end">
+            <Button variant="secondary" icon={<ArrowLeft className="h-4 w-4" />}>
               返回
             </Button>
             <Button
-              icon={<Play className="w-4 h-4" />}
+              icon={<Play className="h-4 w-4" />}
               onClick={() => handleStartExecution('DryRun')}
               disabled={uiState !== 'idle'}
             >
@@ -143,7 +139,7 @@ export function PreviewPage() {
             </Button>
             <Button
               variant="primary"
-              icon={<ArrowRight className="w-4 h-4" />}
+              icon={<ArrowRight className="h-4 w-4" />}
               onClick={() => handleStartExecution('Confirmed')}
               disabled={uiState !== 'idle' || !safety?.can_execute}
             >
@@ -153,17 +149,17 @@ export function PreviewPage() {
         </div>
 
         {tmdbSearchStatus === 'disabled' && (
-          <div className="mb-6 flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3">
-            <Globe className="w-4 h-4 text-warning shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 rounded-2xl border border-warning/30 bg-warning/5 px-4 py-3">
+            <Globe className="h-4 w-4 shrink-0 text-warning" />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="warning" size="sm">TMDb 搜索</Badge>
                 <span className="text-sm text-text-secondary">
                   元数据在线搜索功能暂未启用
                 </span>
               </div>
               {disabledReason && (
-                <p className="text-xs text-text-secondary mt-1 truncate">
+                <p className="mt-1 truncate text-xs text-text-secondary">
                   {disabledReason}
                 </p>
               )}
@@ -171,18 +167,14 @@ export function PreviewPage() {
           </div>
         )}
 
-        {/* TMDb 候选面板（当有活跃搜索项时显示） */}
         {activeTmdbItem && (
-          <div className="mb-6">
-            <TmdbCandidatePanel
-              item={activeTmdbItem}
-              onClose={handleCloseTmdbPanel}
-              onApplied={handleTmdbApplied}
-            />
-          </div>
+          <TmdbCandidatePanel
+            item={activeTmdbItem}
+            onClose={handleCloseTmdbPanel}
+            onApplied={handleTmdbApplied}
+          />
         )}
 
-        {/* 执行确认面板 */}
         {uiState === 'confirming' && (
           <ExecutionConfirmPanel
             state={confirmState}
@@ -192,14 +184,10 @@ export function PreviewPage() {
           />
         )}
 
-        {/* 执行进度面板 */}
         {uiState === 'executing' && (
-          <ExecutionProgressPanel
-            state={progressState}
-          />
+          <ExecutionProgressPanel state={progressState} />
         )}
 
-        {/* 执行结果面板 */}
         {uiState === 'completed' && (
           <ExecutionResultPanel
             state={resultState}
@@ -226,7 +214,7 @@ export function PreviewPage() {
           onSelectAll={handleSelectAll}
         />
 
-        <Card variant="elevated">
+        <Card variant="elevated" padding="none" className="overflow-hidden">
           <PreviewTable
             items={filteredItems}
             selectedItems={selectedItems}
@@ -245,9 +233,9 @@ export function PreviewPage() {
         />
 
         {isLoading && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-bg-card p-6 rounded-lg">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto mb-4"></div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="rounded-2xl bg-bg-card p-6 shadow-xl">
+              <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-accent" />
               <p className="text-text-primary">正在处理...</p>
             </div>
           </div>
