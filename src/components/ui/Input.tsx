@@ -9,15 +9,15 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, helperText, className = '', ...props }, ref) => {
     return (
-      <div className="w-full">
+      <div className="w-full min-w-0">
         {label && (
-          <label className="block text-sm font-medium text-text-primary mb-1">
+          <label className="mb-1 block text-sm font-medium text-text-primary">
             {label}
           </label>
         )}
         <input
           ref={ref}
-          className={`w-full px-3 py-2 bg-bg-secondary border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent ${
+          className={`w-full min-w-0 rounded-xl border bg-bg-secondary px-4 py-2.5 text-sm text-text-primary placeholder-text-secondary outline-none transition focus:border-transparent focus:ring-2 focus:ring-accent ${
             error ? 'border-danger' : 'border-text-secondary/30'
           } ${className}`}
           {...props}
