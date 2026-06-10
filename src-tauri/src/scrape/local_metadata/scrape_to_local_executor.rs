@@ -1,7 +1,7 @@
 // src-tauri/src/scrape/local_metadata/scrape_to_local_executor.rs
 // 职责：编排本地刮削写入流程，不承载 NFO 构建或文件写入细节
 
-use crate::scrape::local_metadata::image_asset_downloader::download_image_asset;
+use crate::scrape::local_metadata::image_asset_downloader::download_image_asset_safely;
 use crate::scrape::local_metadata::local_metadata_writer::{
     ensure_target_folder, write_binary_asset, write_nfo,
 };
@@ -37,7 +37,7 @@ pub async fn scrape_to_local(input: LocalScrapeInput) -> LocalScrapeOutput {
         Err(error) => errors.push(error),
     }
 
-    match download_image_asset(input.candidate.poster_path.as_deref()).await {
+    match download_image_asset_safely(input.candidate.poster_path.as_deref()).await {
         Ok(Some(bytes)) => match write_binary_asset(&target_folder, "poster.jpg", &bytes) {
             Ok(file) => written_files.push(file),
             Err(error) => errors.push(error),
@@ -46,7 +46,7 @@ pub async fn scrape_to_local(input: LocalScrapeInput) -> LocalScrapeOutput {
         Err(error) => errors.push(error),
     }
 
-    match download_image_asset(input.candidate.backdrop_path.as_deref()).await {
+    match download_image_asset_safely(input.candidate.backdrop_path.as_deref()).await {
         Ok(Some(bytes)) => match write_binary_asset(&target_folder, "fanart.jpg", &bytes) {
             Ok(file) => written_files.push(file),
             Err(error) => errors.push(error),
@@ -56,7 +56,7 @@ pub async fn scrape_to_local(input: LocalScrapeInput) -> LocalScrapeOutput {
     }
 
     LocalScrapeOutput {
-        success: !written_files.is_empty() && errors.is_empty(),
+        success: !written_files.is_empty(),
         target_folder_path: input.target_folder_path,
         written_files,
         errors,
