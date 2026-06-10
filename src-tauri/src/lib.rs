@@ -7,6 +7,7 @@ pub mod pipeline;
 pub mod rename;
 pub mod rollback;
 pub mod scan;
+pub mod scrape;
 pub mod session;
 pub mod shared;
 pub mod tmdb_search;
@@ -16,9 +17,9 @@ use commands::{
     apply_folder_policy, apply_naming_rule, apply_tmdb_candidate, clear_tmdb_api_key,
     get_all_tasks, get_all_templates, get_app_config, get_audit_logs, get_confidence_threshold,
     get_safety_summary, get_task, get_tmdb_api_key_status, get_tmdb_config_status,
-    get_tmdb_gate_status, rollback_rename_task, safe_execute_rename, search_tmdb_candidates,
-    set_confidence_threshold, set_template, set_tmdb_api_key, set_tmdb_gate_enabled,
-    test_tmdb_connection,
+    get_tmdb_gate_status, rollback_rename_task, safe_execute_rename, scrape_to_local_metadata,
+    search_tmdb_candidates, set_confidence_threshold, set_template, set_tmdb_api_key,
+    set_tmdb_gate_enabled, test_tmdb_connection,
 };
 use session::plan_session::{start_rename_session, DbState};
 use tauri::Manager;
@@ -78,6 +79,7 @@ pub fn run() {
             rollback_rename_task,
             apply_naming_rule,
             apply_folder_policy,
+            scrape_to_local_metadata,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
