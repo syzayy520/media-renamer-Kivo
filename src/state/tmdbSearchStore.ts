@@ -36,6 +36,8 @@ interface TmdbSearchState {
 
   /** 检测 TMDb 搜索功能是否可用 */
   checkTmdbSearchAvailability: () => Promise<void>;
+  /** 便捷搜索：返回候选列表 */
+  searchTmdbCandidates: (query: string, mediaType: 'Movie' | 'Series') => Promise<TmdbCandidate[] | null>;
   /** 搜索 TMDb 候选（仅在功能可用时有效） */
   searchCandidates: (input: SearchTmdbCandidatesInput) => Promise<void>;
   /** 为特定预览项搜索候选 */
@@ -104,6 +106,23 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
         disabledReason: '无法获取 TMDb 配置状态。',
         lastResult: null,
       });
+    }
+  },
+
+  searchTmdbCandidates: async (query: string, mediaType: 'Movie' | 'Series'): Promise<TmdbCandidate[] | null> => {
+    const { tmdbSearchStatus } = get();
+    if (tmdbSearchStatus === 'disabled') {
+      return null;
+    }
+    try {
+      const output = await invoke<SearchTmdbCandidatesOutput>(
+        'search_tmdb_candidates',
+        { input: { query, media_type: mediaType, language: 'zh-CN', year: null, page: 1 } },
+      );
+      if (output.error !== null) return null;
+      return output.candidates;
+    } catch {
+      return null;
     }
   },
 

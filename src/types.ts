@@ -412,3 +412,114 @@ export interface ExecutionResultState {
   has_rollback_plan: boolean;
   can_rollback: boolean;
 }
+
+// ─── V3 Upgrade Types ─────────────────────────────────────────────────────────
+
+// Naming Rule Token
+export type NamingToken =
+  | 'ZhTitle' | 'EnglishTitle' | 'OriginalTitle' | 'OriginalNameWithoutExt' | 'OriginalReleaseName'
+  | 'Year' | 'ReleaseDate' | 'AirDate' | 'SeasonYear'
+  | 'Resolution' | 'Source' | 'Edition' | 'Remux'
+  | 'VideoCodec' | 'VideoBitDepth' | 'HdrFormat' | 'DolbyVision'
+  | 'AudioCodec' | 'AudioChannels' | 'AudioLanguage' | 'ReleaseGroup'
+  | 'TmdbId' | 'ImdbId' | 'TvdbId'
+  | 'ShowTitle' | 'Season' | 'Episode' | 'EpisodeTitle' | 'AbsoluteEpisode' | 'SeasonTitle'
+  | 'Ext' | 'SubtitleLanguage' | 'FileRole';
+
+export type CaseStrategy = 'AsIs' | 'TitleCase' | 'LowerCase' | 'UpperCase' | 'PtDotStyle';
+export type EmptyPolicy = 'Hide' | 'Default' | 'NeedsReview';
+export type WrapperStyle = 'None' | 'Parentheses' | 'Brackets' | 'Braces';
+export type Separator = 'Dot' | 'Space' | 'Dash' | 'Underscore' | 'None';
+
+export interface TokenConfig {
+  token: NamingToken;
+  prefix: string;
+  suffix: string;
+  separator: Separator;
+  empty_policy: EmptyPolicy;
+  case_strategy: CaseStrategy;
+  wrapper: WrapperStyle;
+  enabled: boolean;
+}
+
+export interface NamingRule {
+  name: string;
+  description: string;
+  tokens: TokenConfig[];
+}
+
+export type TitleStrategy =
+  | 'ChineseOnly' | 'EnglishOnly' | 'Bilingual'
+  | 'ChinesePrefixPt' | 'ChineseFolderPtFile' | 'ChineseFolderChinesePrefixPtFile';
+
+export type FolderPolicy =
+  | 'KeepOriginalStructure' | 'OneMovieOneFolder' | 'NormalizeExistingFolders'
+  | 'ChineseFolderPtFile' | 'Flatten' | 'TvShowStructure' | 'NoFolder';
+
+export interface FolderPolicyConfig {
+  policy: FolderPolicy;
+  clean_empty_folders_after: boolean;
+}
+
+// Plan Tree types
+export type GroupMediaType = 'Movie' | 'Tv' | 'Anime' | 'Mixed' | 'Unknown';
+export type TmdbMatchStatus = 'NotSearched' | 'Matched' | 'NotFound' | 'MultipleCandidates' | 'NeedsReview';
+export type FileRole = 'MainVideo' | 'Subtitle' | 'Image' | 'Nfo' | 'Extra' | 'Unknown';
+export type FileSafetyStatus = 'Ready' | 'NeedsReview' | 'Conflict' | 'Skipped' | 'Blocker';
+export type GroupStatus = 'Ready' | 'NeedsReview' | 'Conflict' | 'Skipped' | 'Blocker' | 'PartialSkipped';
+
+export interface PreviewFileItem {
+  id: string;
+  file_role: FileRole;
+  original_name: string;
+  target_name: string;
+  extension: string;
+  subtitle_language: string | null;
+  original_path: string;
+  target_path: string;
+  should_skip: boolean;
+  needs_manual_review: boolean;
+  metadata_source: MetadataSource;
+  safety_status: FileSafetyStatus;
+  confidence: number;
+}
+
+export interface FolderGroup {
+  id: string;
+  media_type: GroupMediaType;
+  original_folder_name: string;
+  target_folder_name: string;
+  original_path: string;
+  target_path: string;
+  file_count: number;
+  tmdb_match_status: TmdbMatchStatus;
+  folder_policy: string | null;
+  naming_preset: string | null;
+  status: GroupStatus;
+  should_skip: boolean;
+  needs_manual_review: boolean;
+  children: PreviewFileItem[];
+}
+
+export interface PreviewPlanTree {
+  groups: FolderGroup[];
+  total_files: number;
+  total_groups: number;
+  skipped_groups: number;
+  blocked_groups: number;
+}
+
+// Scrape Preview types
+export type ScrapeMode = 'NameOnly' | 'NameAndPoster' | 'NameAndPosterAndFanart' | 'NameAndPosterAndFanartAndNfo';
+
+export interface ScrapePreview {
+  folder_name: string;
+  file_name: string;
+  poster_url: string | null;
+  backdrop_url: string | null;
+  nfo_fields: Record<string, string>;
+  files_to_write: string[];
+  has_conflict: boolean;
+  conflicts: string[];
+  scrape_mode: ScrapeMode;
+}
