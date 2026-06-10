@@ -20,9 +20,10 @@ interface LocalScrapeOutput {
 interface ScrapeWriteActionsProps {
   candidate: TmdbCandidate;
   group: FolderGroup | null;
+  scanRoot?: string;
 }
 
-export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps) {
+export function ScrapeWriteActions({ candidate, group, scanRoot }: ScrapeWriteActionsProps) {
   const [isWriting, setIsWriting] = useState(false);
   const [result, setResult] = useState<LocalScrapeOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,7 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
       || '';
   }, [group]);
 
-  const targetFolder = useMemo(() => resolveScrapeTargetFolder(group), [group]);
+  const targetFolder = useMemo(() => resolveScrapeTargetFolder(group, scanRoot), [group, scanRoot]);
   const canWrite = Boolean(targetFolder && mainFileName);
 
   const handleWrite = async () => {
