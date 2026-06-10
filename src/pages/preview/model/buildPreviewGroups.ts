@@ -1,198 +1,196 @@
-import type { RenamePreviewItem, FolderGroup, PreviewFileItem, GroupMediaType, FileRole, GroupStatus, PreviewPlanTree } from '../../../types';
+import type {
+  RenamePreviewItem,
+  FolderGroup,
+  PreviewFileItem,
+  GroupMediaType,
+  FileRole,
+  GroupStatus,
+  PreviewPlanTree,
+} from '../../../types';
 
-/**
- * 从扫描结果构建真正的 Media Groups（而非将根目录文件捆绑为一个假组）。
- *
- * 规则：
- * 1. 子目录 → 每个子目录 = 一个 Media Group（已有行为保留）
- * 2. 根目录散装文件 → 按 basename 分组，每个独立视频 = 自己的 Media Group
- * 3. 剧集检测 → 多 SxxExx 同目录 = TV Group（不拆）
- * 4. Companion 文件 → 按同 basename + 同目录匹配到对应 video group
- *
- * @param previews 扫描后生成的预览项列表
- * @param scanRoot 扫描根目录路径
- */
+const VIDEO_EXTENSIONS = ['mkv', 'mp4', 'avi', 'm2ts', 'ts', 'mov', 'wmv', 'flv', 'webm', 'rmvb', 'iso', 'bdmv'];
+const SUBTITLE_EXTENSIONS = ['srt', 'ass', 'ssa', 'sub', 'idx', 'vtt'];
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+
 export function buildPreviewGroups(previews: RenamePreviewItem[], scanRoot?: string): PreviewPlanTree {
   const root = normalizeDir(scanRoot || detectScanRoot(previews));
-
-  // Step 1: 分离子目录文件和根目录文件
-  const subdirFiles = new Map<string, RenamePreviewItem[]>();
-  const rootFiles: RenamePreviewItem[] = [];
+  const parentGroups = new Map<string, RenamePreviewItem[]>();
 
   for (const item of previews) {
     const parentDir = getParentDir(item.source_path);
-    if (normalizeDir(parentDir) === root) {
-      rootFiles.push(item);
-    } else {
-      const existing = subdirFiles.get(parentDir) || [];
-      existing.push(item);
-      subdirFiles.set(parentDir, existing);
-    }
+    const existing = parentGroups.get(parentDir) || [];
+    existing.push(item);
+    parentGroups.set(parentDir, existing);
   }
 
-  // Step 2: 构建 Media Groups
-  const groups: FolderGroup[] = [];
   let groupId = 0;
+  const groups: FolderGroup[] = [];
 
-  // 2a: 子目录组
-  for (const [parentDir, items] of subdirFiles) {
-    groupId++;
-    const folderName = extractFolderName(parentDir);
-    const isTv = detectTvGroup(items);
-    const mediaType = isTv ? 'Tv' : inferGroupMediaType(items);
+  for (const [parentDir, items] of parentGroups) {
+    const slices = splitParentDirectoryIntoMediaGroups(items, root);
 
-    const children = items.map((item) => toFileItem(item));
-    const status = aggregateGroupStatus(children, false);
-    const targetFolder = inferTargetFolder(children);
-
-    groups.push({
-      id: `group_${String(groupId).padStart(3, '0')}`,
-      media_type: mediaType,
-      original_folder_name: folderName,
-      target_folder_name: targetFolder,
-      original_path: parentDir,
-      target_path: parentDir.replace(folderName, targetFolder),
-      file_count: children.length,
-      tmdb_match_status: 'NotSearched',
-      folder_policy: null,
-      naming_preset: 'clean-library',
-      status,
-      should_skip: false,
-      needs_manual_review: items.some((i) => i.needs_manual_review),
-      children,
-    });
-  }
-
-  // 2b: 根目录散装文件 → 按 basename 分组
-  const rootGroups = groupRootFilesByBasename(rootFiles);
-  for (const [basename, items] of rootGroups) {
-    groupId++;
-    const children = items.map((item) => toFileItem(item));
-    const status = aggregateGroupStatus(children, false);
-    const mediaType = inferGroupMediaType(items);
-    // 对于散装文件，文件夹名就是 basename
-    const targetFolder = inferTargetFolder(children);
-    // 还原显示：用第一个文件的父目录名作为显示名
-    const displayFolder = basename || extractFolderName(getParentDir(items[0].source_path));
-
-    groups.push({
-      id: `group_${String(groupId).padStart(3, '0')}`,
-      media_type: mediaType,
-      original_folder_name: displayFolder,
-      target_folder_name: targetFolder,
-      original_path: getParentDir(items[0].source_path),
-      target_path: getParentDir(items[0].source_path).replace(displayFolder, targetFolder),
-      file_count: children.length,
-      tmdb_match_status: 'NotSearched',
-      folder_policy: null,
-      naming_preset: 'clean-library',
-      status,
-      should_skip: false,
-      needs_manual_review: items.some((i) => i.needs_manual_review),
-      children,
-    });
-  }
-
-  // 如果没有子目录组也没有根文件组（极端情况），回退到原行为
-  if (groups.length === 0 && subdirFiles.size === 0 && rootFiles.length > 0) {
-    // 不应该出现但兜底
-    const originalMap = new Map<string, RenamePreviewItem[]>();
-    for (const item of previews) {
-      const d = getParentDir(item.source_path);
-      const e = originalMap.get(d) || [];
-      e.push(item);
-      originalMap.set(d, e);
-    }
-    for (const [dir, items] of originalMap) {
-      groupId++;
-      const children = items.map((item) => toFileItem(item));
-      groups.push({
-        id: `group_${String(groupId).padStart(3, '0')}`,
-        media_type: inferGroupMediaType(items),
-        original_folder_name: extractFolderName(dir),
-        target_folder_name: inferTargetFolder(children),
-        original_path: dir,
-        target_path: dir,
-        file_count: children.length,
-        tmdb_match_status: 'NotSearched',
-        folder_policy: null,
-        naming_preset: 'clean-library',
-        status: aggregateGroupStatus(children, false),
-        should_skip: false,
-        needs_manual_review: items.some((i) => i.needs_manual_review),
-        children,
-      });
+    for (const slice of slices) {
+      groupId += 1;
+      groups.push(createFolderGroup(groupId, parentDir, slice.items, slice.originalName));
     }
   }
+
+  const sortedGroups = groups.sort((a, b) => a.target_folder_name.localeCompare(b.target_folder_name, 'zh-Hans-CN'));
 
   return {
-    groups,
+    groups: sortedGroups,
     total_files: previews.length,
-    total_groups: groups.length,
-    skipped_groups: groups.filter((g) => g.status === 'Skipped').length,
-    blocked_groups: groups.filter((g) => g.status === 'Blocker').length,
+    total_groups: sortedGroups.length,
+    skipped_groups: sortedGroups.filter((g) => g.status === 'Skipped').length,
+    blocked_groups: sortedGroups.filter((g) => g.status === 'Blocker').length,
   };
 }
 
-/**
- * 按 basename 将根目录散装文件分组
- * 主视频文件决定组名，companion 文件按同 basename 匹配
- */
-function groupRootFilesByBasename(items: RenamePreviewItem[]): Map<string, RenamePreviewItem[]> {
-  const groups = new Map<string, RenamePreviewItem[]>();
+interface MediaSlice {
+  originalName: string;
+  items: RenamePreviewItem[];
+}
 
-  // 先分离主视频和 companion 文件
-  const videos: RenamePreviewItem[] = [];
+function splitParentDirectoryIntoMediaGroups(items: RenamePreviewItem[], scanRoot: string): MediaSlice[] {
+  if (items.length <= 1) {
+    return [{ originalName: inferOriginalGroupName(items), items }];
+  }
+
+  if (isStrongTvGroup(items)) {
+    return [{ originalName: inferOriginalGroupName(items), items }];
+  }
+
+  const slices = new Map<string, MediaSlice>();
   const companions: RenamePreviewItem[] = [];
+
   for (const item of items) {
-    const ext = item.parsed_info.media_item.extension.toLowerCase();
-    if (['mkv', 'mp4', 'avi', 'm2ts', 'ts', 'mov', 'wmv', 'flv', 'webm', 'rmvb', 'iso', 'bdmv'].includes(ext)) {
-      videos.push(item);
+    if (isVideoItem(item)) {
+      const key = mediaIdentityKey(item);
+      const originalName = inferOriginalGroupName([item]);
+      const existing = slices.get(key) || { originalName, items: [] };
+      existing.items.push(item);
+      slices.set(key, existing);
     } else {
       companions.push(item);
     }
   }
 
-  // 为每个视频创建组
-  for (const video of videos) {
-    const basename = getBasename(video.parsed_info.media_item.file_name);
-    const existing = groups.get(basename) || [];
-    existing.push(video);
-    groups.set(basename, existing);
+  for (const companion of companions) {
+    const companionKey = mediaIdentityKey(companion);
+    const matchedKey = findBestCompanionMatch(companionKey, slices);
+
+    if (matchedKey) {
+      slices.get(matchedKey)!.items.push(companion);
+      continue;
+    }
+
+    const originalName = inferOriginalGroupName([companion]);
+    const existing = slices.get(companionKey) || { originalName, items: [] };
+    existing.items.push(companion);
+    slices.set(companionKey, existing);
   }
 
-  // 将 companion 文件匹配到对应 video 组
-  for (const comp of companions) {
-    const compBasename = getBasename(comp.parsed_info.media_item.file_name);
-    // 匹配规则：companion 的 basename 包含某个视频的 basename 或是视频 basename 的子串
-    let matched = false;
-    for (const [videoBase] of groups) {
-      if (compBasename.startsWith(videoBase) || videoBase.startsWith(compBasename) || compBasename === videoBase) {
-        const existing = groups.get(videoBase)!;
-        existing.push(comp);
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) {
-      // 没有主视频匹配，创建独立 companion 组
-      const existing = groups.get(compBasename) || [];
-      existing.push(comp);
-      groups.set(compBasename, existing);
-    }
+  if (slices.size === 0) {
+    return [{ originalName: inferOriginalGroupName(items), items }];
   }
 
-  return groups;
+  const parentDir = getParentDir(items[0].source_path);
+  const isWorkspaceRoot = normalizeDir(parentDir) === scanRoot;
+
+  if (slices.size === 1 && !isWorkspaceRoot) {
+    const only = Array.from(slices.values())[0];
+    return [{ originalName: only.originalName, items: only.items }];
+  }
+
+  return Array.from(slices.values());
 }
 
-/**
- * 检测是否为剧集组（多 SxxExx / EPxx 文件）
- */
-function detectTvGroup(items: RenamePreviewItem[]): boolean {
-  const mediaTypes = items.map((i) => i.media_type);
-  const tvCount = mediaTypes.filter((t) => t === 'Series' || t === 'Anime').length;
-  // 至少2个剧集类型文件 → TV
-  return tvCount >= 2;
+function createFolderGroup(groupId: number, parentDir: string, items: RenamePreviewItem[], originalName: string): FolderGroup {
+  const children = items.map((item) => toFileItem(item));
+  const status = aggregateGroupStatus(children, false);
+  const targetFolder = inferTargetFolder(children);
+  const mediaType = inferGroupMediaType(items);
+
+  return {
+    id: `group_${String(groupId).padStart(3, '0')}`,
+    media_type: mediaType,
+    original_folder_name: originalName,
+    target_folder_name: targetFolder,
+    original_path: parentDir,
+    target_path: joinPath(parentDir, targetFolder),
+    file_count: children.length,
+    tmdb_match_status: 'NotSearched',
+    folder_policy: null,
+    naming_preset: 'clean-library',
+    status,
+    should_skip: false,
+    needs_manual_review: items.some((i) => i.needs_manual_review),
+    children,
+  };
+}
+
+function findBestCompanionMatch(companionKey: string, slices: Map<string, MediaSlice>): string | null {
+  for (const key of slices.keys()) {
+    if (companionKey === key || companionKey.startsWith(key) || key.startsWith(companionKey)) {
+      return key;
+    }
+  }
+  return null;
+}
+
+function isStrongTvGroup(items: RenamePreviewItem[]): boolean {
+  const episodeLike = items.filter((item) => hasEpisodeSignal(item));
+  if (episodeLike.length < 2) {
+    return false;
+  }
+
+  const showKeys = new Set(episodeLike.map((item) => normalizeKey(item.parsed_info.title || inferTitleFromName(item))));
+  return showKeys.size <= 2;
+}
+
+function hasEpisodeSignal(item: RenamePreviewItem): boolean {
+  if (item.parsed_info.episode != null || item.parsed_info.season != null) {
+    return true;
+  }
+
+  const name = `${item.original_name} ${item.proposed_name} ${item.parsed_info.media_item.file_name}`;
+  return /s\d{1,2}e\d{1,3}/i.test(name)
+    || /\b\d{1,2}x\d{1,3}\b/i.test(name)
+    || /\bep?\d{1,3}\b/i.test(name)
+    || /第\s*\d{1,3}\s*[集话話]/.test(name);
+}
+
+function mediaIdentityKey(item: RenamePreviewItem): string {
+  const title = inferTitleFromName(item) || item.parsed_info.title || getBasename(item.parsed_info.media_item.file_name);
+  const year = item.parsed_info.year || inferYearFromName(item.original_name) || inferYearFromName(item.proposed_name) || '';
+  return normalizeKey(`${title}-${year}`);
+}
+
+function inferTitleFromName(item: RenamePreviewItem): string {
+  const candidate = item.proposed_name || item.original_name || item.parsed_info.media_item.file_name;
+  const withoutExt = stripExtension(candidate);
+  return withoutExt
+    .replace(/^\.+/, '')
+    .replace(/[._]+/g, ' ')
+    .replace(/\s*\(?(19|20)\d{2}\)?\s*/g, ' ')
+    .replace(/\b(720p|1080p|2160p|4k|bluray|blu-ray|web-dl|webrip|hdtv|remux|x264|x265|hevc|h264|h265)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function inferOriginalGroupName(items: RenamePreviewItem[]): string {
+  const ref = items.find((item) => isVideoItem(item)) || items[0];
+  if (!ref) return '';
+  const title = inferTitleFromName(ref);
+  const year = ref.parsed_info.year || inferYearFromName(ref.original_name) || inferYearFromName(ref.proposed_name);
+  if (title && year) return `${title} (${year})`;
+  if (title) return title;
+  return stripExtension(ref.original_name || ref.parsed_info.media_item.file_name);
+}
+
+function inferYearFromName(name: string): number | null {
+  const match = name.match(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/);
+  return match ? Number(match[1]) : null;
 }
 
 function toFileItem(item: RenamePreviewItem): PreviewFileItem {
@@ -202,7 +200,7 @@ function toFileItem(item: RenamePreviewItem): PreviewFileItem {
     original_name: item.parsed_info.media_item.file_name,
     target_name: item.proposed_name,
     extension: normalizeExt(item.parsed_info.media_item.extension),
-    subtitle_language: null,
+    subtitle_language: inferSubtitleLanguage(item.parsed_info.media_item.file_name),
     original_path: item.source_path,
     target_path: item.target_path,
     should_skip: item.should_skip,
@@ -235,40 +233,60 @@ function aggregateGroupStatus(children: PreviewFileItem[], groupSkipped: boolean
 }
 
 function inferGroupMediaType(items: RenamePreviewItem[]): GroupMediaType {
-  const types = items.map((i) => i.media_type);
-  const hasTv = types.some((t) => t === 'Series' || t === 'Anime');
-  const hasMovie = types.some((t) => t === 'Movie');
-  if (hasTv && hasMovie) return 'Mixed';
-  if (hasTv) return 'Tv';
-  if (hasMovie) return 'Movie';
-  return 'Unknown';
-}
+  if (isStrongTvGroup(items)) {
+    return items.some((item) => item.media_type === 'Anime') ? 'Anime' : 'Tv';
+  }
 
-function extractFolderName(path: string): string {
-  return path.split('\\').pop() || path.split('/').pop() || path;
+  const types = items.map((i) => i.media_type);
+  const hasAnime = types.some((t) => t === 'Anime');
+  const hasMovie = types.some((t) => t === 'Movie');
+  if (hasAnime && !hasMovie) return 'Anime';
+  if (hasMovie || items.some((item) => isVideoItem(item))) return 'Movie';
+  return 'Unknown';
 }
 
 function inferTargetFolder(children: PreviewFileItem[]): string {
   const video = children.find((c) => c.file_role === 'MainVideo');
   const ref = video || children[0];
   if (!ref) return '';
-  const name = ref.target_name;
-  const dotIdx = name.lastIndexOf('.');
-  return dotIdx > 0 ? name.substring(0, dotIdx) : name;
+  return stripExtension(ref.target_name).replace(/\.+$/, '').trim();
 }
 
 function inferFileRole(fileName: string, extension: string): FileRole {
   const lower = fileName.toLowerCase();
-  const ext = extension.toLowerCase();
-  if (['srt', 'ass', 'ssa', 'sub', 'idx', 'vtt'].includes(ext)) return 'Subtitle';
+  const ext = extension.toLowerCase().replace(/^\.+/, '');
+  if (SUBTITLE_EXTENSIONS.includes(ext)) return 'Subtitle';
   if (ext === 'nfo' || ext === 'xml') return 'Nfo';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) {
+  if (IMAGE_EXTENSIONS.includes(ext)) {
     if (lower.includes('poster') || lower.includes('folder') || lower.includes('cover') || lower.includes('fanart') || lower.includes('backdrop')) return 'Image';
     return 'Extra';
   }
-  if (['mkv', 'mp4', 'avi', 'm2ts', 'ts', 'mov', 'wmv', 'flv', 'webm', 'rmvb', 'iso', 'bdmv'].includes(ext)) return 'MainVideo';
+  if (VIDEO_EXTENSIONS.includes(ext)) return 'MainVideo';
   if (lower.includes('.zh.') || lower.includes('.chs.') || lower.includes('.cht.') || lower.includes('.en.')) return 'Subtitle';
   return 'Extra';
+}
+
+function inferSubtitleLanguage(fileName: string): string | null {
+  const lower = fileName.toLowerCase();
+  if (lower.includes('.zh.') || lower.includes('.chs.')) return 'zh';
+  if (lower.includes('.cht.')) return 'zh-Hant';
+  if (lower.includes('.en.')) return 'en';
+  return null;
+}
+
+function isVideoItem(item: RenamePreviewItem): boolean {
+  const ext = item.parsed_info.media_item.extension.toLowerCase().replace(/^\.+/, '');
+  return item.parsed_info.media_item.is_video || VIDEO_EXTENSIONS.includes(ext);
+}
+
+function stripExtension(name: string): string {
+  const clean = name.trim();
+  const lastSlash = Math.max(clean.lastIndexOf('\\'), clean.lastIndexOf('/'));
+  const lastDot = clean.lastIndexOf('.');
+  if (lastDot > Math.max(lastSlash, 0)) {
+    return clean.substring(0, lastDot);
+  }
+  return clean;
 }
 
 function normalizeExt(ext: string): string {
@@ -281,43 +299,51 @@ function getParentDir(filePath: string): string {
   return lastSep > 0 ? filePath.substring(0, lastSep) : filePath;
 }
 
-/**
- * 获取文件名（不含扩展名）
- */
 function getBasename(fileName: string): string {
   const lastDot = fileName.lastIndexOf('.');
   return lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
 }
 
-/**
- * 规范化目录路径（统一分隔符，去尾斜杠）
- */
+function joinPath(parentDir: string, childName: string): string {
+  if (!parentDir) return childName;
+  const separator = parentDir.includes('\\') ? '\\' : '/';
+  return `${parentDir.replace(/[\\/]+$/, '')}${separator}${childName}`;
+}
+
 function normalizeDir(path: string): string {
   return path.replace(/\//g, '\\').replace(/\\+$/, '');
 }
 
-/**
- * 从预览列表推断扫描根目录
- */
+function normalizeKey(value: string): string {
+  return value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
+}
+
 function detectScanRoot(previews: RenamePreviewItem[]): string {
   if (previews.length === 0) return '';
 
-  // 找出最常见的父目录作为根目录
-  const dirCount = new Map<string, number>();
-  for (const item of previews) {
-    const d = normalizeDir(getParentDir(item.source_path));
-    dirCount.set(d, (dirCount.get(d) || 0) + 1);
+  const dirs = previews.map((item) => normalizeDir(getParentDir(item.source_path)));
+  let root = dirs[0] || '';
+
+  for (const dir of dirs.slice(1)) {
+    root = commonDirectoryPrefix(root, dir);
   }
 
-  let bestDir = '';
-  let bestCount = 0;
-  for (const [dir, count] of dirCount) {
-    if (count > bestCount) {
-      bestCount = count;
-      bestDir = dir;
+  return root;
+}
+
+function commonDirectoryPrefix(left: string, right: string): string {
+  const leftParts = normalizeDir(left).split('\\');
+  const rightParts = normalizeDir(right).split('\\');
+  const parts: string[] = [];
+
+  for (let index = 0; index < Math.min(leftParts.length, rightParts.length); index += 1) {
+    if (leftParts[index].toLowerCase() !== rightParts[index].toLowerCase()) {
+      break;
     }
+    parts.push(leftParts[index]);
   }
-  return bestDir;
+
+  return parts.join('\\');
 }
 
 export { aggregateGroupStatus, inferFileRole };
