@@ -136,6 +136,7 @@ export function PreviewPage() {
     previewPath: string;
   } | null>(null);
   const [tmdbMediaType, setTmdbMediaType] = useState<TmdbManualMediaType>('movie');
+  const [tmdbQuery, setTmdbQuery] = useState('');
   const [tmdbCandidates, setTmdbCandidates] = useState<TmdbCandidate[]>([]);
   const [tmdbLoading, setTmdbLoading] = useState(false);
   const [tmdbError, setTmdbError] = useState<string | null>(null);
@@ -164,6 +165,7 @@ export function PreviewPage() {
 
   useEffect(() => {
     setTmdbMediaType(defaultTmdbMediaType(selectedGroup));
+    setTmdbQuery(selectedGroup ? buildTmdbQuery(selectedGroup) : '');
     setTmdbError(null);
     setTmdbCandidates([]);
     setSelectedCandidate(null);
@@ -197,7 +199,11 @@ export function PreviewPage() {
     setSelectedGroupId(groupId);
   }, []);
 
-  const searchTmdbForGroup = useCallback(async (group: FolderGroup, mediaType: TmdbManualMediaType) => {
+  const searchTmdbForGroup = useCallback(async (
+    group: FolderGroup,
+    mediaType: TmdbManualMediaType,
+    queryText: string,
+  ) => {
     setSelectedGroupId(group.id);
     setTmdbError(null);
     setTmdbCandidates([]);
@@ -210,15 +216,15 @@ export function PreviewPage() {
 
     setTmdbLoading(true);
     try {
-      const query = buildTmdbQuery(group);
+      const query = queryText.trim() || buildTmdbQuery(group);
       if (!query) {
-        setTmdbError('无法从当前媒体组生成 TMDb 搜索词');
+        setTmdbError('请输入 TMDb 搜索词');
         return;
       }
 
       const result = await searchTmdbCandidates(query, mediaType);
       if (!result || result.length === 0) {
-        setTmdbError(`没有找到候选：${query}`);
+        setTmdbError(`没有找到候选：${query}。可以把搜索词改成英文名再试，例如 First Blood。`);
         return;
       }
       setTmdbCandidates(result);
@@ -231,15 +237,17 @@ export function PreviewPage() {
 
   const handleTmdbSearch = useCallback(async () => {
     if (!selectedGroup) return;
-    await searchTmdbForGroup(selectedGroup, tmdbMediaType);
-  }, [selectedGroup, searchTmdbForGroup, tmdbMediaType]);
+    await searchTmdbForGroup(selectedGroup, tmdbMediaType, tmdbQuery);
+  }, [selectedGroup, searchTmdbForGroup, tmdbMediaType, tmdbQuery]);
 
   const handleGroupTmdbSearch = useCallback((groupId: string) => {
     const group = groups.find((item) => item.id === groupId);
     if (!group) return;
     const mediaType = defaultTmdbMediaType(group);
+    const query = buildTmdbQuery(group);
     setTmdbMediaType(mediaType);
-    void searchTmdbForGroup(group, mediaType);
+    setTmdbQuery(query);
+    void searchTmdbForGroup(group, mediaType, query);
   }, [groups, searchTmdbForGroup]);
 
   const handleApplyCandidate = useCallback(async (candidate: TmdbCandidate) => {
@@ -453,6 +461,20 @@ export function PreviewPage() {
 
               <div className="mt-3 pt-3 border-t border-border space-y-3">
                 <div>
+                  <div className="mb-1 text-xs text-text-secondary">搜索词</div>
+                  <input
+                    className="w-full rounded-xl border border-border bg-bg-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary"
+                    value={tmdbQuery}
+                    onChange={(e) => setTmdbQuery(e.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        handleTmdbSearch();
+                      }
+                    }}
+                    placeholder="可改成英文名，例如 First Blood"
+                  />
+                </div>
+                <div>
                   <div className="mb-1 text-xs text-text-secondary">搜索类型</div>
                   <div className="grid grid-cols-2 gap-2 rounded-xl bg-bg-primary p-1">
                     <button
@@ -475,7 +497,7 @@ export function PreviewPage() {
                   icon={<Globe className="h-3.5 w-3.5" />}
                   onClick={() => handleTmdbSearch()}
                   isLoading={tmdbLoading}
-                  disabled={tmdbSearchStatus === 'disabled'}
+                  disabled={tmdbSearchStatus === 'disabled' || !tmdbQuery.trim()}
                   className="w-full"
                 >
                   {tmdbSearchStatus === 'disabled' ? '先启用 TMDb' : '搜索 TMDb'}
@@ -495,35 +517,14 @@ export function PreviewPage() {
                 <Button variant="ghost" size="sm" icon={<X className="h-3 w-3" />} onClick={() => { setTmdbCandidates([]); setSelectedCandidate(null); }}>{''}</Button>
               </div>
               <div className="max-h-80 overflow-y-auto divide-y divide-border">
-                {tmdbCandidates.map((c) => (
-                  <div
-                    key={c.tmdb_id}
-                    className={`flex gap-3 p-3 cursor-pointer hover:bg-surface-hover transition-colors ${selectedCandidate?.tmdb_id === c.tmdb_id ? 'bg-primary/5 border-l-2 border-primary' : ''}`}
-                    onClick={() => setSelectedCandidate(c)}
-                  >
-                    <div className="w-12 h-20 shrink-0 rounded bg-surface-hover overflow-hidden">
-                      {c.poster_path ? (
-                        <img src={`${TMDB_IMAGE_BASE}${c.poster_path}`} alt={c.title} className="w-full h-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-text-tertiary"><Film className="h-5 w-5" /></div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-medium text-text-primary truncate">{c.title}</span>
-                        {c.year && <span className="text-xs text-text-tertiary shrink-0">({c.year})</span>}
-                      </div>
-                      {c.original_title && c.original_title !== c.title && <div className="text-xs text-text-tertiary truncate">{c.original_title}</div>}
-                      <div className="flex items-center gap-2 mt-1">
-                        {c.vote_average != null && <span className="flex items-center gap-0.5 text-xs text-warning"><Star className="h-3 w-3 fill-current" />{c.vote_average.toFixed(1)}</span>}
-                        <Badge variant="default" size="sm">{c.media_type === 'Movie' ? '🎬' : '📺'} TMDb {c.tmdb_id}</Badge>
-                      </div>
-                      {c.overview && <p className="text-xs text-text-tertiary mt-1 line-clamp-2">{c.overview}</p>}
-                    </div>
-                    <div className="shrink-0 flex items-center">
-                      <Button variant="primary" size="sm" onClick={(e) => { e.stopPropagation(); handleApplyCandidate(c); }}>应用</Button>
-                    </div>
-                  </div>
+                {tmdbCandidates.map((candidate) => (
+                  <CandidateRow
+                    key={candidate.tmdb_id}
+                    candidate={candidate}
+                    selected={selectedCandidate?.tmdb_id === candidate.tmdb_id}
+                    onSelect={setSelectedCandidate}
+                    onApply={handleApplyCandidate}
+                  />
                 ))}
               </div>
             </Card>
@@ -542,29 +543,7 @@ export function PreviewPage() {
           )}
 
           {selectedCandidate && (
-            <Card className="p-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Image className="h-3.5 w-3.5 text-text-secondary" />
-                <h3 className="text-xs font-semibold text-text-primary">刮削预览</h3>
-              </div>
-              <div className="space-y-2 text-xs text-text-secondary">
-                <div><span className="text-text-tertiary">文件夹：</span>{selectedGroup?.target_folder_name}</div>
-                <div><span className="text-text-tertiary">文件：</span>{selectedGroup?.children.find((c) => c.file_role === 'MainVideo')?.target_name || selectedGroup?.children[0]?.target_name}</div>
-                <div className="flex gap-2">
-                  <span className="text-text-tertiary">Poster：</span>
-                  {selectedCandidate.poster_path ? (
-                    <img src={`${TMDB_IMAGE_BASE}${selectedCandidate.poster_path}`} alt="Poster" className="w-16 h-24 rounded object-cover border border-border" />
-                  ) : (
-                    <span className="text-text-tertiary italic">无</span>
-                  )}
-                </div>
-                <div><span className="text-text-tertiary">标题：</span>{selectedCandidate.title} {selectedCandidate.year ? `(${selectedCandidate.year})` : ''}</div>
-                <div><span className="text-text-tertiary">评分：</span>{selectedCandidate.vote_average != null ? `${selectedCandidate.vote_average.toFixed(1)} / 10` : '无'}</div>
-                <div><span className="text-text-tertiary">简介：</span><span className="line-clamp-3">{selectedCandidate.overview || '无'}</span></div>
-                <div><span className="text-text-tertiary">TMDb ID：</span>{selectedCandidate.tmdb_id}</div>
-                <div><span className="text-text-tertiary">写入模式：</span><Badge variant="default" size="sm">仅命名</Badge></div>
-              </div>
-            </Card>
+            <ScrapePreviewCard selectedCandidate={selectedCandidate} selectedGroup={selectedGroup} />
           )}
         </div>
       </div>
@@ -602,6 +581,76 @@ function WorkbenchCard({ title, icon, children }: { title: string; icon: React.R
   );
 }
 
+function CandidateRow({
+  candidate,
+  selected,
+  onSelect,
+  onApply,
+}: {
+  candidate: TmdbCandidate;
+  selected: boolean;
+  onSelect: (candidate: TmdbCandidate) => void;
+  onApply: (candidate: TmdbCandidate) => void;
+}) {
+  return (
+    <div
+      className={`flex gap-3 p-3 cursor-pointer hover:bg-surface-hover transition-colors ${selected ? 'bg-primary/5 border-l-2 border-primary' : ''}`}
+      onClick={() => onSelect(candidate)}
+    >
+      <div className="w-12 h-20 shrink-0 rounded bg-surface-hover overflow-hidden">
+        {candidate.poster_path ? (
+          <img src={`${TMDB_IMAGE_BASE}${candidate.poster_path}`} alt={candidate.title} className="w-full h-full object-cover" loading="lazy" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-text-tertiary"><Film className="h-5 w-5" /></div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-text-primary truncate">{candidate.title}</span>
+          {candidate.year && <span className="text-xs text-text-tertiary shrink-0">({candidate.year})</span>}
+        </div>
+        {candidate.original_title && candidate.original_title !== candidate.title && <div className="text-xs text-text-tertiary truncate">{candidate.original_title}</div>}
+        <div className="flex items-center gap-2 mt-1">
+          {candidate.vote_average != null && <span className="flex items-center gap-0.5 text-xs text-warning"><Star className="h-3 w-3 fill-current" />{candidate.vote_average.toFixed(1)}</span>}
+          <Badge variant="default" size="sm">{candidate.media_type === 'Movie' ? '🎬' : '📺'} TMDb {candidate.tmdb_id}</Badge>
+        </div>
+        {candidate.overview && <p className="text-xs text-text-tertiary mt-1 line-clamp-2">{candidate.overview}</p>}
+      </div>
+      <div className="shrink-0 flex items-center">
+        <Button variant="primary" size="sm" onClick={(event) => { event.stopPropagation(); onApply(candidate); }}>应用</Button>
+      </div>
+    </div>
+  );
+}
+
+function ScrapePreviewCard({ selectedCandidate, selectedGroup }: { selectedCandidate: TmdbCandidate; selectedGroup: FolderGroup | null }) {
+  return (
+    <Card className="p-3">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Image className="h-3.5 w-3.5 text-text-secondary" />
+        <h3 className="text-xs font-semibold text-text-primary">刮削预览</h3>
+      </div>
+      <div className="space-y-2 text-xs text-text-secondary">
+        <div><span className="text-text-tertiary">文件夹：</span>{selectedGroup?.target_folder_name}</div>
+        <div><span className="text-text-tertiary">文件：</span>{selectedGroup?.children.find((child) => child.file_role === 'MainVideo')?.target_name || selectedGroup?.children[0]?.target_name}</div>
+        <div className="flex gap-2">
+          <span className="text-text-tertiary">Poster：</span>
+          {selectedCandidate.poster_path ? (
+            <img src={`${TMDB_IMAGE_BASE}${selectedCandidate.poster_path}`} alt="Poster" className="w-16 h-24 rounded object-cover border border-border" />
+          ) : (
+            <span className="text-text-tertiary italic">无</span>
+          )}
+        </div>
+        <div><span className="text-text-tertiary">标题：</span>{selectedCandidate.title} {selectedCandidate.year ? `(${selectedCandidate.year})` : ''}</div>
+        <div><span className="text-text-tertiary">评分：</span>{selectedCandidate.vote_average != null ? `${selectedCandidate.vote_average.toFixed(1)} / 10` : '无'}</div>
+        <div><span className="text-text-tertiary">简介：</span><span className="line-clamp-3">{selectedCandidate.overview || '无'}</span></div>
+        <div><span className="text-text-tertiary">TMDb ID：</span>{selectedCandidate.tmdb_id}</div>
+        <div><span className="text-text-tertiary">写入模式：</span><Badge variant="default" size="sm">仅命名</Badge></div>
+      </div>
+    </Card>
+  );
+}
+
 function EditNameModal({
   mode,
   currentName,
@@ -623,14 +672,14 @@ function EditNameModal({
     else onCancel();
   }, [value, currentName, onConfirm, onCancel]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSubmit();
-    if (e.key === 'Escape') onCancel();
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') handleSubmit();
+    if (event.key === 'Escape') onCancel();
   }, [handleSubmit, onCancel]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={onCancel}>
-      <div className="bg-bg-secondary rounded-2xl border border-accent/40 shadow-2xl w-[520px] max-w-[95vw] p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-bg-secondary rounded-2xl border border-accent/40 shadow-2xl w-[520px] max-w-[95vw] p-0 overflow-hidden" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-accent/20 bg-bg-card">
           <div className="flex items-center gap-2">
             <Edit3 className="h-4 w-4 text-accent" />
@@ -650,7 +699,7 @@ function EditNameModal({
               type="text"
               className="w-full rounded-xl border border-accent/50 bg-bg-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent transition-colors"
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChange={(event) => setValue(event.target.value)}
               onKeyDown={handleKeyDown}
               autoFocus
             />
