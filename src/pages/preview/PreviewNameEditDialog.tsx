@@ -29,11 +29,17 @@ export function PreviewNameEditDialog({ item, onSave, onClose }: PreviewNameEdit
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-primary/80 px-6">
-      <div className="w-full max-w-2xl rounded-2xl border border-text-secondary/20 bg-bg-secondary p-6">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg-primary/80 px-6"
+      style={{ width: '100vw', height: '100vh' }}
+    >
+      <div
+        className="rounded-2xl border border-text-secondary/20 bg-bg-secondary p-6 shadow-xl"
+        style={{ width: 'min(760px, calc(100vw - 48px))', maxWidth: '760px' }}
+      >
         <div className="space-y-1">
           <h2 className="text-xl font-semibold text-text-primary">编辑预览文件名</h2>
-          <p className="text-sm leading-6 text-text-secondary">
+          <p className="whitespace-normal text-sm leading-6 text-text-secondary">
             只修改当前预览项，执行前仍会经过安全检查。
           </p>
         </div>
@@ -41,7 +47,7 @@ export function PreviewNameEditDialog({ item, onSave, onClose }: PreviewNameEdit
         <div className="mt-5 space-y-4">
           <div>
             <p className="mb-1 text-sm font-medium text-text-primary">原始文件名</p>
-            <div className="rounded-xl bg-bg-primary px-4 py-3 font-mono text-sm leading-6 text-text-secondary">
+            <div className="overflow-x-auto rounded-xl bg-bg-primary px-4 py-3 font-mono text-sm leading-6 text-text-secondary whitespace-nowrap">
               {item.original_name}
             </div>
           </div>
