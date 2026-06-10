@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Download, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import type { FolderGroup, TmdbCandidate } from '../../../types';
+import { resolveScrapeTargetFolder } from './resolveScrapeTargetFolder';
 
 interface LocalScrapeWrittenFile {
   role: string;
@@ -32,7 +33,8 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
       || '';
   }, [group]);
 
-  const canWrite = Boolean(group?.target_path && mainFileName);
+  const targetFolder = useMemo(() => resolveScrapeTargetFolder(group), [group]);
+  const canWrite = Boolean(targetFolder && mainFileName);
 
   const handleWrite = async () => {
     if (!group || !canWrite) {
@@ -48,7 +50,7 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
       const output = await invoke<LocalScrapeOutput>('scrape_to_local_metadata', {
         input: {
           candidate,
-          target_folder_path: group.target_path,
+          target_folder_path: targetFolder,
           target_file_name: mainFileName,
         },
       });
@@ -77,8 +79,8 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
         刮削到本地
       </Button>
 
-      <div className="text-xs text-text-tertiary break-all">
-        写入目录：{group?.target_path || '未选择'}
+      <div className="break-all text-xs text-text-tertiary">
+        写入目录：{targetFolder || '未选择'}
       </div>
 
       {result && result.written_files.length > 0 && (
