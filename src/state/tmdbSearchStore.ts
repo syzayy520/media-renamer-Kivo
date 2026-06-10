@@ -65,12 +65,17 @@ function normalizeSearchMediaType(mediaType: TmdbSearchMediaType): 'movie' | 'tv
   return 'movie';
 }
 
+function tmdbOutputError(output: SearchTmdbCandidatesOutput): SearchTmdbCandidatesOutput['error'] {
+  return output.error ?? null;
+}
+
 function isDisabledResponse(output: SearchTmdbCandidatesOutput): boolean {
-  return (
-    output.error !== null &&
-    output.error.code === 'Unknown' &&
-    output.error.message.includes(DISABLED_GATE_MESSAGE)
-  );
+  const error = tmdbOutputError(output);
+  return error?.code === 'Unknown' && error.message.includes(DISABLED_GATE_MESSAGE);
+}
+
+function errorMessageFromUnknown(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
 }
 
 const DEFAULT_ITEM_STATE: ItemSearchState = {
@@ -138,16 +143,17 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
       'search_tmdb_candidates',
       { input: { query, media_type: normalizeSearchMediaType(mediaType), language: 'zh-CN', year: null, page: 1 } },
     );
+    const error = tmdbOutputError(output);
 
     if (isDisabledResponse(output)) {
-      const message = output.error?.message ?? 'TMDb search is not enabled.';
+      const message = error?.message ?? 'TMDb search is not enabled.';
       set({ tmdbSearchStatus: 'disabled', disabledReason: message, lastResult: null });
       throw new Error(message);
     }
 
-    if (output.error !== null) {
+    if (error) {
       set({ tmdbSearchStatus: 'error', lastResult: output });
-      throw new Error(output.error.message);
+      throw new Error(error.message);
     }
 
     set({ tmdbSearchStatus: 'success', lastResult: output });
@@ -167,28 +173,31 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
         'search_tmdb_candidates',
         { input },
       );
+      const error = tmdbOutputError(output);
 
       if (isDisabledResponse(output)) {
         set({
           tmdbSearchStatus: 'disabled',
-          disabledReason: output.error?.message ?? 'TMDb search is not enabled.',
+          disabledReason: error?.message ?? 'TMDb search is not enabled.',
           lastResult: null,
         });
-      } else if (output.error !== null) {
+      } else if (error) {
         set({
           tmdbSearchStatus: 'error',
+          disabledReason: error.message,
           lastResult: output,
         });
       } else {
         set({
           tmdbSearchStatus: 'success',
+          disabledReason: null,
           lastResult: output,
         });
       }
-    } catch {
+    } catch (err) {
       set({
-        tmdbSearchStatus: 'disabled',
-        disabledReason: 'TMDb search command is not available.',
+        tmdbSearchStatus: 'error',
+        disabledReason: errorMessageFromUnknown(err, 'TMDb search command failed.'),
         lastResult: null,
       });
     }
@@ -213,30 +222,30 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
         'search_tmdb_candidates',
         { input },
       );
-
+      const error = tmdbOutputError(output);
       const currentState = get().itemStates;
 
       if (isDisabledResponse(output)) {
         set({
           tmdbSearchStatus: 'disabled',
-          disabledReason: output.error?.message ?? 'TMDb search is not enabled.',
+          disabledReason: error?.message ?? 'TMDb search is not enabled.',
           itemStates: {
             ...currentState,
             [itemId]: {
               ...DEFAULT_ITEM_STATE,
               status: 'disabled',
-              error: output.error?.message ?? null,
+              error: error?.message ?? null,
             },
           },
         });
-      } else if (output.error !== null) {
+      } else if (error) {
         set({
           itemStates: {
             ...currentState,
             [itemId]: {
               ...DEFAULT_ITEM_STATE,
               status: 'error',
-              error: output.error.message,
+              error: error.message,
             },
           },
         });
@@ -254,7 +263,7 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
           },
         });
       }
-    } catch {
+    } catch (err) {
       const currentState = get().itemStates;
       set({
         itemStates: {
@@ -262,7 +271,7 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set, get) => ({
           [itemId]: {
             ...DEFAULT_ITEM_STATE,
             status: 'error',
-            error: 'TMDb search command failed.',
+            error: errorMessageFromUnknown(err, 'TMDb search command failed.'),
           },
         },
       });
