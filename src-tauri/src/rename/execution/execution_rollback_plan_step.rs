@@ -9,10 +9,7 @@ use crate::rollback::rollback_plan::RollbackPlan;
 ///
 /// 从预览项列表生成回滚计划
 /// 回滚计划在执行前生成，用于记录 source/target 映射
-pub fn generate_rollback_plan(
-    task_id: &str,
-    preview_items: &[RenamePreviewItem],
-) -> RollbackPlan {
+pub fn generate_rollback_plan(task_id: &str, preview_items: &[RenamePreviewItem]) -> RollbackPlan {
     RollbackPlan::from_preview_items(task_id, preview_items)
 }
 

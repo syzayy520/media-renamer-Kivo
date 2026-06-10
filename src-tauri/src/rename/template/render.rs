@@ -1,69 +1,32 @@
-// 模板渲染模块
-// 职责：根据模板字符串生成新文件名
+// rename/template/render.rs
+// 职责：根据模板字符串渲染新文件名
+// 委托：extension_token.rs 处理扩展名规范化
 
-use crate::parse::confidence::RuleMatchEvidence;
-use crate::parse::movie_parser::{MediaType, ParsedMediaInfo};
-use crate::shared::result_types::ConflictType;
-use serde::{Deserialize, Serialize};
-
-/// 元数据来源
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum MetadataSource {
-    /// 本地规则解析
-    LocalRule,
-    /// TMDb API
-    Tmdb,
-    /// 手动输入
-    Manual,
-}
-
-/// 重命名冲突
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RenameConflict {
-    /// 冲突类型
-    pub conflict_type: ConflictType,
-    /// 源路径
-    pub source_path: String,
-    /// 目标路径
-    pub target_path: String,
-    /// 冲突描述
-    pub message: String,
-    /// 是否阻塞（阻塞则不能执行）
-    pub blocking: bool,
-}
-
-/// 重命名预览项
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RenamePreviewItem {
-    /// 预览 ID
-    pub id: String,
-    /// 解析信息
-    pub parsed_info: ParsedMediaInfo,
-    /// 原始路径
-    pub source_path: String,
-    /// 原始文件名
-    pub original_name: String,
-    /// 提议的新文件名
-    pub proposed_name: String,
-    /// 目标路径
-    pub target_path: String,
-    /// 媒体类型
-    pub media_type: MediaType,
-    /// 置信度
-    pub confidence: u8,
-    /// 是否需要人工确认
-    pub needs_manual_review: bool,
-    /// 是否跳过
-    pub should_skip: bool,
-    /// 冲突列表
-    pub conflicts: Vec<RenameConflict>,
-    /// 置信度证据
-    pub evidence: Vec<RuleMatchEvidence>,
-    /// 元数据来源
-    pub metadata_source: MetadataSource,
-}
+use super::extension_token;
+use crate::parse::movie_parser::ParsedMediaInfo;
 
 /// 渲染模板，生成新文件名
+///
+/// 支持的令牌：
+/// - {title}/{Title} — 标题
+/// - {ext}/{Ext} — 文件扩展名（含前导点，无扩展名时为空）
+/// - {year}/{Year} — 年份
+/// - {season:02}/{Season:02} — 季号（补零）
+/// - {episode:02}/{Episode:02} — 集号（补零）
+/// - {EpisodeTitle}/{episode_title} — 集标题
+/// - {Resolution}/{resolution} — 分辨率
+/// - {Source}/{source} — 来源
+/// - {VideoCodec}/{video_codec} — 视频编码
+/// - {AudioCodec}/{audio_codec} — 音频编码
+/// - {Group}/{group} — 编码组
+/// - {SpecialType}/{special_type} — 特别篇类型
+/// - {ExtraType}/{extra_type} — Extras 类型
+/// - {ExtraNumber}/{extra_number} — Extras 编号
+///
+/// # 关键行为
+/// - {ext} 渲染为 ".mkv"（含前导点）或空字符串 — 不会产生尾随点
+/// - 模板不应使用字面量 ".{ext}"；应使用 "{ext}"（含前导点的令牌）
+/// - 渲染后清理连续空格、点修复
 pub fn render(info: &ParsedMediaInfo, template: &str) -> String {
     let mut result = template.to_string();
 
@@ -71,10 +34,12 @@ pub fn render(info: &ParsedMediaInfo, template: &str) -> String {
     result = result.replace("{Title}", &info.title);
     result = result.replace("{title}", &info.title);
 
-    // 扩展名
-    let extension = info.media_item.extension.trim_start_matches('.');
-    result = result.replace("{Ext}", extension);
-    result = result.replace("{ext}", extension);
+    // 扩展名 — 使用 extension_token 规范化
+    // {ext} 小写，{Ext} 大写
+    let extension = extension_token::ext_token_value(&info.media_item.extension);
+    let extension_upper = extension_token::ext_token_value_uppercase(&info.media_item.extension);
+    result = result.replace("{Ext}", &extension_upper);
+    result = result.replace("{ext}", &extension);
 
     // 年份
     if let Some(year) = info.year {
@@ -204,34 +169,30 @@ pub fn render(info: &ParsedMediaInfo, template: &str) -> String {
         result = new_result;
     }
 
-    // 清理多余空格和点
+    // 清理多余空格和点连接
     result = result
         .split_whitespace()
         .collect::<Vec<&str>>()
         .join(" ")
-        .replace(" .", ".")
-        .replace(". ", ".");
+        .replace(" .", ".");
+
+    // 修复可能由扩展名规范化产生的连续点
+    // 例: 模板 ".{ext}"  + extension_token 输出 ".mkv" → "..mkv" → ".mkv"
+    result = result.replace("..", ".");
+
+    // 移除尾随点（扩展名为空时遗留）
+    result = result.trim_end_matches('.').to_string();
+
+    // 二次清理：尾随点移除后再修复 "." 结尾后的空格
+    // （已在首次处理中覆盖）
 
     result
-}
-
-/// 获取默认模板
-pub fn get_default_template(media_type: &MediaType) -> &'static str {
-    match media_type {
-        MediaType::Movie => "{Title} ({Year}).{ext}",
-        MediaType::Series => "{Title} - S{Season:02}E{Episode:02} - {EpisodeTitle}.{ext}",
-        MediaType::Anime => "{Title} - S{Season:02}E{Episode:02}.{ext}",
-        MediaType::Special | MediaType::Ova | MediaType::Ncop | MediaType::Nced => {
-            "{Title} - S00E{Episode:02} - {SpecialType}.{ext}"
-        }
-        MediaType::Extras => "{Title} - Extra - {ExtraType}{ExtraNumber}.{ext}",
-        MediaType::Unknown => "{Title}.{ext}",
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parse::movie_parser::MediaType;
     use crate::scan::MediaItem;
 
     fn make_test_info(media_type: MediaType) -> ParsedMediaInfo {
@@ -265,19 +226,32 @@ mod tests {
         }
     }
 
+    fn make_info_empty_ext() -> ParsedMediaInfo {
+        let mut info = make_test_info(MediaType::Movie);
+        info.title = "第一滴血".to_string();
+        info.media_item.extension = String::new();
+        info.media_item.file_name = "第一滴血".to_string();
+        info.year = Some(1982);
+        info
+    }
+
+    fn make_info_dot_ext() -> ParsedMediaInfo {
+        let mut info = make_test_info(MediaType::Movie);
+        info.title = "第一滴血".to_string();
+        info.media_item.extension = ".mkv".to_string();
+        info.media_item.file_name = "第一滴血.mkv".to_string();
+        info.year = Some(1982);
+        info
+    }
+
+    // ─── 基本渲染测试 ──────────────────────────────────────────
+
     #[test]
     fn test_render_movie_template() {
         let info = make_test_info(MediaType::Movie);
         let template = "{Title} ({Year}) [{Resolution} {Source} {VideoCodec} {AudioCodec}]";
         let result = render(&info, template);
         assert_eq!(result, "Test Title (2020) [1080p BluRay x264 AAC]");
-    }
-
-    #[test]
-    fn test_render_extension_template() {
-        let info = make_test_info(MediaType::Movie);
-        let result = render(&info, "{Title} ({Year}).{ext}");
-        assert_eq!(result, "Test Title (2020).mkv");
     }
 
     #[test]
@@ -343,30 +317,88 @@ mod tests {
         assert_eq!(result, "Test Title {UnknownVar} {AnotherUnknown}");
     }
 
+    // ─── 扩展名测试 — Target A 核心修复 ────────────────────────────
+
     #[test]
-    fn test_get_default_template_movie() {
-        let template = get_default_template(&MediaType::Movie);
-        assert_eq!(template, "{Title} ({Year}).{ext}");
+    fn test_movie_default_template_renders_real_extension() {
+        let info = make_test_info(MediaType::Movie);
+        // {ext} 现在输出 ".mkv"（含前导点）
+        let result = render(&info, "{Title} ({Year}){ext}");
+        assert_eq!(result, "Test Title (2020).mkv");
     }
 
     #[test]
-    fn test_get_default_template_series() {
-        let template = get_default_template(&MediaType::Series);
-        assert!(template.contains("{Title}"));
-        assert!(template.contains("{Season:02}"));
-        assert!(template.contains("{Episode:02}"));
+    fn test_movie_default_template_omits_dangling_dot_when_extension_empty() {
+        let info = make_info_empty_ext();
+        // 没有扩展名 → {ext} 输出空字符串 → 无尾随点
+        let result = render(&info, "{Title} ({Year}){ext}");
+        assert_eq!(result, "第一滴血 (1982)");
+        assert!(!result.ends_with('.'));
     }
 
     #[test]
-    fn test_get_default_template_anime() {
-        let template = get_default_template(&MediaType::Anime);
-        assert_eq!(template, "{Title} - S{Season:02}E{Episode:02}.{ext}");
+    fn test_lowercase_ext_works() {
+        let info = make_test_info(MediaType::Movie);
+        let result = render(&info, "{title}{ext}");
+        assert_eq!(result, "Test Title.mkv");
     }
 
     #[test]
-    fn test_get_default_template_extras() {
-        let template = get_default_template(&MediaType::Extras);
-        assert!(template.contains("{ExtraType}"));
-        assert!(template.contains("{ExtraNumber}"));
+    fn test_uppercase_ext_works() {
+        let info = make_test_info(MediaType::Movie);
+        let result = render(&info, "{Title}{Ext}");
+        assert_eq!(result, "Test Title.MKV");
+    }
+
+    #[test]
+    fn test_extension_with_leading_dot_does_not_become_double_dot() {
+        let info = make_info_dot_ext();
+        // .mkv → {ext} 输出 ".mkv"，不是 "..mkv"
+        let result = render(&info, "{Title} ({Year}){ext}");
+        assert_eq!(result, "第一滴血 (1982).mkv");
+        assert!(!result.contains(".."));
+    }
+
+    #[test]
+    fn test_extension_empty_all_variants() {
+        // 空字符串
+        let mut info = make_test_info(MediaType::Movie);
+        info.media_item.extension = String::new();
+        let result1 = render(&info, "{Title} ({Year}){ext}");
+        assert_eq!(result1, "Test Title (2020)");
+        assert!(!result1.ends_with('.'));
+
+        // 仅含空白（trim 后为空）
+        info.media_item.extension = "   ".to_string();
+        let result2 = render(&info, "{Title} ({Year}){ext}");
+        assert!(!result2.ends_with('.'));
+    }
+
+    #[test]
+    fn test_no_ext_with_series_template_safe() {
+        let mut info = make_test_info(MediaType::Series);
+        info.media_item.extension = String::new();
+        let result = render(
+            &info,
+            "{Title} - S{Season:02}E{Episode:02} - {EpisodeTitle}{ext}",
+        );
+        assert_eq!(result, "Test Title - S01E05 - Episode Title");
+        assert!(!result.ends_with('.'));
+    }
+
+    #[test]
+    fn test_legacy_dot_ext_template_also_works() {
+        // 向后兼容：旧模板 "{Title}.{ext}" — {ext} 输出 ".mkv" → "..mkv" → 修复为 ".mkv"
+        let info = make_test_info(MediaType::Movie);
+        let result = render(&info, "{Title} ({Year}).{ext}");
+        assert_eq!(result, "Test Title (2020).mkv");
+    }
+
+    #[test]
+    fn test_legacy_dot_ext_empty_extension_no_trailing_dot() {
+        let info = make_info_empty_ext();
+        let result = render(&info, "{Title} ({Year}).{ext}");
+        assert_eq!(result, "第一滴血 (1982)");
+        assert!(!result.ends_with('.'));
     }
 }

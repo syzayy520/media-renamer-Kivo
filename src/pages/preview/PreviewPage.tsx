@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { ArrowLeft, ArrowRight, Globe, Play } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Globe, Play, Settings } from 'lucide-react';
 import { Button, Card, Badge } from '../../components/ui';
 import { usePipelineStore } from '../../state/pipelineStore';
 import { useUiFeedbackStore } from '../../state/uiFeedbackStore';
@@ -18,6 +19,7 @@ import { ExecutionResultPanel } from './ExecutionResultPanel';
 import type { RenamePreviewItem, ExecutionMode } from '../../types';
 
 export function PreviewPage() {
+  const navigate = useNavigate();
   const { pipelineResult, updatePreviewProposedName, togglePreviewSkipped, refreshSafetySummary } = usePipelineStore();
   const { isLoading } = useUiFeedbackStore();
   const { tmdbSearchStatus, disabledReason, itemStates, checkTmdbSearchAvailability } = useTmdbSearchStore();
@@ -93,10 +95,15 @@ export function PreviewPage() {
           <div className="flex items-center gap-3 rounded-2xl border border-warning/30 bg-warning/5 px-4 py-3">
             <Globe className="h-4 w-4 shrink-0 text-warning" />
             <div className="min-w-0 flex-1">
-              <Badge variant="warning" size="sm">TMDb 搜索</Badge>
-              <span className="ml-2 text-sm text-text-secondary">元数据在线搜索功能暂未启用</span>
+              <div className="flex items-center gap-2">
+                <Badge variant="warning" size="sm">TMDb 搜索</Badge>
+                <span className="text-sm text-text-secondary">元数据在线搜索功能暂未启用</span>
+              </div>
               {disabledReason && <p className="mt-1 truncate text-xs text-text-secondary">{disabledReason}</p>}
             </div>
+            <Button variant="secondary" size="sm" icon={<Settings className="h-3.5 w-3.5" />} onClick={() => navigate('/settings')}>
+              去设置
+            </Button>
           </div>
         )}
         {activeTmdbItem && <TmdbCandidatePanel item={activeTmdbItem} onClose={() => setActiveTmdbItem(null)} onApplied={() => undefined} />}

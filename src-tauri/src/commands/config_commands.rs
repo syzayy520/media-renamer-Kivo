@@ -418,9 +418,7 @@ pub fn get_tmdb_config_status(
 
 /// 获取 TMDb gate 状态
 #[tauri::command]
-pub fn get_tmdb_gate_status(
-    state: tauri::State<'_, TmdbSearchState>,
-) -> Result<bool, String> {
+pub fn get_tmdb_gate_status(state: tauri::State<'_, TmdbSearchState>) -> Result<bool, String> {
     Ok(state.is_gate_enabled())
 }
 
@@ -539,10 +537,7 @@ fn do_get_tmdb_config_status(
             "TMDb live search 已禁用。".to_string(),
         )
     } else {
-        (
-            TmdbStatusLevel::Ready,
-            "TMDb 已就绪。".to_string(),
-        )
+        (TmdbStatusLevel::Ready, "TMDb 已就绪。".to_string())
     };
 
     Ok(TmdbConfigStatus {

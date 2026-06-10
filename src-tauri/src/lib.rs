@@ -15,9 +15,9 @@ pub mod tmdb_search_contract;
 use commands::{
     apply_tmdb_candidate, clear_tmdb_api_key, get_all_tasks, get_all_templates, get_app_config,
     get_audit_logs, get_confidence_threshold, get_safety_summary, get_task,
-    get_tmdb_api_key_status, get_tmdb_config_status, get_tmdb_gate_status,
-    rollback_rename_task, safe_execute_rename, search_tmdb_candidates, set_confidence_threshold,
-    set_template, set_tmdb_api_key, set_tmdb_gate_enabled, test_tmdb_connection,
+    get_tmdb_api_key_status, get_tmdb_config_status, get_tmdb_gate_status, rollback_rename_task,
+    safe_execute_rename, search_tmdb_candidates, set_confidence_threshold, set_template,
+    set_tmdb_api_key, set_tmdb_gate_enabled, test_tmdb_connection,
 };
 use session::plan_session::{start_rename_session, DbState};
 use tauri::Manager;

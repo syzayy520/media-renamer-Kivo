@@ -37,7 +37,8 @@ pub struct TmdbCandidate {
     pub media_type: TmdbSearchMediaType,
 
     /// 发布年份（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// JSON 序列化为 "year" 以匹配前端 TypeScript 类型
+    #[serde(rename = "year", skip_serializing_if = "Option::is_none")]
     pub release_year: Option<u16>,
 
     /// 概述（可选）
@@ -53,7 +54,8 @@ pub struct TmdbCandidate {
     pub backdrop_path: Option<String>,
 
     /// 语言（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// JSON 序列化为 "original_language" 以匹配前端 TypeScript 类型
+    #[serde(rename = "original_language", skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
 
     /// 热度（可选）

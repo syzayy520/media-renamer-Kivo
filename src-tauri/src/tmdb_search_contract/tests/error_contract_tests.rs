@@ -181,6 +181,6 @@ mod tests {
         };
 
         // 如果编译通过，说明类型定义正确
-        assert!(true);
+        assert!(!_input.query.is_empty());
     }
 }

@@ -203,9 +203,10 @@ mod tests {
         let info = make_test_info(MediaType::Movie, "Default Movie");
         let previews = generate_with_default_template(&[info]);
         assert_eq!(previews.len(), 1);
-        // 默认模板包含年份和分辨率
+        // 默认模板: {Title} ({Year}){ext} → "Default Movie (2020).mkv"
         assert!(previews[0].proposed_name.contains("2020"));
-        assert!(previews[0].proposed_name.contains("1080p"));
+        assert!(previews[0].proposed_name.contains(".mkv"));
+        assert_eq!(previews[0].proposed_name, "Default Movie (2020).mkv");
     }
 
     #[test]

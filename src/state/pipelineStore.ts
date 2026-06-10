@@ -112,7 +112,9 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
         return item;
       }
 
-      const targetPath = item.target_path.replace(item.proposed_name, proposedName);
+      const lastSep = item.target_path.lastIndexOf('\\');
+      const parentDir = lastSep >= 0 ? item.target_path.substring(0, lastSep + 1) : '';
+      const targetPath = parentDir + proposedName;
 
       return {
         ...item,

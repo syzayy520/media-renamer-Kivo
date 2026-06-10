@@ -20,8 +20,8 @@ pub fn execute_dry_run(items: &[&RenamePreviewItem]) -> Vec<ExecutionItemResult>
 mod tests {
     use super::*;
     use crate::parse::movie_parser::{MediaType, ParsedMediaInfo};
-    use crate::rename::template::MetadataSource;
     use crate::rename::execution::ExecutionItemStatus;
+    use crate::rename::template::MetadataSource;
     use crate::scan::MediaItem;
 
     fn make_item(id: &str, source: &str, target: &str) -> RenamePreviewItem {
@@ -85,7 +85,9 @@ mod tests {
         let items = vec![&item1, &item2];
         let results = execute_dry_run(&items);
         assert_eq!(results.len(), 2);
-        assert!(results.iter().all(|r| r.status == ExecutionItemStatus::Success));
+        assert!(results
+            .iter()
+            .all(|r| r.status == ExecutionItemStatus::Success));
     }
 
     #[test]

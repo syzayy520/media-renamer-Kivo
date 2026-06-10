@@ -2,8 +2,8 @@
 // 职责：受控重命名执行
 // mod.rs 只做 registry / alias / re-export
 
-pub mod conflict_filter;
 pub mod confirmed_rename_executor;
+pub mod conflict_filter;
 pub mod dry_run_executor;
 pub mod execution_audit_step;
 pub mod execution_confirmation_gate;

@@ -2,14 +2,12 @@
 // 职责：协调安全执行主流程
 // 实际逻辑委托给子模块：确认门闸、安全门闸、回滚计划、执行器、审计、摘要
 
-use super::conflict_filter::{filter_non_blocking, get_blocking_items};
 use super::confirmed_rename_executor::execute_confirmed_rename;
+use super::conflict_filter::{filter_non_blocking, get_blocking_items};
 use super::dry_run_executor::execute_dry_run;
 use super::execution_audit_step::format_batch_execution_audit;
 use super::execution_confirmation_gate::check_user_confirmation;
-use super::execution_contract::{
-    ExecutionItemResult, SafeExecuteInput, SafeExecuteOutput,
-};
+use super::execution_contract::{ExecutionItemResult, SafeExecuteInput, SafeExecuteOutput};
 use super::execution_mode::ExecutionMode;
 use super::execution_rollback_plan_step::generate_rollback_plan;
 use super::execution_safety_gate_check::check_safety_gate;
@@ -100,8 +98,8 @@ pub fn safe_execute(input: SafeExecuteInput) -> SafeExecuteOutput {
 mod tests {
     use super::*;
     use crate::parse::movie_parser::{MediaType, ParsedMediaInfo};
-    use crate::rename::template::{MetadataSource, RenamePreviewItem};
     use crate::rename::execution::ExecutionItemStatus;
+    use crate::rename::template::{MetadataSource, RenamePreviewItem};
     use crate::scan::MediaItem;
 
     fn make_safe_item(id: &str, source: &str, target: &str) -> RenamePreviewItem {
