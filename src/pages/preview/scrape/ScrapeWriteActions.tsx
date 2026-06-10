@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { AlertTriangle, CheckCircle2, Download } from 'lucide-react';
 import { Button } from '../../../components/ui';
+import { usePipelineStore } from '../../../state/pipelineStore';
 import type { FolderGroup, TmdbCandidate } from '../../../types';
 import { resolveScrapeTargetFolder } from './resolveScrapeTargetFolder';
 
@@ -20,10 +21,10 @@ interface LocalScrapeOutput {
 interface ScrapeWriteActionsProps {
   candidate: TmdbCandidate;
   group: FolderGroup | null;
-  scanRoot?: string;
 }
 
-export function ScrapeWriteActions({ candidate, group, scanRoot }: ScrapeWriteActionsProps) {
+export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps) {
+  const scanRoot = usePipelineStore((state) => state.pipelineResult?.scan?.scan_path);
   const [isWriting, setIsWriting] = useState(false);
   const [result, setResult] = useState<LocalScrapeOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
