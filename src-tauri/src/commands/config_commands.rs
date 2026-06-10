@@ -226,6 +226,73 @@ mod tests {
             assert!(!json.is_empty());
         }
     }
+
+    // === API Key Save/Clear Closed-Loop Proof Tests ===
+
+    #[test]
+    fn save_key_does_not_leak_full_key() {
+        let dir = tempfile::tempdir().unwrap();
+        let full_key = "tmdb_abcdef1234567890xyz";
+
+        // Save key
+        let status = do_set_tmdb_api_key(dir.path(), full_key).unwrap();
+        assert!(status.configured);
+
+        // Verify: returned status contains NO key content
+        let json = serde_json::to_string(&status).unwrap();
+        assert!(!json.contains(full_key));
+        assert!(!json.contains("abcdef1234567890"));
+        assert_eq!(json, r#"{"configured":true}"#);
+
+        // Verify: config status also contains NO key content
+        let config_status = do_get_tmdb_config_status(dir.path(), true).unwrap();
+        let config_json = serde_json::to_string(&config_status).unwrap();
+        assert!(!config_json.contains(full_key));
+        assert!(!config_json.contains("abcdef1234567890"));
+        // Only boolean flag, never the actual key
+        assert!(config_json.contains("api_key_configured"));
+        assert!(config_json.contains("true"));
+    }
+
+    #[test]
+    fn clear_key_removes_configured_status() {
+        let dir = tempfile::tempdir().unwrap();
+
+        // Save then clear
+        do_set_tmdb_api_key(dir.path(), "test-key-12345").unwrap();
+        let clear_status = do_clear_tmdb_api_key(dir.path()).unwrap();
+        assert!(!clear_status.configured);
+
+        // Verify: get status also shows not configured
+        let get_status = do_get_tmdb_api_key_status(dir.path()).unwrap();
+        assert!(!get_status.configured);
+
+        // Verify: config status shows NotConfigured
+        let config_status = do_get_tmdb_config_status(dir.path(), true).unwrap();
+        assert!(!config_status.api_key_configured);
+        assert_eq!(config_status.status, TmdbStatusLevel::NotConfigured);
+    }
+
+    #[test]
+    fn status_json_only_exposes_configured_boolean() {
+        let dir = tempfile::tempdir().unwrap();
+        do_set_tmdb_api_key(dir.path(), "super_secret_key_12345").unwrap();
+
+        // TmdbApiKeyStatus: only {configured: true}
+        let api_status = do_get_tmdb_api_key_status(dir.path()).unwrap();
+        let api_json = serde_json::to_string(&api_status).unwrap();
+        assert_eq!(api_json, r#"{"configured":true}"#);
+        assert!(!api_json.contains("super_secret"));
+        assert!(!api_json.contains("key_12345"));
+
+        // TmdbConfigStatus: api_key_configured is boolean, no key content
+        let config_status = do_get_tmdb_config_status(dir.path(), true).unwrap();
+        let config_json = serde_json::to_string(&config_status).unwrap();
+        assert!(!config_json.contains("super_secret"));
+        assert!(!config_json.contains("key_12345"));
+        // Contains the boolean field name but NOT the key value
+        assert!(config_json.contains(r#""api_key_configured":true"#));
+    }
 }
 
 /// TMDb API Key 状态响应
