@@ -1,4 +1,4 @@
-import { X, Edit, Search } from 'lucide-react';
+import { Edit, Search } from 'lucide-react';
 import { Badge, EmptyState, Tooltip, Button } from '../../components/ui';
 import type { RenamePreviewItem } from '../../types';
 import type { ItemSearchState } from '../../state/tmdbSearchStore';
@@ -35,10 +35,6 @@ function StatusBadge({ item }: { item: RenamePreviewItem }) {
   return <Badge variant="success">就绪</Badge>;
 }
 
-function showPendingSkipNotice() {
-  window.alert('跳过功能还未接入。');
-}
-
 export function PreviewTableGrid({
   items,
   selectedItems,
@@ -62,8 +58,8 @@ export function PreviewTableGrid({
 
   return (
     <div className="w-full overflow-x-auto">
-      <div className="min-w-[1160px]">
-        <div className="grid grid-cols-[44px_minmax(250px,1.35fr)_minmax(330px,1.65fr)_82px_82px_82px_124px_136px] items-center border-b border-text-secondary/20 bg-bg-secondary px-4 py-3 text-xs font-medium uppercase text-text-secondary">
+      <div className="min-w-[1120px]">
+        <div className="grid grid-cols-[44px_minmax(250px,1.35fr)_minmax(330px,1.65fr)_82px_82px_82px_124px_104px] items-center border-b border-text-secondary/20 bg-bg-secondary px-4 py-3 text-xs font-medium uppercase text-text-secondary">
           <input type="checkbox" checked={allSelected} onChange={onSelectAll} />
           <div>原始文件名</div>
           <div>新文件名</div>
@@ -81,7 +77,7 @@ export function PreviewTableGrid({
           return (
             <div
               key={item.id}
-              className={`grid grid-cols-[44px_minmax(250px,1.35fr)_minmax(330px,1.65fr)_82px_82px_82px_124px_136px] items-center border-b border-text-secondary/20 px-4 py-3 hover:bg-bg-secondary/50 ${selected ? 'bg-accent/5' : ''}`}
+              className={`grid grid-cols-[44px_minmax(250px,1.35fr)_minmax(330px,1.65fr)_82px_82px_82px_124px_104px] items-center border-b border-text-secondary/20 px-4 py-3 hover:bg-bg-secondary/50 ${selected ? 'bg-accent/5' : ''}`}
             >
               <input type="checkbox" checked={selected} onChange={() => onSelectItem(item.id)} />
               <div title={item.original_name} className="min-w-0 truncate pr-4 font-mono text-sm leading-6 text-text-primary">
@@ -108,11 +104,6 @@ export function PreviewTableGrid({
                 <Tooltip content="编辑文件名">
                   <Button variant="ghost" size="sm" onClick={() => onManualEdit?.(item)}>
                     <Edit className="h-4 w-4" />
-                  </Button>
-                </Tooltip>
-                <Tooltip content={item.should_skip ? '取消跳过' : '跳过此文件'}>
-                  <Button variant="ghost" size="sm" onClick={showPendingSkipNotice}>
-                    <X className="h-4 w-4" />
                   </Button>
                 </Tooltip>
               </div>
