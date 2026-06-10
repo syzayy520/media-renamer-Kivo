@@ -35,12 +35,15 @@
 
 /* 全局样式 — 使用 @layer base 确保不覆盖 Tailwind 工具类 */
 @layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
   html, body, #root {
     width: 100%;
     min-width: 0;
     height: 100%;
     margin: 0;
-    box-sizing: border-box;
     overflow: hidden;
   }
 
@@ -51,6 +54,18 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  p, h1, h2, h3, h4, span, button, label {
+    writing-mode: horizontal-tb;
+  }
+
+  p, h1, h2, h3, h4, label {
+    overflow-wrap: anywhere;
+  }
+
+  button, a {
+    white-space: nowrap;
   }
 
   /* 路径和代码使用等宽字体 */
