@@ -197,3 +197,74 @@ export interface RenameRule {
   template: string;
   is_default: boolean;
 }
+
+// ─── TMDb Search Contract Types ───────────────────────────────────────────────
+
+// TMDb 候选来源
+export type TmdbCandidateSource = 'Tmdb';
+
+// TMDb 搜索错误码
+export type TmdbSearchErrorCode =
+  | 'Unknown'
+  | 'InvalidInput'
+  | 'ApiKeyMissing'
+  | 'ApiKeyInvalid'
+  | 'RateLimited'
+  | 'NetworkError'
+  | 'ServiceUnavailable';
+
+// TMDb 搜索错误
+export interface TmdbSearchError {
+  code: TmdbSearchErrorCode;
+  message: string;
+  retryable: boolean;
+  retry_after: number | null;
+}
+
+// TMDb 候选项
+export interface TmdbCandidate {
+  tmdb_id: number;
+  title: string;
+  original_title: string | null;
+  year: number | null;
+  media_type: MediaType;
+  overview: string | null;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  vote_average: number | null;
+  vote_count: number | null;
+  popularity: number | null;
+  release_date: string | null;
+  original_language: string | null;
+  genre_ids: number[];
+  source: TmdbCandidateSource;
+  confidence: number;
+}
+
+// TMDb 速率限制状态
+export interface TmdbRateLimitState {
+  remaining: number | null;
+  limit: number | null;
+  reset_epoch_secs: number | null;
+  retry_after_secs: number | null;
+}
+
+// TMDb 搜索输入
+export interface SearchTmdbCandidatesInput {
+  media_type: MediaType;
+  title: string;
+  year: number | null;
+  language: string | null;
+  page: number | null;
+}
+
+// TMDb 搜索输出
+export interface SearchTmdbCandidatesOutput {
+  candidates: TmdbCandidate[];
+  source: TmdbCandidateSource;
+  rate_limit: TmdbRateLimitState | null;
+  error: TmdbSearchError | null;
+}
+
+// TMDb 搜索功能状态（前端 UI 用）
+export type TmdbSearchStatus = 'disabled' | 'idle' | 'loading' | 'success' | 'error';

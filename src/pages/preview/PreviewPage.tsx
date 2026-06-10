@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { Button, Card } from '../../components/ui';
+import { useState, useMemo, useEffect } from 'react';
+import { ArrowLeft, ArrowRight, Globe } from 'lucide-react';
+import { Button, Card, Badge } from '../../components/ui';
 import { usePipelineStore } from '../../state/pipelineStore';
 import { useUiFeedbackStore } from '../../state/uiFeedbackStore';
+import { useTmdbSearchStore } from '../../state/tmdbSearchStore';
 import { PreviewToolbar } from './PreviewToolbar';
 import { PreviewTable } from './PreviewTable';
 import { PreviewActionBar } from './PreviewActionBar';
@@ -11,6 +12,11 @@ import { PreviewEmptyState } from './PreviewEmptyState';
 export function PreviewPage() {
   const { pipelineResult } = usePipelineStore();
   const { isLoading } = useUiFeedbackStore();
+  const { tmdbSearchStatus, disabledReason, checkTmdbSearchAvailability } = useTmdbSearchStore();
+
+  useEffect(() => {
+    checkTmdbSearchAvailability();
+  }, [checkTmdbSearchAvailability]);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [filterText, setFilterText] = useState('');
   const [showOnlySelected, setShowOnlySelected] = useState(false);
@@ -72,6 +78,25 @@ export function PreviewPage() {
             </Button>
           </div>
         </div>
+
+        {tmdbSearchStatus === 'disabled' && (
+          <div className="mb-6 flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3">
+            <Globe className="w-4 h-4 text-warning shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <Badge variant="warning" size="sm">TMDb 搜索</Badge>
+                <span className="text-sm text-text-secondary">
+                  元数据在线搜索功能暂未启用
+                </span>
+              </div>
+              {disabledReason && (
+                <p className="text-xs text-text-secondary mt-1 truncate">
+                  {disabledReason}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         <PreviewToolbar
           filterText={filterText}
