@@ -16,6 +16,7 @@ interface PipelineState {
   applyTmdbCandidate: (itemId: string, candidate: TmdbCandidate) => Promise<ApplyTmdbCandidateOutput>;
   refreshSafetySummary: () => Promise<SafetyReport | null>;
   updatePreviewProposedName: (itemId: string, proposedName: string) => void;
+  togglePreviewSkipped: (itemId: string) => void;
 }
 
 export const usePipelineStore = create<PipelineState>((set, get) => ({
@@ -54,7 +55,6 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
       const output = await invoke<ApplyTmdbCandidateOutput>('apply_tmdb_candidate', { input });
 
       if (output.result) {
-        // 更新 pipeline result 中对应的预览项
         const updatedPreviews = pipelineResult.previews.map((p) => {
           if (p.id === itemId) {
             return output.result!.updated_item;
@@ -120,6 +120,31 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
         target_path: targetPath,
         metadata_source: 'Manual' as const,
         needs_manual_review: false,
+      };
+    });
+
+    set({
+      pipelineResult: {
+        ...pipelineResult,
+        previews: updatedPreviews,
+      },
+    });
+  },
+
+  togglePreviewSkipped: (itemId: string) => {
+    const { pipelineResult } = get();
+    if (!pipelineResult) {
+      return;
+    }
+
+    const updatedPreviews = pipelineResult.previews.map((item) => {
+      if (item.id !== itemId) {
+        return item;
+      }
+
+      return {
+        ...item,
+        should_skip: !item.should_skip,
       };
     });
 
