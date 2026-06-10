@@ -13,12 +13,12 @@ export function Card({
   className = '',
   ...props
 }: CardProps) {
-  const baseClasses = 'rounded-lg';
+  const baseClasses = 'w-full min-w-0 rounded-2xl border';
   
   const variantClasses = {
-    default: 'bg-bg-card',
-    elevated: 'bg-bg-card shadow-lg',
-    outlined: 'bg-transparent border border-text-secondary/20',
+    default: 'border-transparent bg-bg-card',
+    elevated: 'border-text-secondary/10 bg-bg-card shadow-lg shadow-black/10',
+    outlined: 'border-text-secondary/20 bg-transparent',
   };
 
   const paddingClasses = {
@@ -44,7 +44,7 @@ interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {
 
 export function CardHeader({ children, className = '', ...props }: CardHeaderProps) {
   return (
-    <div className={`mb-4 ${className}`} {...props}>
+    <div className={`mb-5 min-w-0 ${className}`} {...props}>
       {children}
     </div>
   );
@@ -56,7 +56,7 @@ interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {
 
 export function CardTitle({ children, className = '', ...props }: CardTitleProps) {
   return (
-    <h3 className={`text-lg font-semibold text-text-primary ${className}`} {...props}>
+    <h3 className={`text-lg font-semibold leading-7 text-text-primary ${className}`} {...props}>
       {children}
     </h3>
   );
@@ -68,7 +68,7 @@ interface CardDescriptionProps extends HTMLAttributes<HTMLParagraphElement> {
 
 export function CardDescription({ children, className = '', ...props }: CardDescriptionProps) {
   return (
-    <p className={`text-sm text-text-secondary ${className}`} {...props}>
+    <p className={`mt-1 text-sm leading-6 text-text-secondary break-keep ${className}`} {...props}>
       {children}
     </p>
   );
@@ -80,7 +80,7 @@ interface CardContentProps extends HTMLAttributes<HTMLDivElement> {
 
 export function CardContent({ children, className = '', ...props }: CardContentProps) {
   return (
-    <div className={className} {...props}>
+    <div className={`min-w-0 ${className}`} {...props}>
       {children}
     </div>
   );
@@ -92,7 +92,7 @@ interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {
 
 export function CardFooter({ children, className = '', ...props }: CardFooterProps) {
   return (
-    <div className={`mt-4 pt-4 border-t border-text-secondary/20 ${className}`} {...props}>
+    <div className={`mt-5 border-t border-text-secondary/15 pt-5 ${className}`} {...props}>
       {children}
     </div>
   );
