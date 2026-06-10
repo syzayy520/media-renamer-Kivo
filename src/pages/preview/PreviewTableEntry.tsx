@@ -10,6 +10,7 @@ interface PreviewTableEntryProps {
   filteredCount: number;
   onTmdbSearch?: (item: RenamePreviewItem) => void;
   onManualEdit?: (item: RenamePreviewItem) => void;
+  onSkipToggle?: (item: RenamePreviewItem) => void;
   itemStates?: Record<string, ItemSearchState>;
   tmdbEnabled?: boolean;
 }
