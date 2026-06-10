@@ -2,9 +2,13 @@
 // Transport 模块
 // 职责：定义 TMDb API 传输层抽象
 
+pub mod live_http;
 pub mod mock;
+pub mod transport_gate;
 
+pub use live_http::LiveHttpTransport;
 pub use mock::MockTmdbTransport;
+pub use transport_gate::TransportGate;
 
 use crate::tmdb_search_contract::TmdbSearchError;
 use std::future::Future;

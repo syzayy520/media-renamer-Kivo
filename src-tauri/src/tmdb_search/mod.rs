@@ -25,5 +25,5 @@ pub use request::search_query::{build_search_query, SearchQuery};
 pub use request::search_url::build_search_url;
 pub use response::tmdb_search_response::TmdbSearchResponse;
 pub use response::tmdb_search_result::TmdbSearchResult;
-pub use transport::{MockTmdbTransport, TmdbTransport};
+pub use transport::{LiveHttpTransport, MockTmdbTransport, TmdbTransport, TransportGate};
 pub use validation::search_input_validator::{validate_search_input, ValidatedTmdbSearchInput};
