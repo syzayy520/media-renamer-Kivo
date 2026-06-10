@@ -36,7 +36,7 @@ function StatusBadge({ item }: { item: RenamePreviewItem }) {
 }
 
 function showPendingSkipNotice() {
-  window.alert('跳过/取消跳过功能还未接入，后续会在预览表格内直接切换。');
+  window.alert('跳过功能还未接入。');
 }
 
 export function PreviewTableGrid({
@@ -62,8 +62,8 @@ export function PreviewTableGrid({
 
   return (
     <div className="w-full overflow-x-auto">
-      <div className="min-w-[1120px]">
-        <div className="grid grid-cols-[44px_minmax(260px,1.2fr)_minmax(340px,1.4fr)_92px_92px_92px_138px_104px] items-center border-b border-text-secondary/20 bg-bg-secondary px-4 py-3 text-xs font-medium uppercase text-text-secondary">
+      <div className="min-w-[1160px]">
+        <div className="grid grid-cols-[44px_minmax(250px,1.35fr)_minmax(330px,1.65fr)_82px_82px_82px_124px_136px] items-center border-b border-text-secondary/20 bg-bg-secondary px-4 py-3 text-xs font-medium uppercase text-text-secondary">
           <input type="checkbox" checked={allSelected} onChange={onSelectAll} />
           <div>原始文件名</div>
           <div>新文件名</div>
@@ -81,27 +81,23 @@ export function PreviewTableGrid({
           return (
             <div
               key={item.id}
-              className={`grid grid-cols-[44px_minmax(260px,1.2fr)_minmax(340px,1.4fr)_92px_92px_92px_138px_104px] items-center border-b border-text-secondary/20 px-4 py-3 hover:bg-bg-secondary/50 ${selected ? 'bg-accent/5' : ''}`}
+              className={`grid grid-cols-[44px_minmax(250px,1.35fr)_minmax(330px,1.65fr)_82px_82px_82px_124px_136px] items-center border-b border-text-secondary/20 px-4 py-3 hover:bg-bg-secondary/50 ${selected ? 'bg-accent/5' : ''}`}
             >
               <input type="checkbox" checked={selected} onChange={() => onSelectItem(item.id)} />
-              <Tooltip content={item.original_name}>
-                <div className="min-w-0 truncate pr-4 font-mono text-sm leading-6 text-text-primary">
-                  {item.original_name}
-                </div>
-              </Tooltip>
-              <Tooltip content={item.proposed_name}>
-                <div className="min-w-0 truncate pr-4 font-mono text-sm leading-6 text-accent">
-                  {item.proposed_name}
-                </div>
-              </Tooltip>
+              <div title={item.original_name} className="min-w-0 truncate pr-4 font-mono text-sm leading-6 text-text-primary">
+                {item.original_name}
+              </div>
+              <div title={item.proposed_name} className="min-w-0 truncate pr-4 font-mono text-sm leading-6 text-accent">
+                {item.proposed_name}
+              </div>
               <Badge variant="info">{item.media_type}</Badge>
               <SourceBadge source={item.metadata_source} />
               <ConfidenceBadge confidence={item.confidence} />
-              <div className="flex items-center gap-1.5">
+              <div className="flex min-w-0 items-center gap-1.5">
                 <StatusBadge item={item} />
                 {tmdbEnabled && itemState?.status === 'loading' && <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />}
               </div>
-              <div className="flex justify-end gap-1">
+              <div className="flex justify-end gap-2">
                 {tmdbEnabled && (
                   <Tooltip content="TMDb 搜索">
                     <Button variant="ghost" size="sm" onClick={() => onTmdbSearch?.(item)}>
