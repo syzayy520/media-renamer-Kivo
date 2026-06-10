@@ -4,8 +4,6 @@
 use crate::scrape::local_metadata::{scrape_to_local, LocalScrapeInput, LocalScrapeOutput};
 
 #[tauri::command]
-pub async fn scrape_to_local_metadata(
-    input: LocalScrapeInput,
-) -> Result<LocalScrapeOutput, String> {
+pub async fn scrape_to_local_metadata(input: LocalScrapeInput) -> Result<LocalScrapeOutput, String> {
     Ok(scrape_to_local(input).await)
 }
