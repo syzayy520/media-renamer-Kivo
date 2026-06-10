@@ -38,7 +38,11 @@ impl<P: TmdbApiKeyProvider> LiveSearchService<P> {
         ];
 
         if let Some(year) = input.year {
-            params.push(("year".to_string(), year.to_string()));
+            let year_key = match media_type {
+                TmdbSearchMediaType::Movie => "year",
+                TmdbSearchMediaType::Tv => "first_air_date_year",
+            };
+            params.push((year_key.to_string(), year.to_string()));
         }
 
         if let Some(page) = input.page {
