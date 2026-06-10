@@ -25,3 +25,6 @@ mod mock_transport_tests;
 
 #[cfg(test)]
 mod api_key_provider_tests;
+
+#[cfg(test)]
+mod command_contract_tests;
