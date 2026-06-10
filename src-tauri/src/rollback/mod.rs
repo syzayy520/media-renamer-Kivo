@@ -4,4 +4,5 @@
 
 // 子模块声明
 pub mod executor;
+pub mod rollback_plan;
 pub mod state_checker;

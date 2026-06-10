@@ -4,3 +4,4 @@ export { useAuditStore } from './auditStore';
 export { useConfigStore } from './configStore';
 export { useUiFeedbackStore } from './uiFeedbackStore';
 export { useTmdbSearchStore } from './tmdbSearchStore';
+export { useExecutionStore } from './executionStore';

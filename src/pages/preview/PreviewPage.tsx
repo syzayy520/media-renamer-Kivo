@@ -1,21 +1,35 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { ArrowLeft, ArrowRight, Globe } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Globe, Play, RotateCcw } from 'lucide-react';
 import { Button, Card, Badge } from '../../components/ui';
 import { usePipelineStore } from '../../state/pipelineStore';
 import { useUiFeedbackStore } from '../../state/uiFeedbackStore';
 import { useTmdbSearchStore } from '../../state/tmdbSearchStore';
+import { useExecutionStore } from '../../state/executionStore';
 import { PreviewToolbar } from './PreviewToolbar';
 import { PreviewTable } from './PreviewTable';
 import { PreviewActionBar } from './PreviewActionBar';
 import { PreviewEmptyState } from './PreviewEmptyState';
 import { TmdbCandidatePanel } from './TmdbCandidatePanel';
 import { PreviewReadinessSummary } from './PreviewReadinessSummary';
-import type { RenamePreviewItem } from '../../types';
+import { ExecutionConfirmPanel } from './ExecutionConfirmPanel';
+import { ExecutionProgressPanel } from './ExecutionProgressPanel';
+import { ExecutionResultPanel } from './ExecutionResultPanel';
+import type { RenamePreviewItem, ExecutionMode } from '../../types';
 
 export function PreviewPage() {
   const { pipelineResult } = usePipelineStore();
   const { isLoading } = useUiFeedbackStore();
   const { tmdbSearchStatus, disabledReason, itemStates, checkTmdbSearchAvailability } = useTmdbSearchStore();
+  const { 
+    uiState, 
+    confirmState, 
+    progressState, 
+    resultState, 
+    startExecution, 
+    confirmExecution, 
+    cancelExecution, 
+    resetExecution 
+  } = useExecutionStore();
 
   useEffect(() => {
     checkTmdbSearchAvailability();
@@ -77,6 +91,33 @@ export function PreviewPage() {
 
   const selectedCount = selectedItems.size;
 
+  // 执行相关处理函数
+  const handleStartExecution = useCallback((mode: ExecutionMode) => {
+    startExecution(mode);
+  }, [startExecution]);
+
+  const handleConfirmExecution = useCallback(() => {
+    confirmExecution();
+  }, [confirmExecution]);
+
+  const handleCancelExecution = useCallback(() => {
+    cancelExecution();
+  }, [cancelExecution]);
+
+  const handleResetExecution = useCallback(() => {
+    resetExecution();
+  }, [resetExecution]);
+
+  const handleRollback = useCallback(() => {
+    // TODO: 实现回滚功能
+    console.log('Rollback requested');
+  }, []);
+
+  const handleExportReport = useCallback(() => {
+    // TODO: 实现导出报告功能
+    console.log('Export report requested');
+  }, []);
+
   return (
     <div className="w-full px-6 py-8">
       <div className="w-full">
@@ -93,7 +134,19 @@ export function PreviewPage() {
             <Button variant="secondary" icon={<ArrowLeft className="w-4 h-4" />}>
               返回
             </Button>
-            <Button icon={<ArrowRight className="w-4 h-4" />}>
+            <Button
+              icon={<Play className="w-4 h-4" />}
+              onClick={() => handleStartExecution('DryRun')}
+              disabled={uiState !== 'idle'}
+            >
+              模拟执行
+            </Button>
+            <Button
+              variant="primary"
+              icon={<ArrowRight className="w-4 h-4" />}
+              onClick={() => handleStartExecution('Confirmed')}
+              disabled={uiState !== 'idle' || !safety?.can_execute}
+            >
               执行重命名
             </Button>
           </div>
@@ -127,6 +180,33 @@ export function PreviewPage() {
               onApplied={handleTmdbApplied}
             />
           </div>
+        )}
+
+        {/* 执行确认面板 */}
+        {uiState === 'confirming' && (
+          <ExecutionConfirmPanel
+            state={confirmState}
+            onConfirm={handleConfirmExecution}
+            onCancel={handleCancelExecution}
+            isLoading={isLoading}
+          />
+        )}
+
+        {/* 执行进度面板 */}
+        {uiState === 'executing' && (
+          <ExecutionProgressPanel
+            state={progressState}
+          />
+        )}
+
+        {/* 执行结果面板 */}
+        {uiState === 'completed' && (
+          <ExecutionResultPanel
+            state={resultState}
+            onRollback={handleRollback}
+            onExport={handleExportReport}
+            onReset={handleResetExecution}
+          />
         )}
 
         <PreviewReadinessSummary

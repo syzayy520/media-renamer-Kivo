@@ -2,8 +2,10 @@
 // 职责：定义 ExecutionMode 枚举
 // 不做执行逻辑，不做安全检查
 
+use serde::{Deserialize, Serialize};
+
 /// 执行模式
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 pub enum ExecutionMode {
     /// 预演模式（默认），不执行实际文件操作
     #[default]

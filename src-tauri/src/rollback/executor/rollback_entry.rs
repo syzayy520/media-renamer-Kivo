@@ -2,8 +2,10 @@
 // 职责：定义 RollbackEntry、RollbackStatus、RollbackSummary 和统计函数
 // 不做文件操作，不做审计写入
 
+use serde::Serialize;
+
 /// 回滚结果
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct RollbackEntry {
     /// 原始 rename_result 的 ID
     pub rename_result_id: String,
@@ -14,7 +16,7 @@ pub struct RollbackEntry {
 }
 
 /// 回滚状态
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum RollbackStatus {
     /// 回滚成功
     Success,

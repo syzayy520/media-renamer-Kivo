@@ -296,3 +296,119 @@ export interface PreviewApplyResult {
 export interface SafetySummaryInput {
   previews: RenamePreviewItem[];
 }
+
+// ─── Safe Execution Contract Types ───────────────────────────────────────────
+
+// 执行模式
+export type ExecutionMode = 'DryRun' | 'Confirmed';
+
+// 执行项状态
+export type ExecutionItemStatus = 'Success' | 'Failed' | 'Skipped' | 'Blocked';
+
+// 安全执行输入
+export interface SafeExecuteInput {
+  task_id: string;
+  preview_items: RenamePreviewItem[];
+  mode: ExecutionMode;
+  user_confirmed: boolean;
+}
+
+// 执行项结果
+export interface ExecutionItemResult {
+  source_path: string;
+  target_path: string;
+  status: ExecutionItemStatus;
+  error: string | null;
+  rollback_entry: RollbackEntry | null;
+}
+
+// 执行输出摘要
+export interface ExecutionOutputSummary {
+  total: number;
+  success: number;
+  failed: number;
+  skipped: number;
+  blocked: number;
+  mode: ExecutionMode;
+  has_rollback_plan: boolean;
+}
+
+// 安全执行输出
+export interface SafeExecuteOutput {
+  allowed: boolean;
+  rejection_reason: string | null;
+  item_results: ExecutionItemResult[];
+  summary: ExecutionOutputSummary | null;
+  rollback_plan: RollbackPlan | null;
+}
+
+// ─── Rollback Contract Types ─────────────────────────────────────────────────
+
+// 回滚计划
+export interface RollbackPlan {
+  task_id: string;
+  entries: RollbackPlanEntry[];
+  created_at: string;
+}
+
+// 回滚计划条目
+export interface RollbackPlanEntry {
+  source_path: string;
+  target_path: string;
+  rollback_source: string;
+  rollback_target: string;
+  executed: boolean;
+}
+
+// 回滚条目状态
+export type RollbackStatus = 'Pending' | 'Success' | 'Failed' | 'Skipped';
+
+// 回滚条目
+export interface RollbackEntry {
+  id: string;
+  task_id: string;
+  source_path: string;
+  target_path: string;
+  rollback_source: string;
+  rollback_target: string;
+  status: RollbackStatus;
+  error_message: string | null;
+  created_at: string;
+}
+
+// ─── Execution UI State Types ────────────────────────────────────────────────
+
+// 执行 UI 状态
+export type ExecutionUIState = 
+  | 'idle'
+  | 'confirming'
+  | 'executing'
+  | 'completed'
+  | 'failed';
+
+// 执行确认面板状态
+export interface ExecutionConfirmState {
+  safety_report: SafetyReport | null;
+  preview_count: number;
+  has_blockers: boolean;
+  blocking_reasons: string[];
+}
+
+// 执行进度状态
+export interface ExecutionProgressState {
+  total: number;
+  completed: number;
+  success: number;
+  failed: number;
+  skipped: number;
+  blocked: number;
+  current_item: string | null;
+}
+
+// 执行结果状态
+export interface ExecutionResultState {
+  output: SafeExecuteOutput | null;
+  error: string | null;
+  has_rollback_plan: boolean;
+  can_rollback: boolean;
+}
