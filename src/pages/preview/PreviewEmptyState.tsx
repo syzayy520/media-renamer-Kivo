@@ -7,7 +7,7 @@ export function PreviewEmptyState() {
 
   return (
     <div className="w-full px-6 py-8">
-      <div className="mx-auto flex min-h-[520px] w-full max-w-6xl items-center justify-center">
+      <div className="mx-auto flex min-h-[440px] w-full max-w-6xl items-center justify-center">
         <Card variant="outlined" padding="lg" className="max-w-3xl">
           <EmptyState
             icon={<Eye className="h-10 w-10" />}
