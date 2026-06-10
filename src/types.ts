@@ -251,10 +251,10 @@ export interface TmdbRateLimitState {
 
 // TMDb 搜索输入
 export interface SearchTmdbCandidatesInput {
-  media_type: MediaType;
-  title: string;
+  query: string;
+  media_type: 'Movie' | 'Tv';
+  language: string;
   year: number | null;
-  language: string | null;
   page: number | null;
 }
 

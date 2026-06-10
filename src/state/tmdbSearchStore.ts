@@ -44,10 +44,10 @@ export const useTmdbSearchStore = create<TmdbSearchState>((set) => ({
         'search_tmdb_candidates',
         {
           input: {
+            query: '__availability_check__',
             media_type: 'Movie',
-            title: '__availability_check__',
+            language: 'en',
             year: null,
-            language: null,
             page: null,
           },
         },
