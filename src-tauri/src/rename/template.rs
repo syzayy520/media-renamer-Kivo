@@ -71,6 +71,11 @@ pub fn render(info: &ParsedMediaInfo, template: &str) -> String {
     result = result.replace("{Title}", &info.title);
     result = result.replace("{title}", &info.title);
 
+    // 扩展名
+    let extension = info.media_item.extension.trim_start_matches('.');
+    result = result.replace("{Ext}", extension);
+    result = result.replace("{ext}", extension);
+
     // 年份
     if let Some(year) = info.year {
         result = result.replace("{Year}", &year.to_string());
@@ -213,11 +218,9 @@ pub fn render(info: &ParsedMediaInfo, template: &str) -> String {
 /// 获取默认模板
 pub fn get_default_template(media_type: &MediaType) -> &'static str {
     match media_type {
-        MediaType::Movie => {
-            "{Title} ({Year}) [{Resolution} {Source} {VideoCodec} {AudioCodec}].{ext}"
-        }
+        MediaType::Movie => "{Title} ({Year}).{ext}",
         MediaType::Series => "{Title} - S{Season:02}E{Episode:02} - {EpisodeTitle}.{ext}",
-        MediaType::Anime => "{Title} - S{Season:02}E{Episode:02} [{Group}][{Resolution}].{ext}",
+        MediaType::Anime => "{Title} - S{Season:02}E{Episode:02}.{ext}",
         MediaType::Special | MediaType::Ova | MediaType::Ncop | MediaType::Nced => {
             "{Title} - S00E{Episode:02} - {SpecialType}.{ext}"
         }
@@ -271,6 +274,13 @@ mod tests {
     }
 
     #[test]
+    fn test_render_extension_template() {
+        let info = make_test_info(MediaType::Movie);
+        let result = render(&info, "{Title} ({Year}).{ext}");
+        assert_eq!(result, "Test Title (2020).mkv");
+    }
+
+    #[test]
     fn test_render_series_template() {
         let info = make_test_info(MediaType::Series);
         let template = "{Title} - S{Season:02}E{Episode:02} - {EpisodeTitle}";
@@ -304,7 +314,6 @@ mod tests {
         info.source = None;
         let template = "{Title} ({Year}) [{Resolution} {Source}]";
         let result = render(&info, template);
-        // 空字段被清理，多余空格和空括号被移除
         assert_eq!(result, "Test Title");
     }
 
@@ -314,7 +323,6 @@ mod tests {
         info.title = "Test: Title <2020>".to_string();
         let template = "{Title}";
         let result = render(&info, template);
-        // 模板渲染不处理非法字符，由 path_utils 处理
         assert_eq!(result, "Test: Title <2020>");
     }
 
@@ -332,16 +340,13 @@ mod tests {
         let info = make_test_info(MediaType::Movie);
         let template = "{Title} {UnknownVar} {AnotherUnknown}";
         let result = render(&info, template);
-        // 未知变量保持原样
         assert_eq!(result, "Test Title {UnknownVar} {AnotherUnknown}");
     }
 
     #[test]
     fn test_get_default_template_movie() {
         let template = get_default_template(&MediaType::Movie);
-        assert!(template.contains("{Title}"));
-        assert!(template.contains("{Year}"));
-        assert!(template.contains("{Resolution}"));
+        assert_eq!(template, "{Title} ({Year}).{ext}");
     }
 
     #[test]
@@ -355,8 +360,7 @@ mod tests {
     #[test]
     fn test_get_default_template_anime() {
         let template = get_default_template(&MediaType::Anime);
-        assert!(template.contains("{Group}"));
-        assert!(template.contains("{Resolution}"));
+        assert_eq!(template, "{Title} - S{Season:02}E{Episode:02}.{ext}");
     }
 
     #[test]
