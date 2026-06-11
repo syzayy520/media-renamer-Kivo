@@ -27,7 +27,7 @@ import { ExecutionProgressPanel } from './ExecutionProgressPanel';
 import { ExecutionResultPanel } from './ExecutionResultPanel';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from './naming/workbench';
-import { CandidateList, ScrapePreviewCard, TmdbErrorCard, TmdbLoadingCard, TmdbSearchCard } from './tmdb';
+import { CandidateList, ScrapePreviewCard, TmdbEmptySelectionCard, TmdbErrorCard, TmdbLoadingCard, TmdbSearchCard } from './tmdb';
 import type { TmdbManualMediaType } from './tmdb';
 import { PreviewPlanTree } from './tree/PreviewPlanTree';
 
@@ -437,11 +437,7 @@ function TmdbInspector({
   onClearCandidates: () => void;
 }) {
   if (!selectedGroup) {
-    return (
-      <Card className="p-4 text-center">
-        <p className="text-xs text-text-tertiary">在左侧树中选择一个组查看详情</p>
-      </Card>
-    );
+    return <TmdbEmptySelectionCard />;
   }
 
   return (
