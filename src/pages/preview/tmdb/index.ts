@@ -9,6 +9,7 @@ export { TmdbInspector } from './TmdbInspector';
 export { TmdbInspectorSidebar } from './TmdbInspectorSidebar';
 export { TmdbSearchCard } from './TmdbSearchCard';
 export { TmdbErrorCard, TmdbLoadingCard } from './TmdbStatusCards';
+export { usePreviewTmdbSearch } from './usePreviewTmdbSearch';
 export { TMDB_IMAGE_BASE, isMovieCandidate } from './tmdbInspectorTypes';
 export type {
   CandidateListProps,
