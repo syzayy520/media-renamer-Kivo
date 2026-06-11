@@ -18,7 +18,7 @@ import { PreviewHeader } from './header';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchSidebar } from './naming/workbench';
 import { PreviewEmptyState, PreviewLoadingState } from './state';
-import { buildTmdbQuery, defaultTmdbMediaType, TmdbDisabledBanner, TmdbInspector, TmdbInspectorSidebar } from './tmdb';
+import { buildTmdbQuery, defaultTmdbMediaType, TmdbDisabledBanner, TmdbInspectorSidebar } from './tmdb';
 import type { TmdbManualMediaType } from './tmdb';
 import { PreviewPlanTreePanel } from './tree';
 
