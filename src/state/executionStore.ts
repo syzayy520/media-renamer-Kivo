@@ -62,17 +62,21 @@ export const useExecutionStore = create<ExecutionState>((set) => ({
     setError(null);
 
     try {
-      const pipelineResult = usePipelineStore.getState().pipelineResult;
+      const pipelineStore = usePipelineStore.getState();
+      const pipelineResult = pipelineStore.pipelineResult;
       if (!pipelineResult) {
         throw new Error('No pipeline result available');
       }
 
+      const latestSafety = await pipelineStore.refreshSafetySummary();
+      const safety = latestSafety ?? usePipelineStore.getState().pipelineResult?.safety ?? pipelineResult.safety;
+
       // 更新确认状态
       const confirmState: ExecutionConfirmState = {
-        safety_report: pipelineResult.safety,
+        safety_report: safety,
         preview_count: pipelineResult.previews.length,
-        has_blockers: !pipelineResult.safety.can_execute,
-        blocking_reasons: pipelineResult.safety.blocking_reasons,
+        has_blockers: !safety.can_execute,
+        blocking_reasons: safety.blocking_reasons,
       };
 
       set({
