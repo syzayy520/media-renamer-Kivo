@@ -19,8 +19,8 @@ import { ExecutionResultPanel } from './ExecutionResultPanel';
 import { PreviewHeader } from './header';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from './naming/workbench';
-import { CandidateList, ScrapePreviewCard, TmdbDisabledBanner, TmdbEmptySelectionCard, TmdbErrorCard, TmdbLoadingCard, TmdbSearchCard } from './tmdb';
-import type { TmdbInspectorPanelProps, TmdbManualMediaType } from './tmdb';
+import { TmdbDisabledBanner, TmdbInspector } from './tmdb';
+import type { TmdbManualMediaType } from './tmdb';
 import { PreviewPlanTree } from './tree/PreviewPlanTree';
 
 const INITIAL_NAMING_WORKBENCH = buildInitialNamingWorkbenchState();
@@ -354,53 +354,3 @@ type EditModalState = {
   currentName: string;
   previewPath: string;
 };
-
-function TmdbInspector({
-  selectedGroup,
-  tmdbMediaType,
-  tmdbQuery,
-  tmdbLoading,
-  tmdbError,
-  tmdbDisabled,
-  candidates,
-  selectedCandidate,
-  onQueryChange,
-  onMediaTypeChange,
-  onSearch,
-  onCandidateSelect,
-  onCandidateApply,
-  onClearCandidates,
-}: TmdbInspectorPanelProps) {
-  if (!selectedGroup) {
-    return <TmdbEmptySelectionCard />;
-  }
-
-  return (
-    <>
-      <TmdbSearchCard
-        selectedGroup={selectedGroup}
-        tmdbMediaType={tmdbMediaType}
-        tmdbQuery={tmdbQuery}
-        tmdbLoading={tmdbLoading}
-        tmdbDisabled={tmdbDisabled}
-        onQueryChange={onQueryChange}
-        onMediaTypeChange={onMediaTypeChange}
-        onSearch={onSearch}
-      />
-
-      {candidates.length > 0 && (
-        <CandidateList
-          candidates={candidates}
-          selectedCandidate={selectedCandidate}
-          onSelect={onCandidateSelect}
-          onApply={onCandidateApply}
-          onClear={onClearCandidates}
-        />
-      )}
-
-      {tmdbLoading && <TmdbLoadingCard />}
-      {tmdbError && <TmdbErrorCard message={tmdbError} />}
-      {selectedCandidate && <ScrapePreviewCard selectedCandidate={selectedCandidate} selectedGroup={selectedGroup} />}
-    </>
-  );
-}
