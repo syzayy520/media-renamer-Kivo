@@ -11,7 +11,7 @@ import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { PreviewNamingWorkbenchSidebar, usePreviewNamingWorkbench } from './naming/workbench';
 import { PreviewEmptyState, PreviewLoadingState } from './state';
 import { TmdbDisabledBanner, TmdbInspectorSidebar, usePreviewTmdbSearch } from './tmdb';
-import { PreviewPlanTreePanel, usePreviewTreeSelection } from './tree';
+import { PreviewPlanTreePanel, usePreviewGroupSkip, usePreviewTreeSelection } from './tree';
 
 export function PreviewPage() {
   const navigate = useNavigate();
@@ -62,6 +62,7 @@ export function PreviewPage() {
   }, [pipelineResult, scanRoot]);
   const groups = planTree?.groups ?? [];
   const { expandedGroups, selectedGroup, selectGroup, toggleGroupExpanded } = usePreviewTreeSelection(groups);
+  const skipGroup = usePreviewGroupSkip(groups, togglePreviewSkipped);
   const {
     editModal,
     openGroupEdit,
@@ -140,11 +141,7 @@ export function PreviewPage() {
           onGroupToggleExpand={toggleGroupExpanded}
           onGroupTmdbSearch={handleGroupTmdbSearch}
           onGroupEdit={openGroupEdit}
-          onGroupSkip={(groupId) => {
-            const group = groups.find((item) => item.id === groupId);
-            if (!group) return;
-            group.children.forEach((child) => togglePreviewSkipped(child.id));
-          }}
+          onGroupSkip={skipGroup}
           onFileEdit={openFileEdit}
           onFileSkip={togglePreviewSkipped}
         />
