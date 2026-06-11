@@ -20,7 +20,7 @@ import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchSidebar } from 
 import { PreviewEmptyState, PreviewLoadingState } from './state';
 import { buildTmdbQuery, defaultTmdbMediaType, TmdbDisabledBanner, TmdbInspectorSidebar } from './tmdb';
 import type { TmdbManualMediaType } from './tmdb';
-import { PreviewPlanTreePanel } from './tree';
+import { PreviewPlanTreePanel, usePreviewTreeSelection } from './tree';
 
 const INITIAL_NAMING_WORKBENCH = buildInitialNamingWorkbenchState();
 
@@ -48,8 +48,6 @@ export function PreviewPage() {
     resetExecution,
   } = useExecutionStore();
 
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [currentNamingRule, setCurrentNamingRule] = useState<NamingRule>(INITIAL_NAMING_WORKBENCH.currentNamingRule);
   const [currentStrategy, setCurrentStrategy] = useState<TitleStrategy>(INITIAL_NAMING_WORKBENCH.currentStrategy);
   const [selectedPreset, setSelectedPreset] = useState(INITIAL_NAMING_WORKBENCH.selectedPreset);
@@ -76,14 +74,7 @@ export function PreviewPage() {
     return buildPreviewGroups(pipelineResult.previews, scanRoot);
   }, [pipelineResult, scanRoot]);
   const groups = planTree?.groups ?? [];
-  const selectedGroup = groups.find((group) => group.id === selectedGroupId) ?? null;
-
-  useEffect(() => {
-    if (groups.length === 0) return;
-    if (!selectedGroupId || !groups.some((group) => group.id === selectedGroupId)) {
-      setSelectedGroupId(groups[0].id);
-    }
-  }, [groups, selectedGroupId]);
+  const { expandedGroups, selectedGroup, selectGroup, toggleGroupExpanded } = usePreviewTreeSelection(groups);
 
   useEffect(() => {
     setTmdbMediaType(defaultTmdbMediaType(selectedGroup));
@@ -109,22 +100,12 @@ export function PreviewPage() {
     applyFolderPolicy(config.policy);
   }, [applyFolderPolicy]);
 
-  const handleToggleExpand = useCallback((groupId: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
-      return next;
-    });
-    setSelectedGroupId(groupId);
-  }, []);
-
   const searchTmdbForGroup = useCallback(async (
     group: FolderGroup,
     mediaType: TmdbManualMediaType,
     queryText: string,
   ) => {
-    setSelectedGroupId(group.id);
+    selectGroup(group.id);
     setTmdbError(null);
     setTmdbCandidates([]);
     setSelectedCandidate(null);
@@ -153,7 +134,7 @@ export function PreviewPage() {
     } finally {
       setTmdbLoading(false);
     }
-  }, [disabledReason, searchTmdbCandidates, tmdbSearchStatus]);
+  }, [disabledReason, searchTmdbCandidates, selectGroup, tmdbSearchStatus]);
 
   const handleTmdbSearch = useCallback(async () => {
     if (!selectedGroup) return;
@@ -253,7 +234,7 @@ export function PreviewPage() {
         <PreviewPlanTreePanel
           groups={groups}
           expandedGroups={expandedGroups}
-          onGroupToggleExpand={handleToggleExpand}
+          onGroupToggleExpand={toggleGroupExpanded}
           onGroupTmdbSearch={handleGroupTmdbSearch}
           onGroupEdit={openGroupEdit}
           onGroupSkip={handleGroupSkip}
