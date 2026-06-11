@@ -6,4 +6,4 @@ export {
   applyStrategyToWorkbench,
   buildInitialNamingWorkbenchState,
 } from './NamingWorkbenchBridge';
-export type { NamingWorkbenchInitialState } from './NamingWorkbenchBridge';
+export type { NamingWorkbenchInitialState, NamingWorkbenchStateSetters } from './NamingWorkbenchBridge';
