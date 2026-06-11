@@ -1,6 +1,3 @@
-// src-tauri/src/scrape/local_metadata/local_metadata_writer.rs
-// 职责：把 NFO 与图片资产写入目标文件夹
-
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -13,15 +10,11 @@ pub fn ensure_target_folder(target_folder_path: &str) -> Result<PathBuf, String>
     Ok(folder)
 }
 
-pub fn write_nfo(
+pub fn write_nfo_file(
     target_folder: &Path,
-    media_kind: &str,
+    file_name: &str,
     nfo_document: &str,
 ) -> Result<LocalScrapeWrittenFile, String> {
-    let file_name = match media_kind {
-        "tv" => "tvshow.nfo",
-        _ => "movie.nfo",
-    };
     let file_path = target_folder.join(file_name);
 
     fs::write(&file_path, nfo_document)
