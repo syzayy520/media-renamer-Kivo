@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { AlertTriangle, Edit3, Folder, Info, Plus, Settings } from 'lucide-react';
 import type { FolderPolicy, FolderPolicyConfig, NamingRule, NamingToken, TitleStrategy } from '../../../../types';
 import { FolderPolicySelector } from '../../folder-policy/FolderPolicySelector';
@@ -112,7 +113,7 @@ export function NamingWorkbench({
   );
 }
 
-function WorkbenchCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function WorkbenchCard({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-3">
       <div className="mb-2 flex items-center gap-1.5">
