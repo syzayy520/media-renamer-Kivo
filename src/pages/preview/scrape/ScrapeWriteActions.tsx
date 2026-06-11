@@ -61,9 +61,7 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
         },
       });
       setResult(output);
-      if (!output.success && output.errors.length > 0) {
-        setError(output.errors.join('\n'));
-      }
+      setError(output.errors.length > 0 ? output.errors.join('\n') : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -106,10 +104,10 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
       )}
 
       {error && (
-        <div className="rounded-lg border border-danger/30 bg-danger/10 p-2 text-xs text-danger">
+        <div className="rounded-lg border border-warning/30 bg-warning/10 p-2 text-xs text-warning">
           <div className="mb-1 flex items-center gap-1 font-medium">
             <AlertTriangle className="h-3.5 w-3.5" />
-            刮削写入异常
+            刮削写入提示
           </div>
           <div className="whitespace-pre-wrap break-all">{error}</div>
         </div>
