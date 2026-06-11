@@ -1,5 +1,6 @@
-import { ChevronUp, ChevronDown, X } from 'lucide-react';
-import type { TokenConfig, NamingToken } from '../../../types';
+import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import type { NamingToken, TokenConfig } from '../../../types';
+import { NamingTokenLibrary } from './NamingTokenLibrary';
 
 const TOKEN_LABELS: Record<NamingToken, string> = {
   ZhTitle: '中文标题', EnglishTitle: '英文标题', OriginalTitle: '原标题',
@@ -35,30 +36,58 @@ export function NamingTokenOrderList({ tokens, onReorder, onRemove }: NamingToke
     onReorder(newTokens);
   };
 
-  if (tokens.length === 0) {
-    return <div className="text-xs text-text-tertiary py-4 text-center">未添加 Token</div>;
-  }
+  const addToken = (token: NamingToken) => {
+    onReorder([...tokens, buildTokenConfig(token, defaultSeparator(tokens))]);
+  };
 
   return (
-    <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
-      {tokens.map((token, idx) => (
-        <div key={`${token.token}-${idx}`} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-surface-hover transition-colors">
-          <span className="flex-1 text-xs text-text-primary truncate">
-            {TOKEN_LABELS[token.token] || token.token}
-          </span>
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button className="p-0.5 text-text-tertiary hover:text-text-primary" onClick={() => moveUp(idx)} disabled={idx === 0}>
-              <ChevronUp className="h-3 w-3" />
-            </button>
-            <button className="p-0.5 text-text-tertiary hover:text-text-primary" onClick={() => moveDown(idx)} disabled={idx === tokens.length - 1}>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <button className="p-0.5 text-text-tertiary hover:text-error" onClick={() => onRemove(idx)}>
-              <X className="h-3 w-3" />
-            </button>
-          </div>
+    <div className="space-y-2">
+      <div className="rounded-lg border border-border/70 p-2">
+        <div className="mb-1.5 text-xs font-medium text-text-secondary">添加 Token</div>
+        <NamingTokenLibrary onAdd={addToken} />
+      </div>
+
+      {tokens.length === 0 ? (
+        <div className="py-4 text-center text-xs text-text-tertiary">未添加 Token</div>
+      ) : (
+        <div className="flex max-h-48 flex-col gap-0.5 overflow-y-auto">
+          {tokens.map((token, idx) => (
+            <div key={`${token.token}-${idx}`} className="flex items-center gap-1 rounded px-2 py-1 transition-colors hover:bg-surface-hover">
+              <span className="flex-1 truncate text-xs text-text-primary">
+                {TOKEN_LABELS[token.token] || token.token}
+              </span>
+              <div className="flex shrink-0 items-center gap-0.5">
+                <button className="p-0.5 text-text-tertiary hover:text-text-primary" onClick={() => moveUp(idx)} disabled={idx === 0}>
+                  <ChevronUp className="h-3 w-3" />
+                </button>
+                <button className="p-0.5 text-text-tertiary hover:text-text-primary" onClick={() => moveDown(idx)} disabled={idx === tokens.length - 1}>
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+                <button className="p-0.5 text-text-tertiary hover:text-error" onClick={() => onRemove(idx)}>
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
+}
+
+function defaultSeparator(tokens: TokenConfig[]): TokenConfig['separator'] {
+  return tokens.length === 0 ? 'None' : 'Dot';
+}
+
+function buildTokenConfig(token: NamingToken, separator: TokenConfig['separator']): TokenConfig {
+  return {
+    token,
+    prefix: '',
+    suffix: '',
+    separator,
+    empty_policy: 'Hide',
+    case_strategy: token === 'EnglishTitle' ? 'PtDotStyle' : 'AsIs',
+    wrapper: 'None',
+    enabled: true,
+  };
 }
