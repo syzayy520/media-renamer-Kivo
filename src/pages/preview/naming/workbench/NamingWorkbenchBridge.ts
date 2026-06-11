@@ -13,7 +13,7 @@ export interface NamingWorkbenchInitialState {
   currentStrategy: TitleStrategy;
 }
 
-interface NamingWorkbenchStateSetters {
+export interface NamingWorkbenchStateSetters {
   setSelectedPreset: (presetId: string) => void;
   setCurrentNamingRule: (rule: NamingRule) => void;
   setCurrentStrategy: (strategy: TitleStrategy) => void;
