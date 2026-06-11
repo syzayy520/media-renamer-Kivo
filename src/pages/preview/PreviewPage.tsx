@@ -261,27 +261,25 @@ export function PreviewPage() {
           onFileSkip={togglePreviewSkipped}
         />
 
-        <div className="flex w-[320px] shrink-0 flex-col gap-3 overflow-y-auto">
-          <TmdbInspector
-            selectedGroup={selectedGroup}
-            tmdbMediaType={tmdbMediaType}
-            tmdbQuery={tmdbQuery}
-            tmdbLoading={tmdbLoading}
-            tmdbError={tmdbError}
-            tmdbDisabled={tmdbSearchStatus === 'disabled'}
-            candidates={tmdbCandidates}
-            selectedCandidate={selectedCandidate}
-            onQueryChange={setTmdbQuery}
-            onMediaTypeChange={setTmdbMediaType}
-            onSearch={handleTmdbSearch}
-            onCandidateSelect={setSelectedCandidate}
-            onCandidateApply={handleApplyCandidate}
-            onClearCandidates={() => {
-              setTmdbCandidates([]);
-              setSelectedCandidate(null);
-            }}
-          />
-        </div>
+        <TmdbInspectorSidebar
+          selectedGroup={selectedGroup}
+          tmdbMediaType={tmdbMediaType}
+          tmdbQuery={tmdbQuery}
+          tmdbLoading={tmdbLoading}
+          tmdbError={tmdbError}
+          tmdbDisabled={tmdbSearchStatus === 'disabled'}
+          candidates={tmdbCandidates}
+          selectedCandidate={selectedCandidate}
+          onQueryChange={setTmdbQuery}
+          onMediaTypeChange={setTmdbMediaType}
+          onSearch={handleTmdbSearch}
+          onCandidateSelect={setSelectedCandidate}
+          onCandidateApply={handleApplyCandidate}
+          onClearCandidates={() => {
+            setTmdbCandidates([]);
+            setSelectedCandidate(null);
+          }}
+        />
       </div>
 
       {editModal && (
