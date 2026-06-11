@@ -29,7 +29,7 @@ import { ExecutionResultPanel } from './ExecutionResultPanel';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from './naming/workbench';
 import { ScrapeWriteActions } from './scrape/ScrapeWriteActions';
-import { CandidateList, TMDB_IMAGE_BASE } from './tmdb';
+import { CandidateList, SearchTypeButton, TMDB_IMAGE_BASE } from './tmdb';
 import type { TmdbManualMediaType } from './tmdb';
 import { PreviewPlanTree } from './tree/PreviewPlanTree';
 
@@ -506,17 +506,6 @@ function TmdbInspector({
       {tmdbError && <ErrorCard message={tmdbError} />}
       {selectedCandidate && <ScrapePreviewCard selectedCandidate={selectedCandidate} selectedGroup={selectedGroup} />}
     </>
-  );
-}
-
-function SearchTypeButton({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button
-      className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors ${active ? 'bg-primary text-bg-primary' : 'text-text-secondary hover:text-text-primary'}`}
-      onClick={onClick}
-    >
-      {children}
-    </button>
   );
 }
 
