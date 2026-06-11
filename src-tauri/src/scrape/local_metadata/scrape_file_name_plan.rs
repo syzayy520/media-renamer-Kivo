@@ -71,8 +71,9 @@ fn file_stem(file_name: &str) -> String {
 
 fn normalize_name(value: &str) -> String {
     value
-        .replace('·', "")
-        .replace([' ', '.', '_', '-', '(', ')', '[', ']'], "")
+        .chars()
+        .filter(|ch| !matches!(ch, '·' | ' ' | '.' | '_' | '-' | '(' | ')' | '[' | ']'))
+        .collect::<String>()
         .to_lowercase()
 }
 
