@@ -53,7 +53,7 @@ export function NamingTokenConfigEditor({ token, onChange }: NamingTokenConfigEd
         label="分隔符"
         value={token.separator}
         options={SEPARATORS}
-        onChange={(value) => update({ separator: value as Separator })}
+        onChange={(separator) => update({ separator })}
       />
 
       <InputField label="前缀" value={token.prefix} onChange={(value) => update({ prefix: value })} />
@@ -63,21 +63,21 @@ export function NamingTokenConfigEditor({ token, onChange }: NamingTokenConfigEd
         label="大小写"
         value={token.case_strategy}
         options={CASE_STRATEGIES}
-        onChange={(value) => update({ case_strategy: value as CaseStrategy })}
+        onChange={(case_strategy) => update({ case_strategy })}
       />
 
       <SelectField
         label="包裹"
         value={token.wrapper}
         options={WRAPPERS}
-        onChange={(value) => update({ wrapper: value as WrapperStyle })}
+        onChange={(wrapper) => update({ wrapper })}
       />
 
       <SelectField
         label="空值"
         value={token.empty_policy}
         options={EMPTY_POLICIES}
-        onChange={(value) => update({ empty_policy: value as EmptyPolicy })}
+        onChange={(empty_policy) => update({ empty_policy })}
       />
     </div>
   );
