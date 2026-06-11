@@ -2,6 +2,7 @@ export { CandidateList } from './CandidateList';
 export { CandidateRow } from './CandidateRow';
 export { ScrapePreviewCard } from './ScrapePreviewCard';
 export { SearchTypeButton } from './SearchTypeButton';
+export { TmdbDisabledBanner } from './TmdbDisabledBanner';
 export { TmdbEmptySelectionCard } from './TmdbEmptySelectionCard';
 export { TmdbSearchCard } from './TmdbSearchCard';
 export { TmdbErrorCard, TmdbLoadingCard } from './TmdbStatusCards';
