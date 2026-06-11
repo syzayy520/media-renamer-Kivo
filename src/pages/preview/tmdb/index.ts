@@ -1,5 +1,6 @@
 export { CandidateList } from './CandidateList';
 export { CandidateRow } from './CandidateRow';
+export { buildTmdbQuery, defaultTmdbMediaType } from './query';
 export { ScrapePreviewCard } from './ScrapePreviewCard';
 export { SearchTypeButton } from './SearchTypeButton';
 export { TmdbDisabledBanner } from './TmdbDisabledBanner';
