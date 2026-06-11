@@ -16,7 +16,7 @@ import type { EditNameModalState } from './edit';
 import { PreviewExecutionPanels } from './execution';
 import { PreviewHeader } from './header';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
-import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from './naming/workbench';
+import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchSidebar } from './naming/workbench';
 import { PreviewEmptyState, PreviewLoadingState } from './state';
 import { buildTmdbQuery, defaultTmdbMediaType, TmdbDisabledBanner, TmdbInspector } from './tmdb';
 import type { TmdbManualMediaType } from './tmdb';
@@ -238,19 +238,17 @@ export function PreviewPage() {
       )}
 
       <div className="flex min-h-0 flex-1 gap-3">
-        <div className="flex w-[260px] shrink-0 flex-col gap-3 overflow-y-auto">
-          <PreviewNamingWorkbenchPanel
-            selectedPreset={selectedPreset}
-            currentNamingRule={currentNamingRule}
-            currentStrategy={currentStrategy}
-            folderPolicyConfig={folderPolicyConfig}
-            setSelectedPreset={setSelectedPreset}
-            setCurrentNamingRule={setCurrentNamingRule}
-            setCurrentStrategy={setCurrentStrategy}
-            triggerNamingApply={triggerNamingApply}
-            onFolderPolicyChange={handleFolderPolicyChange}
-          />
-        </div>
+        <PreviewNamingWorkbenchSidebar
+          selectedPreset={selectedPreset}
+          currentNamingRule={currentNamingRule}
+          currentStrategy={currentStrategy}
+          folderPolicyConfig={folderPolicyConfig}
+          setSelectedPreset={setSelectedPreset}
+          setCurrentNamingRule={setCurrentNamingRule}
+          setCurrentStrategy={setCurrentStrategy}
+          triggerNamingApply={triggerNamingApply}
+          onFolderPolicyChange={handleFolderPolicyChange}
+        />
 
         <PreviewPlanTreePanel
           groups={groups}
