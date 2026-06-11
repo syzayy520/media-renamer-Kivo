@@ -13,6 +13,7 @@ import type {
   TmdbCandidate,
 } from '../../types';
 import { EditNameModal } from './edit';
+import type { EditNameModalState } from './edit';
 import { PreviewExecutionPanels } from './execution';
 import { PreviewHeader } from './header';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
@@ -57,7 +58,7 @@ export function PreviewPage() {
     policy: 'KeepOriginalStructure',
     clean_empty_folders_after: false,
   });
-  const [editModal, setEditModal] = useState<EditModalState | null>(null);
+  const [editModal, setEditModal] = useState<EditNameModalState | null>(null);
   const [tmdbMediaType, setTmdbMediaType] = useState<TmdbManualMediaType>('movie');
   const [tmdbQuery, setTmdbQuery] = useState('');
   const [tmdbCandidates, setTmdbCandidates] = useState<TmdbCandidate[]>([]);
@@ -312,10 +313,3 @@ export function PreviewPage() {
     </div>
   );
 }
-
-type EditModalState = {
-  mode: 'file' | 'group';
-  targetId: string;
-  currentName: string;
-  previewPath: string;
-};
