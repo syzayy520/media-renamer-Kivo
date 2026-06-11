@@ -67,12 +67,9 @@ fn is_absolute_like(path: &str) -> bool {
 
 fn join_path(parent: &str, child: &str) -> PathBuf {
     let separator = if parent.contains('\\') { "\\" } else { "/" };
-    PathBuf::from(format!(
-        "{}{}{}",
-        parent.trim_end_matches(['\\', '/']),
-        separator,
-        child.trim_start_matches(['\\', '/'])
-    ))
+    let left = parent.trim_end_matches(|ch| ch == '\\' || ch == '/');
+    let right = child.trim_start_matches(|ch| ch == '\\' || ch == '/');
+    PathBuf::from(format!("{}{}{}", left, separator, right))
 }
 
 #[cfg(test)]
