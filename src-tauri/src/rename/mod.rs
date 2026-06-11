@@ -10,6 +10,7 @@ pub mod duplicate_target_checker;
 pub mod execution;
 pub mod folder_policy;
 pub mod invalid_chars_checker;
+pub mod naming_context;
 pub mod naming_rule;
 pub mod path_exists_checker;
 pub mod path_length_checker;
