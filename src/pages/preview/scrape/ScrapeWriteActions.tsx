@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle2, Download } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import { usePipelineStore } from '../../../state/pipelineStore';
 import type { FolderGroup, TmdbCandidate } from '../../../types';
-import { resolveScrapeTargetFolder } from './resolveScrapeTargetFolder';
+import { resolvePreparedScrapeTargetFolder, resolveScrapeTargetFolder } from './resolveScrapeTargetFolder';
 
 interface LocalScrapeWrittenFile {
   role: string;
@@ -23,8 +23,11 @@ interface ScrapeWriteActionsProps {
   group: FolderGroup | null;
 }
 
+type ScrapeMode = 'BesideCurrentMedia' | 'IntoPreparedFolder';
+
 export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps) {
   const scanRoot = usePipelineStore((state) => state.pipelineResult?.scan?.scan_path);
+  const [mode, setMode] = useState<ScrapeMode>('BesideCurrentMedia');
   const [isWriting, setIsWriting] = useState(false);
   const [result, setResult] = useState<LocalScrapeOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +38,9 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
 
   const mainFileName = mainFile?.target_name || '';
   const mediaFilePath = mainFile?.original_path || '';
-  const targetFolder = useMemo(() => resolveScrapeTargetFolder(group, scanRoot), [group, scanRoot]);
+  const currentFolder = useMemo(() => resolveScrapeTargetFolder(group, scanRoot), [group, scanRoot]);
+  const preparedFolder = useMemo(() => resolvePreparedScrapeTargetFolder(group, scanRoot), [group, scanRoot]);
+  const targetFolder = mode === 'BesideCurrentMedia' ? currentFolder : preparedFolder;
   const canWrite = Boolean(targetFolder && mainFileName);
 
   const handleWrite = async () => {
@@ -56,7 +61,7 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
           target_file_name: mainFileName,
           media_file_path: mediaFilePath,
           scan_root: scanRoot ?? null,
-          mode: 'BesideCurrentMedia',
+          mode,
           include_images: true,
         },
       });
@@ -71,6 +76,37 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
 
   return (
     <div className="mt-3 space-y-2 border-t border-border pt-3">
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-bg-primary p-1 text-xs">
+        <button
+          type="button"
+          className={`rounded-lg px-2 py-1.5 ${mode === 'BesideCurrentMedia' ? 'bg-primary text-bg-primary' : 'text-text-secondary'}`}
+          onClick={() => {
+            setMode('BesideCurrentMedia');
+            setResult(null);
+            setError(null);
+          }}
+        >
+          当前目录旁挂
+        </button>
+        <button
+          type="button"
+          className={`rounded-lg px-2 py-1.5 ${mode === 'IntoPreparedFolder' ? 'bg-primary text-bg-primary' : 'text-text-secondary'}`}
+          onClick={() => {
+            setMode('IntoPreparedFolder');
+            setResult(null);
+            setError(null);
+          }}
+        >
+          整理后文件夹
+        </button>
+      </div>
+
+      {mode === 'IntoPreparedFolder' && (
+        <div className="rounded-lg border border-warning/30 bg-warning/10 p-2 text-xs text-warning">
+          这个模式会先把 NFO、poster、fanart 写进计划文件夹；执行重命名后，影片才会移动到同一个文件夹。
+        </div>
+      )}
+
       <Button
         variant="primary"
         size="sm"
