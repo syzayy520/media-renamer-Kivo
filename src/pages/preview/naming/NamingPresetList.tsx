@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react';
+import { NAMING_PRESETS } from './namingPresetRules';
 
 export interface Preset {
   id: string;
@@ -13,9 +14,11 @@ export interface NamingPresetListProps {
 }
 
 export function NamingPresetList({ presets, selectedId, onSelect }: NamingPresetListProps) {
+  const displayPresets = mergeWithCanonicalPresets(presets);
+
   return (
     <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
-      {presets.map((p) => (
+      {displayPresets.map((p) => (
         <button
           key={p.id}
           className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors ${selectedId === p.id ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface-hover'}`}
@@ -30,4 +33,13 @@ export function NamingPresetList({ presets, selectedId, onSelect }: NamingPreset
       ))}
     </div>
   );
+}
+
+function mergeWithCanonicalPresets(presets: Preset[]): Preset[] {
+  const existing = new Set(presets.map((preset) => preset.id));
+  const missingCanonical = NAMING_PRESETS
+    .filter((preset) => !existing.has(preset.id))
+    .map(({ id, label, desc }) => ({ id, label, desc }));
+
+  return [...presets, ...missingCanonical];
 }
