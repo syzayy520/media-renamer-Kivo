@@ -1,28 +1,75 @@
 // src-tauri/src/scrape/local_metadata/image_asset_downloader.rs
-// 职责：下载 TMDb 图片资源为二进制字节，所有失败必须返回错误，不允许影响主进程稳定性
+// 职责：把 TMDb 图片资源安全下载到指定文件，不承载刮削编排逻辑
 
+use std::path::Path;
 use std::time::Duration;
 
+use crate::scrape::local_metadata::local_scrape_output::LocalScrapeWrittenFile;
 use crate::scrape::local_metadata::nfo_document_builder::tmdb_image_url;
 
 const IMAGE_DOWNLOAD_TIMEOUT_SECS: u64 = 20;
 const MAX_IMAGE_BYTES: u64 = 25 * 1024 * 1024;
 
-pub async fn download_image_asset_safely(path: Option<&str>) -> Result<Option<Vec<u8>>, String> {
-    let owned_path = path.map(str::to_owned);
-    let task = tokio::spawn(async move { download_image_asset(owned_path.as_deref()).await });
-
-    match task.await {
-        Ok(result) => result,
-        Err(error) => Err(format!("image download task failed: {}", error)),
-    }
-}
-
-async fn download_image_asset(path: Option<&str>) -> Result<Option<Vec<u8>>, String> {
+pub async fn download_image_asset_to_file(
+    path: Option<&str>,
+    target_folder: &Path,
+    file_name: &str,
+) -> Result<Option<LocalScrapeWrittenFile>, String> {
     let Some(path) = path else {
         return Ok(None);
     };
 
+    let url = tmdb_image_url(path);
+    let file_path = target_folder.join(file_name);
+
+    #[cfg(target_os = "windows")]
+    {
+        download_image_with_powershell(&url, &file_path).await?;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let bytes = download_image_asset(path).await?;
+        tokio::fs::write(&file_path, &bytes)
+            .await
+            .map_err(|error| format!("write {} failed: {}", file_name, error))?;
+    }
+
+    Ok(Some(LocalScrapeWrittenFile {
+        role: file_name.to_string(),
+        file_path: file_path.to_string_lossy().to_string(),
+    }))
+}
+
+#[cfg(target_os = "windows")]
+async fn download_image_with_powershell(url: &str, file_path: &Path) -> Result<(), String> {
+    let output = tokio::process::Command::new("powershell")
+        .arg("-NoProfile")
+        .arg("-NonInteractive")
+        .arg("-ExecutionPolicy")
+        .arg("Bypass")
+        .arg("-Command")
+        .arg("$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri $args[0] -OutFile $args[1] -UseBasicParsing")
+        .arg(url)
+        .arg(file_path.to_string_lossy().to_string())
+        .output()
+        .await
+        .map_err(|error| format!("start image download process failed: {}", error))?;
+
+    if output.status.success() {
+        return Ok(());
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    if stderr.is_empty() {
+        return Err(format!("image download process failed with status: {}", output.status));
+    }
+
+    Err(stderr)
+}
+
+#[cfg(not(target_os = "windows"))]
+async fn download_image_asset(path: &str) -> Result<Vec<u8>, String> {
     let url = tmdb_image_url(path);
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(IMAGE_DOWNLOAD_TIMEOUT_SECS))
@@ -56,5 +103,5 @@ async fn download_image_asset(path: Option<&str>) -> Result<Option<Vec<u8>>, Str
         return Err(format!("image too large after download: {} bytes", bytes.len()));
     }
 
-    Ok(Some(bytes.to_vec()))
+    Ok(bytes.to_vec())
 }
