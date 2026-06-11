@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle,
   ArrowLeft,
   Check,
   Edit3,
   Film,
-  Folder,
   Globe,
   Image,
-  Info,
   Play,
   Settings,
   Star,
@@ -22,7 +19,6 @@ import { useTmdbSearchStore } from '../../state/tmdbSearchStore';
 import { useUiFeedbackStore } from '../../state/uiFeedbackStore';
 import type {
   FolderGroup,
-  FolderPolicy,
   FolderPolicyConfig,
   NamingRule,
   SearchTmdbCandidatesInput,
@@ -32,46 +28,15 @@ import type {
 import { ExecutionConfirmPanel } from './ExecutionConfirmPanel';
 import { ExecutionProgressPanel } from './ExecutionProgressPanel';
 import { ExecutionResultPanel } from './ExecutionResultPanel';
-import { FolderPolicySelector } from './folder-policy/FolderPolicySelector';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
-import { NamingPresetList } from './naming/NamingPresetList';
-import { NamingTokenOrderList } from './naming/NamingTokenOrderList';
+import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from './naming/workbench';
 import { ScrapeWriteActions } from './scrape/ScrapeWriteActions';
 import { PreviewPlanTree } from './tree/PreviewPlanTree';
-
-const PRESETS: Array<{ id: string; label: string; desc: string }> = [
-  { id: 'clean-library', label: '清爽媒体库', desc: '中文标题 (年份).mkv' },
-  { id: 'bilingual-library', label: '中英双语', desc: '中文 - 英文 (年份).mkv' },
-  { id: 'pt-preserve', label: 'PT原样保留', desc: 'First.Blood.1982.1080p.BluRay.mkv' },
-  { id: 'chinese-prefix-pt', label: '中文前缀+PT', desc: '中文.PT技术信息.mkv' },
-  { id: 'bt-friendly', label: 'BT友好', desc: '中文.英文.年份.分辨率.mkv' },
-  { id: 'jellyfin-emby', label: 'Jellyfin/Emby', desc: '中文标题 (年份).mkv' },
-  { id: 'tmdb-id-friendly', label: 'TMDb ID友好', desc: '中文 (年份) [tmdb-xxx].mkv' },
-];
-
-const STRATEGIES: Array<{ id: TitleStrategy; label: string }> = [
-  { id: 'ChineseOnly', label: '仅中文' },
-  { id: 'EnglishOnly', label: '仅英文' },
-  { id: 'Bilingual', label: '中英双语' },
-  { id: 'ChinesePrefixPt', label: '中文前缀+PT' },
-  { id: 'ChineseFolderPtFile', label: '中文文件夹+PT文件' },
-  { id: 'ChineseFolderChinesePrefixPtFile', label: '中文文件夹+中文前缀PT' },
-];
 
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w185';
 type TmdbManualMediaType = SearchTmdbCandidatesInput['media_type'];
 
-function buildCleanLibraryRule(): NamingRule {
-  return {
-    name: 'clean-library',
-    description: '清爽媒体库',
-    tokens: [
-      { token: 'ZhTitle', prefix: '', suffix: '', separator: 'Space', empty_policy: 'Hide', case_strategy: 'AsIs', wrapper: 'None', enabled: true },
-      { token: 'Year', prefix: '', suffix: '', separator: 'Space', empty_policy: 'Hide', case_strategy: 'AsIs', wrapper: 'Parentheses', enabled: true },
-      { token: 'Ext', prefix: '', suffix: '', separator: 'None', empty_policy: 'Hide', case_strategy: 'AsIs', wrapper: 'None', enabled: true },
-    ],
-  };
-}
+const INITIAL_NAMING_WORKBENCH = buildInitialNamingWorkbenchState();
 
 function defaultTmdbMediaType(group: FolderGroup | null): TmdbManualMediaType {
   return group?.media_type === 'Tv' ? 'tv' : 'movie';
@@ -128,9 +93,9 @@ export function PreviewPage() {
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [currentNamingRule, setCurrentNamingRule] = useState<NamingRule>(buildCleanLibraryRule());
-  const [currentStrategy, setCurrentStrategy] = useState<TitleStrategy>('ChineseOnly');
-  const [selectedPreset, setSelectedPreset] = useState('clean-library');
+  const [currentNamingRule, setCurrentNamingRule] = useState<NamingRule>(INITIAL_NAMING_WORKBENCH.currentNamingRule);
+  const [currentStrategy, setCurrentStrategy] = useState<TitleStrategy>(INITIAL_NAMING_WORKBENCH.currentStrategy);
+  const [selectedPreset, setSelectedPreset] = useState(INITIAL_NAMING_WORKBENCH.selectedPreset);
   const [folderPolicyConfig, setFolderPolicyConfig] = useState<FolderPolicyConfig>({
     policy: 'KeepOriginalStructure',
     clean_empty_folders_after: false,
@@ -329,33 +294,15 @@ export function PreviewPage() {
 
       <div className="flex min-h-0 flex-1 gap-3">
         <div className="flex w-[260px] shrink-0 flex-col gap-3 overflow-y-auto">
-          <NamingWorkbench
+          <PreviewNamingWorkbenchPanel
             selectedPreset={selectedPreset}
             currentNamingRule={currentNamingRule}
             currentStrategy={currentStrategy}
-            onPresetChange={(id) => {
-              setSelectedPreset(id);
-              const rule = buildCleanLibraryRule();
-              rule.name = id;
-              rule.description = PRESETS.find((preset) => preset.id === id)?.desc ?? rule.description;
-              setCurrentNamingRule(rule);
-              triggerNamingApply(rule, currentStrategy);
-            }}
-            onStrategyChange={(strategy) => {
-              setCurrentStrategy(strategy);
-              triggerNamingApply(currentNamingRule, strategy);
-            }}
-            onTokenReorder={(tokens) => {
-              const rule = { ...currentNamingRule, tokens };
-              setCurrentNamingRule(rule);
-              triggerNamingApply(rule, currentStrategy);
-            }}
-            onTokenRemove={(idx) => {
-              const rule = { ...currentNamingRule, tokens: currentNamingRule.tokens.filter((_, index) => index !== idx) };
-              setCurrentNamingRule(rule);
-              triggerNamingApply(rule, currentStrategy);
-            }}
             folderPolicyConfig={folderPolicyConfig}
+            setSelectedPreset={setSelectedPreset}
+            setCurrentNamingRule={setCurrentNamingRule}
+            setCurrentStrategy={setCurrentStrategy}
+            triggerNamingApply={triggerNamingApply}
             onFolderPolicyChange={handleFolderPolicyChange}
           />
         </div>
@@ -465,88 +412,6 @@ function TmdbDisabledBanner({ reason, onSettings }: { reason: string | null; onS
       {reason && <span className="max-w-xs truncate text-xs text-text-tertiary">{reason}</span>}
       <Button variant="secondary" size="sm" icon={<Settings className="h-3 w-3" />} onClick={onSettings}>去设置</Button>
     </div>
-  );
-}
-
-function WorkbenchCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-border bg-surface p-3">
-      <div className="mb-2 flex items-center gap-1.5">
-        {icon}
-        <h3 className="text-xs font-semibold text-text-primary">{title}</h3>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function NamingWorkbench({
-  selectedPreset,
-  currentNamingRule,
-  currentStrategy,
-  folderPolicyConfig,
-  onPresetChange,
-  onStrategyChange,
-  onTokenReorder,
-  onTokenRemove,
-  onFolderPolicyChange,
-}: {
-  selectedPreset: string;
-  currentNamingRule: NamingRule;
-  currentStrategy: TitleStrategy;
-  folderPolicyConfig: FolderPolicyConfig;
-  onPresetChange: (id: string) => void;
-  onStrategyChange: (strategy: TitleStrategy) => void;
-  onTokenReorder: (tokens: NamingRule['tokens']) => void;
-  onTokenRemove: (idx: number) => void;
-  onFolderPolicyChange: (config: FolderPolicyConfig) => void;
-}) {
-  return (
-    <>
-      <WorkbenchCard title="命名预设" icon={<Settings className="h-3.5 w-3.5 text-text-secondary" />}>
-        <NamingPresetList presets={PRESETS} selectedId={selectedPreset} onSelect={onPresetChange} />
-      </WorkbenchCard>
-
-      <WorkbenchCard title="文件夹策略" icon={<Folder className="h-3.5 w-3.5 text-text-secondary" />}>
-        <FolderPolicySelector
-          selected={folderPolicyConfig.policy}
-          onSelect={(policy: FolderPolicy) => onFolderPolicyChange({ ...folderPolicyConfig, policy })}
-        />
-        {folderPolicyConfig.policy === 'Flatten' && (
-          <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-error/30 bg-error/5 px-2 py-1.5">
-            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-error" />
-            <span className="text-xs leading-relaxed text-error">高风险：将文件移至上级目录，同名文件会冲突。</span>
-          </div>
-        )}
-        <label className="mt-2 flex cursor-pointer items-center gap-1.5 text-xs text-text-secondary">
-          <input
-            type="checkbox"
-            className="rounded border-border"
-            checked={folderPolicyConfig.clean_empty_folders_after}
-            onChange={(event) => onFolderPolicyChange({ ...folderPolicyConfig, clean_empty_folders_after: event.target.checked })}
-          />
-          清理空文件夹
-        </label>
-      </WorkbenchCard>
-
-      <WorkbenchCard title="标题策略" icon={<Info className="h-3.5 w-3.5 text-text-secondary" />}>
-        <div className="flex flex-wrap gap-1">
-          {STRATEGIES.map((strategy) => (
-            <button
-              key={strategy.id}
-              className={`rounded-full px-2 py-1 text-xs transition-colors ${currentStrategy === strategy.id ? 'bg-primary text-white' : 'bg-surface-hover text-text-secondary hover:text-text-primary'}`}
-              onClick={() => onStrategyChange(strategy.id)}
-            >
-              {strategy.label}
-            </button>
-          ))}
-        </div>
-      </WorkbenchCard>
-
-      <WorkbenchCard title="Token 排序" icon={<Edit3 className="h-3.5 w-3.5 text-text-secondary" />}>
-        <NamingTokenOrderList tokens={currentNamingRule.tokens} onReorder={onTokenReorder} onRemove={onTokenRemove} />
-      </WorkbenchCard>
-    </>
   );
 }
 
