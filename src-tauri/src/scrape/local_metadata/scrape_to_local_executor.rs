@@ -1,10 +1,10 @@
 use crate::scrape::local_metadata::image_asset_downloader::download_image_asset_to_file;
-use crate::scrape::local_metadata::local_metadata_writer::{ensure_target_folder, write_nfo};
+use crate::scrape::local_metadata::local_metadata_writer::{ensure_target_folder, write_nfo_file};
 use crate::scrape::local_metadata::local_scrape_input::LocalScrapeInput;
 use crate::scrape::local_metadata::local_scrape_output::LocalScrapeOutput;
 use crate::scrape::local_metadata::nfo_document_builder::build_nfo_document;
+use crate::scrape::local_metadata::scrape_file_name_plan::build_file_name_plan;
 use crate::scrape::local_metadata::scrape_target_folder_resolver::resolve_target_folder;
-use crate::tmdb_search_contract::TmdbSearchMediaType;
 
 pub async fn scrape_to_local(input: LocalScrapeInput) -> LocalScrapeOutput {
     let mut written_files = Vec::new();
@@ -34,25 +34,34 @@ pub async fn scrape_to_local(input: LocalScrapeInput) -> LocalScrapeOutput {
         }
     };
 
-    let media_kind = match input.candidate.media_type {
-        TmdbSearchMediaType::Tv => "tv",
-        TmdbSearchMediaType::Movie => "movie",
-    };
+    let file_plan = build_file_name_plan(&input, &folder);
     let nfo_document = build_nfo_document(&input.candidate);
 
-    match write_nfo(&folder, media_kind, &nfo_document) {
+    match write_nfo_file(&folder, &file_plan.nfo_file_name, &nfo_document) {
         Ok(file) => written_files.push(file),
         Err(error) => errors.push(error),
     }
 
     if input.include_images.unwrap_or(true) {
-        match download_image_asset_to_file(input.candidate.poster_path.as_deref(), &folder, "poster.jpg").await {
+        match download_image_asset_to_file(
+            input.candidate.poster_path.as_deref(),
+            &folder,
+            &file_plan.poster_file_name,
+        )
+        .await
+        {
             Ok(Some(file)) => written_files.push(file),
             Ok(None) => {}
             Err(error) => errors.push(error),
         }
 
-        match download_image_asset_to_file(input.candidate.backdrop_path.as_deref(), &folder, "fanart.jpg").await {
+        match download_image_asset_to_file(
+            input.candidate.backdrop_path.as_deref(),
+            &folder,
+            &file_plan.fanart_file_name,
+        )
+        .await
+        {
             Ok(Some(file)) => written_files.push(file),
             Ok(None) => {}
             Err(error) => errors.push(error),
