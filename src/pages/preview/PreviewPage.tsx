@@ -1,27 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExecutionStore } from '../../state/executionStore';
 import { usePipelineStore } from '../../state/pipelineStore';
 import { useTmdbSearchStore } from '../../state/tmdbSearchStore';
 import { useUiFeedbackStore } from '../../state/uiFeedbackStore';
-import type {
-  FolderGroup,
-  FolderPolicyConfig,
-  NamingRule,
-  TitleStrategy,
-  TmdbCandidate,
-} from '../../types';
+import type { FolderGroup, TmdbCandidate } from '../../types';
 import { EditNameModal, usePreviewEditModal } from './edit';
 import { PreviewExecutionPanels } from './execution';
 import { PreviewHeader } from './header';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
-import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchSidebar } from './naming/workbench';
+import { PreviewNamingWorkbenchSidebar, usePreviewNamingWorkbench } from './naming/workbench';
 import { PreviewEmptyState, PreviewLoadingState } from './state';
 import { buildTmdbQuery, defaultTmdbMediaType, TmdbDisabledBanner, TmdbInspectorSidebar } from './tmdb';
 import type { TmdbManualMediaType } from './tmdb';
 import { PreviewPlanTreePanel, usePreviewTreeSelection } from './tree';
-
-const INITIAL_NAMING_WORKBENCH = buildInitialNamingWorkbenchState();
 
 export function PreviewPage() {
   const navigate = useNavigate();
@@ -46,21 +38,27 @@ export function PreviewPage() {
     cancelExecution,
     resetExecution,
   } = useExecutionStore();
-
-  const [currentNamingRule, setCurrentNamingRule] = useState<NamingRule>(INITIAL_NAMING_WORKBENCH.currentNamingRule);
-  const [currentStrategy, setCurrentStrategy] = useState<TitleStrategy>(INITIAL_NAMING_WORKBENCH.currentStrategy);
-  const [selectedPreset, setSelectedPreset] = useState(INITIAL_NAMING_WORKBENCH.selectedPreset);
-  const [folderPolicyConfig, setFolderPolicyConfig] = useState<FolderPolicyConfig>({
-    policy: 'KeepOriginalStructure',
-    clean_empty_folders_after: false,
+  const {
+    selectedPreset,
+    currentNamingRule,
+    currentStrategy,
+    folderPolicyConfig,
+    setSelectedPreset,
+    setCurrentNamingRule,
+    setCurrentStrategy,
+    triggerNamingApply,
+    handleFolderPolicyChange,
+  } = usePreviewNamingWorkbench({
+    onApplyNamingRule: applyNamingRule,
+    onApplyFolderPolicy: applyFolderPolicy,
   });
+
   const [tmdbMediaType, setTmdbMediaType] = useState<TmdbManualMediaType>('movie');
   const [tmdbQuery, setTmdbQuery] = useState('');
   const [tmdbCandidates, setTmdbCandidates] = useState<TmdbCandidate[]>([]);
   const [tmdbLoading, setTmdbLoading] = useState(false);
   const [tmdbError, setTmdbError] = useState<string | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<TmdbCandidate | null>(null);
-  const namingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     checkTmdbSearchAvailability();
@@ -92,22 +90,6 @@ export function PreviewPage() {
     setTmdbCandidates([]);
     setSelectedCandidate(null);
   }, [selectedGroup?.id]);
-
-  useEffect(() => {
-    return () => {
-      if (namingDebounceRef.current) clearTimeout(namingDebounceRef.current);
-    };
-  }, []);
-
-  const triggerNamingApply = useCallback((rule: NamingRule, strategy: TitleStrategy) => {
-    if (namingDebounceRef.current) clearTimeout(namingDebounceRef.current);
-    namingDebounceRef.current = setTimeout(() => applyNamingRule(rule, strategy), 150);
-  }, [applyNamingRule]);
-
-  const handleFolderPolicyChange = useCallback((config: FolderPolicyConfig) => {
-    setFolderPolicyConfig(config);
-    applyFolderPolicy(config.policy);
-  }, [applyFolderPolicy]);
 
   const searchTmdbForGroup = useCallback(async (
     group: FolderGroup,
