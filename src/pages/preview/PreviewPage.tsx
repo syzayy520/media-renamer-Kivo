@@ -11,8 +11,7 @@ import type {
   TitleStrategy,
   TmdbCandidate,
 } from '../../types';
-import { EditNameModal } from './edit';
-import type { EditNameModalState } from './edit';
+import { EditNameModal, usePreviewEditModal } from './edit';
 import { PreviewExecutionPanels } from './execution';
 import { PreviewHeader } from './header';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
@@ -55,7 +54,6 @@ export function PreviewPage() {
     policy: 'KeepOriginalStructure',
     clean_empty_folders_after: false,
   });
-  const [editModal, setEditModal] = useState<EditNameModalState | null>(null);
   const [tmdbMediaType, setTmdbMediaType] = useState<TmdbManualMediaType>('movie');
   const [tmdbQuery, setTmdbQuery] = useState('');
   const [tmdbCandidates, setTmdbCandidates] = useState<TmdbCandidate[]>([]);
@@ -75,6 +73,17 @@ export function PreviewPage() {
   }, [pipelineResult, scanRoot]);
   const groups = planTree?.groups ?? [];
   const { expandedGroups, selectedGroup, selectGroup, toggleGroupExpanded } = usePreviewTreeSelection(groups);
+  const {
+    editModal,
+    openGroupEdit,
+    openFileEdit,
+    confirmEdit,
+    cancelEdit,
+  } = usePreviewEditModal({
+    groups,
+    previews: pipelineResult?.previews ?? [],
+    onNameChange: updatePreviewProposedName,
+  });
 
   useEffect(() => {
     setTmdbMediaType(defaultTmdbMediaType(selectedGroup));
@@ -160,35 +169,6 @@ export function PreviewPage() {
     await refreshSafetySummary();
   }, [selectedGroup, applyTmdbCandidate, refreshSafetySummary]);
 
-  const openGroupEdit = useCallback((groupId: string) => {
-    const group = groups.find((item) => item.id === groupId);
-    if (!group || group.children.length === 0) return;
-    const mainFile = group.children.find((child) => child.file_role === 'MainVideo') || group.children[0];
-    setEditModal({
-      mode: 'group',
-      targetId: mainFile.id,
-      currentName: group.target_folder_name,
-      previewPath: group.target_path,
-    });
-  }, [groups]);
-
-  const openFileEdit = useCallback((fileId: string) => {
-    const item = pipelineResult?.previews.find((preview) => preview.id === fileId);
-    if (!item) return;
-    setEditModal({
-      mode: 'file',
-      targetId: fileId,
-      currentName: item.proposed_name,
-      previewPath: item.target_path,
-    });
-  }, [pipelineResult]);
-
-  const confirmEdit = useCallback((newName: string) => {
-    if (!editModal) return;
-    updatePreviewProposedName(editModal.targetId, newName);
-    setEditModal(null);
-  }, [editModal, updatePreviewProposedName]);
-
   const handleGroupSkip = useCallback((groupId: string) => {
     const group = groups.find((item) => item.id === groupId);
     if (!group) return;
@@ -269,7 +249,7 @@ export function PreviewPage() {
           currentName={editModal.currentName}
           previewPath={editModal.previewPath}
           onConfirm={confirmEdit}
-          onCancel={() => setEditModal(null)}
+          onCancel={cancelEdit}
         />
       )}
 
