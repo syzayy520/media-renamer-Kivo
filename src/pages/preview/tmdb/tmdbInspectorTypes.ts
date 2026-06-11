@@ -21,6 +21,17 @@ export interface TmdbInspectorPanelProps {
   onClearCandidates: () => void;
 }
 
+export interface TmdbSearchCardProps {
+  selectedGroup: FolderGroup;
+  tmdbMediaType: TmdbManualMediaType;
+  tmdbQuery: string;
+  tmdbLoading: boolean;
+  tmdbDisabled: boolean;
+  onQueryChange: (value: string) => void;
+  onMediaTypeChange: (value: TmdbManualMediaType) => void;
+  onSearch: () => void;
+}
+
 export interface CandidateListProps {
   candidates: TmdbCandidate[];
   selectedCandidate: TmdbCandidate | null;
