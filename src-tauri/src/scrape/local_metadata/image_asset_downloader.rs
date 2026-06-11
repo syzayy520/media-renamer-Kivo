@@ -2,12 +2,15 @@
 // 职责：把 TMDb 图片资源安全下载到指定文件，不承载刮削编排逻辑
 
 use std::path::Path;
+#[cfg(not(target_os = "windows"))]
 use std::time::Duration;
 
 use crate::scrape::local_metadata::local_scrape_output::LocalScrapeWrittenFile;
 use crate::scrape::local_metadata::nfo_document_builder::tmdb_image_url;
 
+#[cfg(not(target_os = "windows"))]
 const IMAGE_DOWNLOAD_TIMEOUT_SECS: u64 = 20;
+#[cfg(not(target_os = "windows"))]
 const MAX_IMAGE_BYTES: u64 = 25 * 1024 * 1024;
 
 pub async fn download_image_asset_to_file(
