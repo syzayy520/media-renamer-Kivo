@@ -5,12 +5,10 @@ import {
   ArrowLeft,
   Check,
   Edit3,
-  Film,
   Globe,
   Image,
   Play,
   Settings,
-  Star,
   X,
 } from 'lucide-react';
 import { Badge, Button, Card } from '../../components/ui';
@@ -22,7 +20,6 @@ import type {
   FolderGroup,
   FolderPolicyConfig,
   NamingRule,
-  SearchTmdbCandidatesInput,
   TitleStrategy,
   TmdbCandidate,
 } from '../../types';
@@ -32,10 +29,9 @@ import { ExecutionResultPanel } from './ExecutionResultPanel';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from './naming/workbench';
 import { ScrapeWriteActions } from './scrape/ScrapeWriteActions';
+import { CandidateList, TMDB_IMAGE_BASE } from './tmdb';
+import type { TmdbManualMediaType } from './tmdb';
 import { PreviewPlanTree } from './tree/PreviewPlanTree';
-
-const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w185';
-type TmdbManualMediaType = SearchTmdbCandidatesInput['media_type'];
 
 const INITIAL_NAMING_WORKBENCH = buildInitialNamingWorkbenchState();
 
@@ -61,11 +57,6 @@ function buildTmdbQuery(group: FolderGroup): string {
     .replace(/\b(720p|1080p|2160p|4k|bluray|blu ray|web dl|web-dl|webrip|hdtv|remux|unrated|proper|repack|extended|gb|gbr|usa|x264|x265|hevc|h264|h265|vc1|vc|10bit|8bit|hdr|dv|truehd|dts|atmos)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-function isMovieCandidate(candidate: TmdbCandidate): boolean {
-  const mediaType = candidate.media_type as string;
-  return mediaType === 'Movie' || mediaType === 'movie';
 }
 
 export function PreviewPage() {
@@ -526,86 +517,6 @@ function SearchTypeButton({ active, children, onClick }: { active: boolean; chil
     >
       {children}
     </button>
-  );
-}
-
-function CandidateList({
-  candidates,
-  selectedCandidate,
-  onSelect,
-  onApply,
-  onClear,
-}: {
-  candidates: TmdbCandidate[];
-  selectedCandidate: TmdbCandidate | null;
-  onSelect: (candidate: TmdbCandidate) => void;
-  onApply: (candidate: TmdbCandidate) => void;
-  onClear: () => void;
-}) {
-  return (
-    <Card className="overflow-hidden p-0">
-      <div className="flex items-center justify-between border-b border-border bg-surface-subtle px-3 py-2">
-        <h3 className="text-xs font-semibold text-text-primary">TMDb 候选 ({candidates.length})</h3>
-        <Button variant="ghost" size="sm" icon={<X className="h-3 w-3" />} onClick={onClear}>{''}</Button>
-      </div>
-      <div className="max-h-80 divide-y divide-border overflow-y-auto">
-        {candidates.map((candidate) => (
-          <CandidateRow
-            key={`${candidate.tmdb_id}:${candidate.title}`}
-            candidate={candidate}
-            selected={selectedCandidate?.tmdb_id === candidate.tmdb_id}
-            onSelect={onSelect}
-            onApply={onApply}
-          />
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-function CandidateRow({
-  candidate,
-  selected,
-  onSelect,
-  onApply,
-}: {
-  candidate: TmdbCandidate;
-  selected: boolean;
-  onSelect: (candidate: TmdbCandidate) => void;
-  onApply: (candidate: TmdbCandidate) => void;
-}) {
-  return (
-    <div
-      className={`flex cursor-pointer gap-3 p-3 transition-colors hover:bg-surface-hover ${selected ? 'border-l-2 border-primary bg-primary/5' : ''}`}
-      onClick={() => onSelect(candidate)}
-    >
-      <div className="h-20 w-12 shrink-0 overflow-hidden rounded bg-surface-hover">
-        {candidate.poster_path ? (
-          <img src={`${TMDB_IMAGE_BASE}${candidate.poster_path}`} alt={candidate.title} className="h-full w-full object-cover" loading="lazy" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-text-tertiary"><Film className="h-5 w-5" /></div>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="truncate text-xs font-medium text-text-primary">{candidate.title}</span>
-          {candidate.year && <span className="shrink-0 text-xs text-text-tertiary">({candidate.year})</span>}
-        </div>
-        {candidate.original_title && candidate.original_title !== candidate.title && (
-          <div className="truncate text-xs text-text-tertiary">{candidate.original_title}</div>
-        )}
-        <div className="mt-1 flex items-center gap-2">
-          {candidate.vote_average != null && (
-            <span className="flex items-center gap-0.5 text-xs text-warning"><Star className="h-3 w-3 fill-current" />{candidate.vote_average.toFixed(1)}</span>
-          )}
-          <Badge variant="default" size="sm">{isMovieCandidate(candidate) ? '🎬' : '📺'} TMDb {candidate.tmdb_id}</Badge>
-        </div>
-        {candidate.overview && <p className="mt-1 line-clamp-2 text-xs text-text-tertiary">{candidate.overview}</p>}
-      </div>
-      <div className="flex shrink-0 items-center">
-        <Button variant="primary" size="sm" onClick={(event) => { event.stopPropagation(); onApply(candidate); }}>应用</Button>
-      </div>
-    </div>
   );
 }
 
