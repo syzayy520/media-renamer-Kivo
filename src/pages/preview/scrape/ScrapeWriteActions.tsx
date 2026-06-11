@@ -29,12 +29,12 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
   const [result, setResult] = useState<LocalScrapeOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const mainFileName = useMemo(() => {
-    return group?.children.find((child) => child.file_role === 'MainVideo')?.target_name
-      || group?.children[0]?.target_name
-      || '';
+  const mainFile = useMemo(() => {
+    return group?.children.find((child) => child.file_role === 'MainVideo') || group?.children[0] || null;
   }, [group]);
 
+  const mainFileName = mainFile?.target_name || '';
+  const mediaFilePath = mainFile?.original_path || '';
   const targetFolder = useMemo(() => resolveScrapeTargetFolder(group, scanRoot), [group, scanRoot]);
   const canWrite = Boolean(targetFolder && mainFileName);
 
@@ -54,6 +54,10 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
           candidate,
           target_folder_path: targetFolder,
           target_file_name: mainFileName,
+          media_file_path: mediaFilePath,
+          scan_root: scanRoot ?? null,
+          mode: 'BesideCurrentMedia',
+          include_images: true,
         },
       });
       setResult(output);
@@ -82,7 +86,7 @@ export function ScrapeWriteActions({ candidate, group }: ScrapeWriteActionsProps
       </Button>
 
       <div className="break-all text-xs text-text-tertiary">
-        写入目录：{targetFolder || '未选择'}
+        写入目录：{result?.target_folder_path || targetFolder || '未选择'}
       </div>
 
       {result && result.written_files.length > 0 && (
