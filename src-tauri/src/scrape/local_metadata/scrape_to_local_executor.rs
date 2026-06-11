@@ -1,6 +1,7 @@
 // src-tauri/src/scrape/local_metadata/scrape_to_local_executor.rs
 // 职责：编排本地刮削写入流程，不承载 NFO 构建或文件写入细节
 
+use crate::scrape::local_metadata::image_asset_downloader::download_image_asset_to_file;
 use crate::scrape::local_metadata::local_metadata_writer::{ensure_target_folder, write_nfo};
 use crate::scrape::local_metadata::local_scrape_input::LocalScrapeInput;
 use crate::scrape::local_metadata::local_scrape_output::LocalScrapeOutput;
@@ -34,12 +35,28 @@ pub async fn scrape_to_local(input: LocalScrapeInput) -> LocalScrapeOutput {
         Err(error) => errors.push(error),
     }
 
-    if input.candidate.poster_path.is_some() {
-        errors.push("poster.jpg download is temporarily disabled to prevent app crash; poster URL has been written into NFO.".to_string());
+    match download_image_asset_to_file(
+        input.candidate.poster_path.as_deref(),
+        &target_folder,
+        "poster.jpg",
+    )
+    .await
+    {
+        Ok(Some(file)) => written_files.push(file),
+        Ok(None) => {}
+        Err(error) => errors.push(error),
     }
 
-    if input.candidate.backdrop_path.is_some() {
-        errors.push("fanart.jpg download is temporarily disabled to prevent app crash; fanart URL has been written into NFO.".to_string());
+    match download_image_asset_to_file(
+        input.candidate.backdrop_path.as_deref(),
+        &target_folder,
+        "fanart.jpg",
+    )
+    .await
+    {
+        Ok(Some(file)) => written_files.push(file),
+        Ok(None) => {}
+        Err(error) => errors.push(error),
     }
 
     LocalScrapeOutput {
