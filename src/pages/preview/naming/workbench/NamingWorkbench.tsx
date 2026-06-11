@@ -1,11 +1,9 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, Edit3, Folder, Info, Plus, Settings } from 'lucide-react';
-import type { FolderPolicy, FolderPolicyConfig, NamingRule, NamingToken, TitleStrategy } from '../../../../types';
+import { AlertTriangle, Edit3, Folder, Info, Settings } from 'lucide-react';
+import type { FolderPolicy, FolderPolicyConfig, NamingRule, TitleStrategy } from '../../../../types';
 import { FolderPolicySelector } from '../../folder-policy/FolderPolicySelector';
 import { NamingPresetList } from '../NamingPresetList';
-import { NamingTokenLibrary } from '../NamingTokenLibrary';
 import { NamingTokenOrderList } from '../NamingTokenOrderList';
-import { appendToken } from '../namingPresetRules';
 import { applyNamingPreset, namingPresetListItems } from '../preset/NamingPresetApply';
 
 const STRATEGIES: Array<{ id: TitleStrategy; label: string }> = [
@@ -43,10 +41,6 @@ export function NamingWorkbench({
   const handlePresetChange = (presetId: string) => {
     const applied = applyNamingPreset(presetId);
     onPresetApply(applied.presetId, applied.rule, applied.strategy);
-  };
-
-  const handleTokenAdd = (token: NamingToken) => {
-    onRuleChange(appendToken(currentNamingRule, token));
   };
 
   const handleTokenReorder = (tokens: NamingRule['tokens']) => {
@@ -102,11 +96,7 @@ export function NamingWorkbench({
         </div>
       </WorkbenchCard>
 
-      <WorkbenchCard title="添加 Token" icon={<Plus className="h-3.5 w-3.5 text-text-secondary" />}>
-        <NamingTokenLibrary onAdd={handleTokenAdd} />
-      </WorkbenchCard>
-
-      <WorkbenchCard title="Token 排序" icon={<Edit3 className="h-3.5 w-3.5 text-text-secondary" />}>
+      <WorkbenchCard title="Token 编辑" icon={<Edit3 className="h-3.5 w-3.5 text-text-secondary" />}>
         <NamingTokenOrderList tokens={currentNamingRule.tokens} onReorder={handleTokenReorder} onRemove={handleTokenRemove} />
       </WorkbenchCard>
     </>
