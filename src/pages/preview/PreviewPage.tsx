@@ -13,9 +13,7 @@ import type {
   TmdbCandidate,
 } from '../../types';
 import { EditNameModal } from './edit';
-import { ExecutionConfirmPanel } from './ExecutionConfirmPanel';
-import { ExecutionProgressPanel } from './ExecutionProgressPanel';
-import { ExecutionResultPanel } from './ExecutionResultPanel';
+import { PreviewExecutionPanels } from './execution';
 import { PreviewHeader } from './header';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from './naming/workbench';
@@ -326,13 +324,15 @@ export function PreviewPage() {
         />
       )}
 
-      {uiState === 'confirming' && confirmState && (
-        <ExecutionConfirmPanel state={confirmState} onConfirm={() => confirmExecution()} onCancel={cancelExecution} isLoading={false} />
-      )}
-      {uiState === 'executing' && progressState && <ExecutionProgressPanel state={progressState} />}
-      {uiState === 'completed' && resultState && (
-        <ExecutionResultPanel state={resultState} onRollback={() => {}} onExport={() => {}} onReset={resetExecution} />
-      )}
+      <PreviewExecutionPanels
+        uiState={uiState}
+        confirmState={confirmState}
+        progressState={progressState}
+        resultState={resultState}
+        onConfirm={confirmExecution}
+        onCancel={cancelExecution}
+        onReset={resetExecution}
+      />
     </div>
   );
 }
