@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card } from '../../components/ui';
+import { Card } from '../../components/ui';
 import { useExecutionStore } from '../../state/executionStore';
 import { usePipelineStore } from '../../state/pipelineStore';
 import { useTmdbSearchStore } from '../../state/tmdbSearchStore';
@@ -19,6 +19,7 @@ import { ExecutionResultPanel } from './ExecutionResultPanel';
 import { PreviewHeader } from './header';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from './naming/workbench';
+import { PreviewEmptyState, PreviewLoadingState } from './state';
 import { TmdbDisabledBanner, TmdbInspector } from './tmdb';
 import type { TmdbManualMediaType } from './tmdb';
 import { PreviewPlanTree } from './tree/PreviewPlanTree';
@@ -240,23 +241,11 @@ export function PreviewPage() {
   }, [groups, togglePreviewSkipped]);
 
   if (isLoading) {
-    return (
-      <Card className="p-6">
-        <div className="flex items-center gap-3">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <span className="text-sm text-text-secondary">加载中...</span>
-        </div>
-      </Card>
-    );
+    return <PreviewLoadingState />;
   }
 
   if (!pipelineResult) {
-    return (
-      <Card className="p-6 text-center">
-        <p className="mb-4 text-sm text-text-secondary">暂无预览结果，请先扫描文件</p>
-        <Button onClick={() => navigate('/scan')}>去扫描</Button>
-      </Card>
-    );
+    return <PreviewEmptyState onScan={() => navigate('/scan')} />;
   }
 
   return (
