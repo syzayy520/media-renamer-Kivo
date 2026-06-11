@@ -2,15 +2,13 @@ import type * as React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
   Check,
   Edit3,
   Globe,
-  Play,
   Settings,
   X,
 } from 'lucide-react';
-import { Badge, Button, Card } from '../../components/ui';
+import { Button, Card } from '../../components/ui';
 import { useExecutionStore } from '../../state/executionStore';
 import { usePipelineStore } from '../../state/pipelineStore';
 import { useTmdbSearchStore } from '../../state/tmdbSearchStore';
@@ -25,6 +23,7 @@ import type {
 import { ExecutionConfirmPanel } from './ExecutionConfirmPanel';
 import { ExecutionProgressPanel } from './ExecutionProgressPanel';
 import { ExecutionResultPanel } from './ExecutionResultPanel';
+import { PreviewHeader } from './header';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from './naming/workbench';
 import { CandidateList, ScrapePreviewCard, TmdbEmptySelectionCard, TmdbErrorCard, TmdbLoadingCard, TmdbSearchCard } from './tmdb';
@@ -362,37 +361,6 @@ type EditModalState = {
   currentName: string;
   previewPath: string;
 };
-
-function PreviewHeader({
-  groupCount,
-  fileCount,
-  onBack,
-  onSettings,
-  onDryRun,
-  onExecute,
-}: {
-  groupCount: number;
-  fileCount: number;
-  onBack: () => void;
-  onSettings: () => void;
-  onDryRun: () => void;
-  onExecute: () => void;
-}) {
-  return (
-    <div className="flex shrink-0 items-center justify-between">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" icon={<ArrowLeft className="h-4 w-4" />} onClick={onBack}>返回</Button>
-        <h2 className="text-lg font-semibold text-text-primary">预览重命名</h2>
-        <Badge variant="default" size="sm">{groupCount} 组 · {fileCount} 文件</Badge>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button variant="secondary" size="sm" icon={<Settings className="h-4 w-4" />} onClick={onSettings}>设置</Button>
-        <Button variant="secondary" size="sm" icon={<Play className="h-4 w-4" />} onClick={onDryRun}>模拟执行</Button>
-        <Button variant="primary" size="sm" icon={<Play className="h-4 w-4" />} onClick={onExecute}>执行重命名</Button>
-      </div>
-    </div>
-  );
-}
 
 function TmdbDisabledBanner({ reason, onSettings }: { reason: string | null; onSettings: () => void }) {
   return (
