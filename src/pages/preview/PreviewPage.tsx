@@ -1,18 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExecutionStore } from '../../state/executionStore';
 import { usePipelineStore } from '../../state/pipelineStore';
 import { useTmdbSearchStore } from '../../state/tmdbSearchStore';
 import { useUiFeedbackStore } from '../../state/uiFeedbackStore';
-import type { FolderGroup, TmdbCandidate } from '../../types';
 import { EditNameModal, usePreviewEditModal } from './edit';
 import { PreviewExecutionPanels } from './execution';
 import { PreviewHeader } from './header';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { PreviewNamingWorkbenchSidebar, usePreviewNamingWorkbench } from './naming/workbench';
 import { PreviewEmptyState, PreviewLoadingState } from './state';
-import { buildTmdbQuery, defaultTmdbMediaType, TmdbDisabledBanner, TmdbInspectorSidebar } from './tmdb';
-import type { TmdbManualMediaType } from './tmdb';
+import { TmdbDisabledBanner, TmdbInspectorSidebar, usePreviewTmdbSearch } from './tmdb';
 import { PreviewPlanTreePanel, usePreviewTreeSelection } from './tree';
 
 export function PreviewPage() {
@@ -53,13 +51,6 @@ export function PreviewPage() {
     onApplyFolderPolicy: applyFolderPolicy,
   });
 
-  const [tmdbMediaType, setTmdbMediaType] = useState<TmdbManualMediaType>('movie');
-  const [tmdbQuery, setTmdbQuery] = useState('');
-  const [tmdbCandidates, setTmdbCandidates] = useState<TmdbCandidate[]>([]);
-  const [tmdbLoading, setTmdbLoading] = useState(false);
-  const [tmdbError, setTmdbError] = useState<string | null>(null);
-  const [selectedCandidate, setSelectedCandidate] = useState<TmdbCandidate | null>(null);
-
   useEffect(() => {
     checkTmdbSearchAvailability();
   }, [checkTmdbSearchAvailability]);
@@ -82,80 +73,30 @@ export function PreviewPage() {
     previews: pipelineResult?.previews ?? [],
     onNameChange: updatePreviewProposedName,
   });
-
-  useEffect(() => {
-    setTmdbMediaType(defaultTmdbMediaType(selectedGroup));
-    setTmdbQuery(selectedGroup ? buildTmdbQuery(selectedGroup) : '');
-    setTmdbError(null);
-    setTmdbCandidates([]);
-    setSelectedCandidate(null);
-  }, [selectedGroup?.id]);
-
-  const searchTmdbForGroup = useCallback(async (
-    group: FolderGroup,
-    mediaType: TmdbManualMediaType,
-    queryText: string,
-  ) => {
-    selectGroup(group.id);
-    setTmdbError(null);
-    setTmdbCandidates([]);
-    setSelectedCandidate(null);
-
-    if (tmdbSearchStatus === 'disabled') {
-      setTmdbError(disabledReason || 'TMDb 未启用，请先到设置配置 API key 并开启 Live Search。');
-      return;
-    }
-
-    const query = queryText.trim() || buildTmdbQuery(group);
-    if (!query) {
-      setTmdbError('请输入 TMDb 搜索词');
-      return;
-    }
-
-    setTmdbLoading(true);
-    try {
-      const result = await searchTmdbCandidates(query, mediaType);
-      if (!result || result.length === 0) {
-        setTmdbError(`没有找到候选：${query}。可以把搜索词改成英文名再试，例如 First Blood。`);
-        return;
-      }
-      setTmdbCandidates(result);
-    } catch (err) {
-      setTmdbError(err instanceof Error ? err.message : '搜索失败');
-    } finally {
-      setTmdbLoading(false);
-    }
-  }, [disabledReason, searchTmdbCandidates, selectGroup, tmdbSearchStatus]);
-
-  const handleTmdbSearch = useCallback(async () => {
-    if (!selectedGroup) return;
-    await searchTmdbForGroup(selectedGroup, tmdbMediaType, tmdbQuery);
-  }, [selectedGroup, searchTmdbForGroup, tmdbMediaType, tmdbQuery]);
-
-  const handleGroupTmdbSearch = useCallback((groupId: string) => {
-    const group = groups.find((item) => item.id === groupId);
-    if (!group) return;
-    const mediaType = defaultTmdbMediaType(group);
-    const query = buildTmdbQuery(group);
-    setTmdbMediaType(mediaType);
-    setTmdbQuery(query);
-    void searchTmdbForGroup(group, mediaType, query);
-  }, [groups, searchTmdbForGroup]);
-
-  const handleApplyCandidate = useCallback(async (candidate: TmdbCandidate) => {
-    if (!selectedGroup) return;
-    const mainVideo = selectedGroup.children.find((child) => child.file_role === 'MainVideo');
-    const targetId = mainVideo?.id || selectedGroup.children[0]?.id;
-    if (!targetId) return;
-    await applyTmdbCandidate(targetId, candidate);
-    await refreshSafetySummary();
-  }, [selectedGroup, applyTmdbCandidate, refreshSafetySummary]);
-
-  const handleGroupSkip = useCallback((groupId: string) => {
-    const group = groups.find((item) => item.id === groupId);
-    if (!group) return;
-    group.children.forEach((child) => togglePreviewSkipped(child.id));
-  }, [groups, togglePreviewSkipped]);
+  const {
+    tmdbMediaType,
+    tmdbQuery,
+    tmdbLoading,
+    tmdbError,
+    tmdbCandidates,
+    selectedCandidate,
+    setTmdbMediaType,
+    setTmdbQuery,
+    setSelectedCandidate,
+    handleTmdbSearch,
+    handleGroupTmdbSearch,
+    handleApplyCandidate,
+    clearCandidates,
+  } = usePreviewTmdbSearch({
+    groups,
+    selectedGroup,
+    tmdbSearchStatus,
+    disabledReason,
+    onGroupSelect: selectGroup,
+    onSearchCandidates: searchTmdbCandidates,
+    onApplyCandidate: applyTmdbCandidate,
+    onRefreshSafetySummary: refreshSafetySummary,
+  });
 
   if (isLoading) {
     return <PreviewLoadingState />;
@@ -199,7 +140,11 @@ export function PreviewPage() {
           onGroupToggleExpand={toggleGroupExpanded}
           onGroupTmdbSearch={handleGroupTmdbSearch}
           onGroupEdit={openGroupEdit}
-          onGroupSkip={handleGroupSkip}
+          onGroupSkip={(groupId) => {
+            const group = groups.find((item) => item.id === groupId);
+            if (!group) return;
+            group.children.forEach((child) => togglePreviewSkipped(child.id));
+          }}
           onFileEdit={openFileEdit}
           onFileSkip={togglePreviewSkipped}
         />
@@ -218,10 +163,7 @@ export function PreviewPage() {
           onSearch={handleTmdbSearch}
           onCandidateSelect={setSelectedCandidate}
           onCandidateApply={handleApplyCandidate}
-          onClearCandidates={() => {
-            setTmdbCandidates([]);
-            setSelectedCandidate(null);
-          }}
+          onClearCandidates={clearCandidates}
         />
       </div>
 
