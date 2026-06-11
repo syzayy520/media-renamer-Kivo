@@ -6,6 +6,7 @@ export { SearchTypeButton } from './SearchTypeButton';
 export { TmdbDisabledBanner } from './TmdbDisabledBanner';
 export { TmdbEmptySelectionCard } from './TmdbEmptySelectionCard';
 export { TmdbInspector } from './TmdbInspector';
+export { TmdbInspectorSidebar } from './TmdbInspectorSidebar';
 export { TmdbSearchCard } from './TmdbSearchCard';
 export { TmdbErrorCard, TmdbLoadingCard } from './TmdbStatusCards';
 export { TMDB_IMAGE_BASE, isMovieCandidate } from './tmdbInspectorTypes';
