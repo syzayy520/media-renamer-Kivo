@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../components/ui';
 import { useExecutionStore } from '../../state/executionStore';
 import { usePipelineStore } from '../../state/pipelineStore';
 import { useTmdbSearchStore } from '../../state/tmdbSearchStore';
@@ -21,7 +20,7 @@ import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from '.
 import { PreviewEmptyState, PreviewLoadingState } from './state';
 import { buildTmdbQuery, defaultTmdbMediaType, TmdbDisabledBanner, TmdbInspector } from './tmdb';
 import type { TmdbManualMediaType } from './tmdb';
-import { PreviewPlanTree } from './tree/PreviewPlanTree';
+import { PreviewPlanTreePanel } from './tree';
 
 const INITIAL_NAMING_WORKBENCH = buildInitialNamingWorkbenchState();
 
@@ -253,20 +252,16 @@ export function PreviewPage() {
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <Card className="min-h-0 flex-1 overflow-y-auto p-0">
-            <PreviewPlanTree
-              groups={groups}
-              expandedGroups={expandedGroups}
-              onGroupToggleExpand={handleToggleExpand}
-              onGroupTmdbSearch={handleGroupTmdbSearch}
-              onGroupEdit={openGroupEdit}
-              onGroupSkip={handleGroupSkip}
-              onFileEdit={openFileEdit}
-              onFileSkip={togglePreviewSkipped}
-            />
-          </Card>
-        </div>
+        <PreviewPlanTreePanel
+          groups={groups}
+          expandedGroups={expandedGroups}
+          onGroupToggleExpand={handleToggleExpand}
+          onGroupTmdbSearch={handleGroupTmdbSearch}
+          onGroupEdit={openGroupEdit}
+          onGroupSkip={handleGroupSkip}
+          onFileEdit={openFileEdit}
+          onFileSkip={togglePreviewSkipped}
+        />
 
         <div className="flex w-[320px] shrink-0 flex-col gap-3 overflow-y-auto">
           <TmdbInspector
