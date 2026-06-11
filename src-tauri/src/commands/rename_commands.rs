@@ -1,7 +1,4 @@
-// rename_commands 模块 - 重命名相关 Tauri 命令
-// 职责：将 rename::candidate_apply / naming_rule / folder_policy 暴露为 Tauri 命令
-// 不做业务逻辑，只做参数转换 + 错误映射
-
+use crate::media_info::probe::filename_media_info_parser::parse_filename_media_info;
 use crate::rename::candidate_apply::{
     apply_movie_candidate, apply_tv_candidate, PreviewApplyResult,
 };
@@ -13,73 +10,51 @@ use crate::tmdb_search_contract::{TmdbCandidate, TmdbSearchMediaType};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-/// TMDb 候选应用输入
 #[derive(Debug, Clone, Deserialize)]
 pub struct ApplyTmdbCandidateInput {
-    /// 当前预览项
     pub item: RenamePreviewItem,
-    /// TMDb 候选
     pub candidate: TmdbCandidate,
 }
 
-/// TMDb 候选应用输出
 #[derive(Debug, Clone, Serialize)]
 pub struct ApplyTmdbCandidateOutput {
-    /// 应用结果（成功时有值）
     pub result: Option<PreviewApplyResult>,
-    /// 错误信息（失败时有值）
     pub error: Option<String>,
-    /// 应用后的安全检查报告
     pub safety: Option<SafetyReport>,
 }
 
-/// 安全摘要输入（用于重新检查更新后的预览列表）
 #[derive(Debug, Clone, Deserialize)]
 pub struct SafetySummaryInput {
-    /// 更新后的预览项列表
     pub previews: Vec<RenamePreviewItem>,
 }
 
-// ─── V3 Workbench: Naming Rule Application ───────────────────────────────────
-
-/// 应用命名规则的输入
 #[derive(Debug, Clone, Deserialize)]
 pub struct ApplyNamingRuleInput {
-    /// 预览项列表
     pub previews: Vec<RenamePreviewItem>,
-    /// 命名规则
     pub naming_rule: NamingRule,
-    /// 标题策略
     pub title_strategy: TitleStrategy,
 }
 
-/// 应用命名规则的输出
 #[derive(Debug, Clone, Serialize)]
 pub struct ApplyNamingRuleOutput {
-    /// 更新后的预览项列表
     pub previews: Vec<RenamePreviewItem>,
 }
 
-/// 应用文件夹策略的输入
 #[derive(Debug, Clone, Deserialize)]
 pub struct ApplyFolderPolicyInput {
-    /// 预览项列表
     pub previews: Vec<RenamePreviewItem>,
-    /// 文件夹策略
     pub folder_policy: FolderPolicy,
 }
 
-/// 应用文件夹策略的输出
 #[derive(Debug, Clone, Serialize)]
 pub struct ApplyFolderPolicyOutput {
-    /// 更新后的预览项列表
     pub previews: Vec<RenamePreviewItem>,
 }
 
-/// 从 ParsedMediaInfo 构造 TokenContext
 fn build_token_context(item: &RenamePreviewItem) -> TokenContext {
     let info = &item.parsed_info;
     let title = &info.title;
+    let media_info = parse_filename_media_info(&info.media_item.file_name);
 
     TokenContext {
         zh_title: if title.is_empty() || title == "Unknown" {
@@ -90,23 +65,23 @@ fn build_token_context(item: &RenamePreviewItem) -> TokenContext {
         english_title: None,
         original_title: None,
         original_name_without_ext: Some(info.media_item.file_name.clone()),
-        original_release_name: None,
+        original_release_name: Some(info.media_item.file_name.clone()),
         year: info.year,
         release_date: None,
         air_date: None,
         season_year: None,
-        resolution: info.resolution.clone(),
-        source: info.source.clone(),
+        resolution: info.resolution.clone().or(media_info.resolution.clone()),
+        source: info.source.clone().or(media_info.source.clone()),
         edition: None,
         remux: None,
-        video_codec: info.video_codec.clone(),
-        video_bit_depth: None,
-        hdr_format: None,
-        dolby_vision: None,
-        audio_codec: info.audio_codec.clone(),
-        audio_channels: None,
-        audio_language: None,
-        release_group: info.group.clone(),
+        video_codec: info.video_codec.clone().or(media_info.video.codec.clone()),
+        video_bit_depth: media_info.video.bit_depth.clone(),
+        hdr_format: media_info.video.hdr_format.clone(),
+        dolby_vision: media_info.video.dolby_vision,
+        audio_codec: info.audio_codec.clone().or(media_info.audio.codec.clone()),
+        audio_channels: media_info.audio.channels.clone(),
+        audio_language: media_info.audio.language.clone(),
+        release_group: info.group.clone().or(media_info.release_group.clone()),
         tmdb_id: None,
         imdb_id: None,
         tvdb_id: None,
@@ -122,7 +97,6 @@ fn build_token_context(item: &RenamePreviewItem) -> TokenContext {
     }
 }
 
-/// 计算父目录路径
 fn parent_dir(path: &str) -> String {
     Path::new(path)
         .parent()
@@ -130,7 +104,6 @@ fn parent_dir(path: &str) -> String {
         .unwrap_or_default()
 }
 
-/// 获取不包含扩展名的文件名基名
 fn stem_from_name(name: &str) -> String {
     match name.rfind('.') {
         Some(pos) => name[..pos].to_string(),
@@ -138,10 +111,6 @@ fn stem_from_name(name: &str) -> String {
     }
 }
 
-/// 应用命名规则到所有预览项（Tauri 命令）
-///
-/// 对每个预览项使用命名规则引擎重新渲染 proposed_name 和 target_path。
-/// 这会立即更新所有预览项的显示名称。
 #[tauri::command]
 pub fn apply_naming_rule(input: ApplyNamingRuleInput) -> Result<ApplyNamingRuleOutput, String> {
     let mut updated = Vec::with_capacity(input.previews.len());
@@ -169,9 +138,6 @@ pub fn apply_naming_rule(input: ApplyNamingRuleInput) -> Result<ApplyNamingRuleO
     Ok(ApplyNamingRuleOutput { previews: updated })
 }
 
-/// 应用文件夹策略到所有预览项（Tauri 命令）
-///
-/// 根据文件夹策略重新计算每个预览项的 target_path。
 #[tauri::command]
 pub fn apply_folder_policy(
     input: ApplyFolderPolicyInput,
@@ -192,18 +158,15 @@ pub fn apply_folder_policy(
 
         let new_target = match policy {
             FolderPolicy::KeepOriginalStructure | FolderPolicy::NoFolder => {
-                // 保持原目录结构
                 format!("{}\\{}", current_dir, item.proposed_name)
             }
             FolderPolicy::OneMovieOneFolder => {
-                // 一片一夹：使用目标文件名（去扩展名）作为文件夹
                 format!(
                     "{}\\{}\\{}",
                     current_dir, folder_from_name, item.proposed_name
                 )
             }
             FolderPolicy::NormalizeExistingFolders | FolderPolicy::ChineseFolderPtFile => {
-                // 规范文件夹名：子目录用目标名，文件在子目录内
                 let folder = extract_last_dir(&current_dir);
                 if folder.is_empty() || folder == folder_from_name {
                     format!("{}\\{}", current_dir, item.proposed_name)
@@ -215,11 +178,9 @@ pub fn apply_folder_policy(
                 }
             }
             FolderPolicy::Flatten => {
-                // 去除文件夹：移动到上级目录
                 format!("{}\\{}", current_parent, item.proposed_name)
             }
             FolderPolicy::TvShowStructure => {
-                // 剧集目录结构：保持简化处理
                 format!("{}\\{}", current_dir, item.proposed_name)
             }
         };
@@ -231,7 +192,6 @@ pub fn apply_folder_policy(
     Ok(ApplyFolderPolicyOutput { previews: updated })
 }
 
-/// 提取路径的最后一段目录名
 fn extract_last_dir(path: &str) -> String {
     let normalized = path.replace('\\', "/");
     match normalized.rfind('/') {
@@ -240,17 +200,6 @@ fn extract_last_dir(path: &str) -> String {
     }
 }
 
-/// 应用 TMDb 候选到预览项（Tauri 命令）
-///
-/// 根据候选的媒体类型调用对应的 apply 函数：
-/// - Movie → apply_movie_candidate
-/// - Tv → apply_tv_candidate（使用原解析的 season/episode 信息）
-///
-/// # Arguments
-/// * `input` - 包含原预览项和 TMDb 候选
-///
-/// # Returns
-/// `ApplyTmdbCandidateOutput` 包含更新后的预览项、消息和安全报告
 #[tauri::command]
 pub fn apply_tmdb_candidate(
     input: ApplyTmdbCandidateInput,
@@ -258,7 +207,6 @@ pub fn apply_tmdb_candidate(
     let item = &input.item;
     let candidate = &input.candidate;
 
-    // 映射 TmdbSearchMediaType → MediaType 来决定调用哪个 apply 函数
     let result = match candidate.media_type {
         TmdbSearchMediaType::Movie => apply_movie_candidate(
             item,
@@ -266,24 +214,19 @@ pub fn apply_tmdb_candidate(
             candidate.release_year,
             candidate.tmdb_id,
         ),
-        TmdbSearchMediaType::Tv => {
-            // 对于 TV 候选，TMDb 搜索不返回 season/episode
-            // 使用原解析的 season/episode/episode_title
-            apply_tv_candidate(
-                item,
-                &candidate.title,
-                candidate.release_year,
-                item.parsed_info.season,
-                item.parsed_info.episode,
-                item.parsed_info.episode_title.as_deref(),
-                candidate.tmdb_id,
-            )
-        }
+        TmdbSearchMediaType::Tv => apply_tv_candidate(
+            item,
+            &candidate.title,
+            candidate.release_year,
+            item.parsed_info.season,
+            item.parsed_info.episode,
+            item.parsed_info.episode_title.as_deref(),
+            candidate.tmdb_id,
+        ),
     };
 
     match result {
         Ok(apply_result) => {
-            // 对更新后的单项做安全检查
             let safety_checks = safety_checker::check_single(&apply_result.updated_item);
             let has_blocking = safety_checks.iter().any(|c| !c.passed);
 
@@ -312,15 +255,6 @@ pub fn apply_tmdb_candidate(
     }
 }
 
-/// 重新运行安全摘要检查（Tauri 命令）
-///
-/// 在批量应用候选后，重新检查整个预览列表的安全性。
-///
-/// # Arguments
-/// * `input` - 包含更新后的预览项列表
-///
-/// # Returns
-/// `SafetyReport` 包含完整安全检查结果
 #[tauri::command]
 pub fn get_safety_summary(input: SafetySummaryInput) -> Result<SafetyReport, String> {
     Ok(safety_checker::check_all(&input.previews))
@@ -477,7 +411,6 @@ mod tests {
         let output = apply_tmdb_candidate(input).unwrap();
 
         let safety = output.safety.unwrap();
-        // TMDb 候选应用后置信度为 95，应通过安全检查
         assert!(safety.can_execute);
         assert!(safety.dry_run);
     }
@@ -496,7 +429,6 @@ mod tests {
             previews: vec![item],
         };
         let report = get_safety_summary(input).unwrap();
-        // 低置信度 (50) 应该阻塞
         assert!(!report.can_execute);
     }
 }
