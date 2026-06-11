@@ -8,18 +8,19 @@ use crate::shared::path_utils;
 use crate::shared::result_types::ConflictType;
 use std::collections::HashMap;
 
-/// 检查重复目标（多个源指向同一目标）
 pub fn check_duplicate_targets(preview_items: &[RenamePreviewItem]) -> Vec<RenameConflict> {
     let mut conflicts = Vec::new();
     let mut target_map: HashMap<String, Vec<usize>> = HashMap::new();
 
-    // 收集所有目标路径
     for (index, item) in preview_items.iter().enumerate() {
+        if item.should_skip || is_noop(item) {
+            continue;
+        }
+
         let normalized_target = path_utils::normalize_path(&item.target_path).to_lowercase();
         target_map.entry(normalized_target).or_default().push(index);
     }
 
-    // 检查重复目标
     for (target, indices) in target_map {
         if indices.len() > 1 {
             for &index in &indices {
@@ -29,7 +30,7 @@ pub fn check_duplicate_targets(preview_items: &[RenamePreviewItem]) -> Vec<Renam
                     source_path: item.source_path.clone(),
                     target_path: item.target_path.clone(),
                     message: format!(
-                        "Duplicate target: {} sources point to {}",
+                        "Duplicate target: {} executable sources point to {}",
                         indices.len(),
                         target
                     ),
@@ -40,4 +41,9 @@ pub fn check_duplicate_targets(preview_items: &[RenamePreviewItem]) -> Vec<Renam
     }
 
     conflicts
+}
+
+fn is_noop(item: &RenamePreviewItem) -> bool {
+    path_utils::normalize_path(&item.source_path).to_lowercase()
+        == path_utils::normalize_path(&item.target_path).to_lowercase()
 }
