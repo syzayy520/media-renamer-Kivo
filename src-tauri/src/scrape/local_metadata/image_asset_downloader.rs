@@ -27,7 +27,7 @@ pub async fn download_image_asset_to_file(
 
     #[cfg(target_os = "windows")]
     {
-        download_image_with_powershell(&url, &file_path).await?;
+        download_image_with_curl(&url, &file_path).await?;
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -45,16 +45,21 @@ pub async fn download_image_asset_to_file(
 }
 
 #[cfg(target_os = "windows")]
-async fn download_image_with_powershell(url: &str, file_path: &Path) -> Result<(), String> {
-    let output = tokio::process::Command::new("powershell")
-        .arg("-NoProfile")
-        .arg("-NonInteractive")
-        .arg("-ExecutionPolicy")
-        .arg("Bypass")
-        .arg("-Command")
-        .arg("$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri $args[0] -OutFile $args[1] -UseBasicParsing")
-        .arg(url)
+async fn download_image_with_curl(url: &str, file_path: &Path) -> Result<(), String> {
+    if url.trim().is_empty() {
+        return Err("image url is empty".to_string());
+    }
+
+    let output = tokio::process::Command::new("curl.exe")
+        .arg("--location")
+        .arg("--fail")
+        .arg("--silent")
+        .arg("--show-error")
+        .arg("--max-time")
+        .arg("20")
+        .arg("--output")
         .arg(file_path.to_string_lossy().to_string())
+        .arg(url)
         .output()
         .await
         .map_err(|error| format!("start image download process failed: {}", error))?;
