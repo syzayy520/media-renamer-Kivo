@@ -1,4 +1,5 @@
 import type { NamingRule, TitleStrategy } from '../../../../types';
+import { applyNamingPreset } from '../preset/NamingPresetApply';
 
 interface PresetApplyInput {
   presetId: string;
@@ -6,11 +7,27 @@ interface PresetApplyInput {
   strategy: TitleStrategy;
 }
 
+export interface NamingWorkbenchInitialState {
+  selectedPreset: string;
+  currentNamingRule: NamingRule;
+  currentStrategy: TitleStrategy;
+}
+
 interface NamingWorkbenchStateSetters {
   setSelectedPreset: (presetId: string) => void;
   setCurrentNamingRule: (rule: NamingRule) => void;
   setCurrentStrategy: (strategy: TitleStrategy) => void;
   triggerNamingApply: (rule: NamingRule, strategy: TitleStrategy) => void;
+}
+
+export function buildInitialNamingWorkbenchState(presetId = 'clean-library'): NamingWorkbenchInitialState {
+  const applied = applyNamingPreset(presetId);
+
+  return {
+    selectedPreset: applied.presetId,
+    currentNamingRule: applied.rule,
+    currentStrategy: applied.strategy,
+  };
 }
 
 export function applyPresetToWorkbench(
