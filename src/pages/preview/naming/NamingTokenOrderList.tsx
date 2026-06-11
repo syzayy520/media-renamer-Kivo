@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
 import type { NamingToken, TokenConfig } from '../../../types';
+import { NamingTokenConfigEditor } from './NamingTokenConfigEditor';
 import { NamingTokenLibrary } from './NamingTokenLibrary';
 
 const TOKEN_LABELS: Record<NamingToken, string> = {
@@ -40,6 +41,10 @@ export function NamingTokenOrderList({ tokens, onReorder, onRemove }: NamingToke
     onReorder([...tokens, buildTokenConfig(token, defaultSeparator(tokens))]);
   };
 
+  const updateToken = (idx: number, nextToken: TokenConfig) => {
+    onReorder(tokens.map((token, index) => (index === idx ? nextToken : token)));
+  };
+
   return (
     <div className="space-y-2">
       <div className="rounded-lg border border-border/70 p-2">
@@ -50,23 +55,26 @@ export function NamingTokenOrderList({ tokens, onReorder, onRemove }: NamingToke
       {tokens.length === 0 ? (
         <div className="py-4 text-center text-xs text-text-tertiary">未添加 Token</div>
       ) : (
-        <div className="flex max-h-48 flex-col gap-0.5 overflow-y-auto">
+        <div className="flex max-h-96 flex-col gap-1.5 overflow-y-auto">
           {tokens.map((token, idx) => (
-            <div key={`${token.token}-${idx}`} className="flex items-center gap-1 rounded px-2 py-1 transition-colors hover:bg-surface-hover">
-              <span className="flex-1 truncate text-xs text-text-primary">
-                {TOKEN_LABELS[token.token] || token.token}
-              </span>
-              <div className="flex shrink-0 items-center gap-0.5">
-                <button className="p-0.5 text-text-tertiary hover:text-text-primary" onClick={() => moveUp(idx)} disabled={idx === 0}>
-                  <ChevronUp className="h-3 w-3" />
-                </button>
-                <button className="p-0.5 text-text-tertiary hover:text-text-primary" onClick={() => moveDown(idx)} disabled={idx === tokens.length - 1}>
-                  <ChevronDown className="h-3 w-3" />
-                </button>
-                <button className="p-0.5 text-text-tertiary hover:text-error" onClick={() => onRemove(idx)}>
-                  <X className="h-3 w-3" />
-                </button>
+            <div key={`${token.token}-${idx}`} className="rounded-lg border border-border/60 px-2 py-1.5 transition-colors hover:bg-surface-hover">
+              <div className="flex items-center gap-1">
+                <span className="flex-1 truncate text-xs text-text-primary">
+                  {TOKEN_LABELS[token.token] || token.token}
+                </span>
+                <div className="flex shrink-0 items-center gap-0.5">
+                  <button className="p-0.5 text-text-tertiary hover:text-text-primary" onClick={() => moveUp(idx)} disabled={idx === 0}>
+                    <ChevronUp className="h-3 w-3" />
+                  </button>
+                  <button className="p-0.5 text-text-tertiary hover:text-text-primary" onClick={() => moveDown(idx)} disabled={idx === tokens.length - 1}>
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                  <button className="p-0.5 text-text-tertiary hover:text-error" onClick={() => onRemove(idx)}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
               </div>
+              <NamingTokenConfigEditor token={token} onChange={(nextToken) => updateToken(idx, nextToken)} />
             </div>
           ))}
         </div>
