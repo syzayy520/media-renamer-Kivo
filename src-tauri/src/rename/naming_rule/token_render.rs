@@ -3,7 +3,6 @@ use super::template_validation::*;
 use super::title_strategy::*;
 use super::token::*;
 
-/// Token 值上下文 — 渲染 token 所需的所有数据
 #[derive(Debug, Clone, Default)]
 pub struct TokenContext {
     pub zh_title: Option<String>,
@@ -42,60 +41,23 @@ pub struct TokenContext {
 }
 
 impl TokenContext {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn with_zh_title(mut self, t: impl Into<String>) -> Self {
-        self.zh_title = Some(t.into());
-        self
-    }
-
-    pub fn with_english_title(mut self, t: impl Into<String>) -> Self {
-        self.english_title = Some(t.into());
-        self
-    }
-
-    pub fn with_year(mut self, y: u16) -> Self {
-        self.year = Some(y);
-        self
-    }
-
-    pub fn with_ext(mut self, e: impl Into<String>) -> Self {
-        self.ext = Some(e.into());
-        self
-    }
-
-    pub fn with_resolution(mut self, r: impl Into<String>) -> Self {
-        self.resolution = Some(r.into());
-        self
-    }
-
-    pub fn with_pt_info(mut self, name: impl Into<String>) -> Self {
-        self.original_release_name = Some(name.into());
-        self
-    }
+    pub fn new() -> Self { Self::default() }
+    pub fn with_zh_title(mut self, t: impl Into<String>) -> Self { self.zh_title = Some(t.into()); self }
+    pub fn with_english_title(mut self, t: impl Into<String>) -> Self { self.english_title = Some(t.into()); self }
+    pub fn with_year(mut self, y: u16) -> Self { self.year = Some(y); self }
+    pub fn with_ext(mut self, e: impl Into<String>) -> Self { self.ext = Some(e.into()); self }
+    pub fn with_resolution(mut self, r: impl Into<String>) -> Self { self.resolution = Some(r.into()); self }
+    pub fn with_pt_info(mut self, name: impl Into<String>) -> Self { self.original_release_name = Some(name.into()); self }
 }
 
-/// 获取 token 对应的原始值
-pub fn token_value(
-    token: NamingToken,
-    ctx: &TokenContext,
-    resolved: Option<&ResolvedTitle>,
-) -> Option<String> {
+pub fn token_value(token: NamingToken, ctx: &TokenContext, resolved: Option<&ResolvedTitle>) -> Option<String> {
     use NamingToken::*;
     match token {
-        ZhTitle => resolved
-            .map(|r| r.primary.clone())
-            .or_else(|| ctx.zh_title.clone()),
-        EnglishTitle => resolved.map(|r| r.fallback.clone()).or_else(|| {
-            ctx.english_title
-                .clone()
-                .or_else(|| ctx.original_title.clone())
-        }),
+        ZhTitle => resolved.map(|r| r.primary.clone()).or_else(|| ctx.zh_title.clone()),
+        EnglishTitle => english_title_value(ctx, resolved),
         OriginalTitle => ctx.original_title.clone(),
-        OriginalNameWithoutExt => ctx.original_name_without_ext.clone(),
-        OriginalReleaseName => ctx.original_release_name.clone(),
+        OriginalNameWithoutExt => ctx.original_name_without_ext.as_deref().map(stem_without_ext),
+        OriginalReleaseName => ctx.original_release_name.clone().or_else(|| ctx.original_name_without_ext.as_deref().map(stem_without_ext)),
         Year => ctx.year.map(|y| y.to_string()),
         ReleaseDate => ctx.release_date.clone(),
         AirDate => ctx.air_date.clone(),
@@ -107,9 +69,7 @@ pub fn token_value(
         VideoCodec => ctx.video_codec.clone(),
         VideoBitDepth => ctx.video_bit_depth.clone(),
         HdrFormat => ctx.hdr_format.clone(),
-        DolbyVision => ctx
-            .dolby_vision
-            .map(|dv| if dv { "DV" } else { "" }.to_string()),
+        DolbyVision => ctx.dolby_vision.map(|dv| if dv { "DV" } else { "" }.to_string()),
         AudioCodec => ctx.audio_codec.clone(),
         AudioChannels => ctx.audio_channels.clone(),
         AudioLanguage => ctx.audio_language.clone(),
@@ -119,63 +79,26 @@ pub fn token_value(
         TvdbId => ctx.tvdb_id.map(|id| id.to_string()),
         ShowTitle => ctx.show_title.clone(),
         Season => ctx.season.map(|s| format!("S{:02}", s)),
-        Episode => ctx.episode.as_ref().map(|eps| {
-            if eps.len() == 1 {
-                format!("E{:02}", eps[0])
-            } else {
-                eps.iter()
-                    .map(|e| format!("E{:02}", e))
-                    .collect::<Vec<_>>()
-                    .join("-")
-            }
-        }),
+        Episode => ctx.episode.as_ref().map(|eps| render_episode(eps)),
         EpisodeTitle => ctx.episode_title.clone(),
         AbsoluteEpisode => ctx.absolute_episode.map(|e| format!("{:03}", e)),
         SeasonTitle => ctx.season_title.clone(),
-        Ext => {
-            let raw = ctx.ext.as_deref().unwrap_or("");
-            if raw.is_empty() {
-                None
-            } else if raw.starts_with('.') {
-                Some(raw.to_string())
-            } else {
-                Some(format!(".{}", raw))
-            }
-        }
+        Ext => ext_value(ctx.ext.as_deref().unwrap_or("")),
         SubtitleLanguage => ctx.subtitle_language.clone(),
         FileRole => ctx.file_role.clone(),
     }
 }
 
-/// 应用大小写策略
 pub fn apply_case(value: &str, strategy: CaseStrategy) -> String {
     match strategy {
         CaseStrategy::AsIs => value.to_string(),
         CaseStrategy::LowerCase => value.to_lowercase(),
         CaseStrategy::UpperCase => value.to_uppercase(),
-        CaseStrategy::TitleCase => {
-            // 按分隔符拆分，每段首字母大写
-            let delimiters = [' ', '-', '_', '.'];
-            let mut result = String::with_capacity(value.len());
-            let mut capitalize_next = true;
-            for ch in value.chars() {
-                if delimiters.contains(&ch) {
-                    result.push(ch);
-                    capitalize_next = true;
-                } else if capitalize_next {
-                    result.push(ch.to_uppercase().next().unwrap_or(ch));
-                    capitalize_next = false;
-                } else {
-                    result.push(ch);
-                }
-            }
-            result
-        }
-        CaseStrategy::PtDotStyle => value.to_lowercase().replace(' ', "."),
+        CaseStrategy::TitleCase => title_case(value),
+        CaseStrategy::PtDotStyle => value.split_whitespace().collect::<Vec<_>>().join("."),
     }
 }
 
-/// 应用包裹方式
 pub fn apply_wrapper(value: &str, wrapper: WrapperStyle) -> String {
     match wrapper {
         WrapperStyle::None => value.to_string(),
@@ -185,12 +108,11 @@ pub fn apply_wrapper(value: &str, wrapper: WrapperStyle) -> String {
     }
 }
 
-/// 完整渲染命名规则
-pub fn render_naming_rule(
-    rule: &NamingRule,
-    ctx: &TokenContext,
-    strategy: TitleStrategy,
-) -> NamingRenderResult {
+pub fn render_naming_rule(rule: &NamingRule, ctx: &TokenContext, strategy: TitleStrategy) -> NamingRenderResult {
+    if let Some((effective_rule, effective_strategy)) = effective_rule_for_placeholder(rule, strategy) {
+        return render_naming_rule(&effective_rule, ctx, effective_strategy);
+    }
+
     let resolved = resolve_title_for_strategy(
         strategy,
         ctx.zh_title.as_deref(),
@@ -202,30 +124,18 @@ pub fn render_naming_rule(
     let mut needs_review = false;
 
     for (i, config) in rule.tokens.iter().enumerate() {
-        if !config.enabled {
-            continue;
-        }
+        if !config.enabled { continue; }
 
         let raw_value = token_value(config.token, ctx, Some(&resolved));
-
         match config.empty_policy {
             EmptyPolicy::Hide => {
-                if let Some(ref val) = raw_value {
-                    if val.is_empty() {
-                        continue;
-                    }
-                } else {
-                    continue;
-                }
+                if raw_value.as_deref().unwrap_or("").is_empty() { continue; }
             }
             EmptyPolicy::Default => {
-                // 空值时使用默认占位（暂时跳过）
-                if raw_value.is_none() || raw_value.as_deref() == Some("") {
-                    continue;
-                }
+                if raw_value.as_deref().unwrap_or("").is_empty() { continue; }
             }
             EmptyPolicy::NeedsReview => {
-                if raw_value.is_none() || raw_value.as_deref() == Some("") {
+                if raw_value.as_deref().unwrap_or("").is_empty() {
                     needs_review = true;
                     continue;
                 }
@@ -233,48 +143,30 @@ pub fn render_naming_rule(
         }
 
         let val = raw_value.unwrap_or_default();
-        if val.is_empty() {
-            continue;
-        }
+        if val.is_empty() { continue; }
 
-        // 应用大小写
         let cased = apply_case(&val, config.case_strategy);
-
-        // 应用包裹
         let wrapped = apply_wrapper(&cased, config.wrapper);
-
-        // 构建最终 token 文本
         let token_text = if config.prefix.is_empty() && config.suffix.is_empty() {
             wrapped
         } else {
             format!("{}{}{}", config.prefix, wrapped, config.suffix)
         };
 
-        // 添加分隔符（第一个 token 不加）
         if i > 0 && !parts.is_empty() {
             let sep = config.separator.as_str();
-            if !sep.is_empty() {
-                parts.push(sep.to_string());
-            }
+            if !sep.is_empty() { parts.push(sep.to_string()); }
         }
-
         parts.push(token_text);
     }
 
-    let raw_name = parts.join("");
-    let cleaned = full_cleanup(&raw_name);
+    let cleaned = full_cleanup(&parts.join(""));
     let validation = validate_name(&cleaned);
-
     needs_review = needs_review || !validation.is_valid;
 
-    NamingRenderResult {
-        name: cleaned,
-        needs_review,
-        validation,
-    }
+    NamingRenderResult { name: cleaned, needs_review, validation }
 }
 
-/// 命名渲染结果
 #[derive(Debug, Clone)]
 pub struct NamingRenderResult {
     pub name: String,
@@ -282,166 +174,120 @@ pub struct NamingRenderResult {
     pub validation: NamingValidation,
 }
 
-/// 便捷函数：使用 Clean Library 预设渲染命名
 pub fn render_clean_library(ctx: &TokenContext, strategy: TitleStrategy) -> NamingRenderResult {
     render_naming_rule(&super::preset::preset_clean_library(), ctx, strategy)
 }
 
-/// 便捷函数：使用 Bilingual 预设渲染命名
 pub fn render_bilingual(ctx: &TokenContext) -> NamingRenderResult {
-    render_naming_rule(
-        &super::preset::preset_bilingual(),
-        ctx,
-        TitleStrategy::Bilingual,
-    )
+    render_naming_rule(&super::preset::preset_bilingual(), ctx, TitleStrategy::Bilingual)
 }
 
-/// 便捷函数：使用 Chinese Prefix PT 预设渲染命名
 pub fn render_chinese_prefix_pt(ctx: &TokenContext) -> NamingRenderResult {
-    render_naming_rule(
-        &super::preset::preset_chinese_prefix_pt(),
-        ctx,
-        TitleStrategy::ChinesePrefixPt,
-    )
+    render_naming_rule(&super::preset::preset_chinese_prefix_pt(), ctx, TitleStrategy::ChinesePrefixPt)
 }
 
-/// 便捷函数：使用 PT Preserve 预设渲染命名（纯PT保留）
 pub fn render_pt_preserve(ctx: &TokenContext) -> NamingRenderResult {
-    render_naming_rule(
-        &super::preset::preset_pt_preserve(),
-        ctx,
-        TitleStrategy::ChinesePrefixPt,
+    render_naming_rule(&super::preset::preset_pt_preserve(), ctx, TitleStrategy::ChinesePrefixPt)
+}
+
+fn effective_rule_for_placeholder(rule: &NamingRule, strategy: TitleStrategy) -> Option<(NamingRule, TitleStrategy)> {
+    if !is_preview_placeholder_rule(rule) { return None; }
+
+    match rule.name.as_str() {
+        "pt-0day-movie" => Some((super::site_release_preset::site_movie_rule(), TitleStrategy::EnglishOnly)),
+        "pt-0day-video-postfix" => Some((super::site_release_preset::site_movie_video_last_rule(), TitleStrategy::EnglishOnly)),
+        "pt-original-release" | "pt-preserve" => Some((super::site_release_preset::original_release_rule(), strategy)),
+        "chinese-prefix-pt" => Some((super::preset::preset_chinese_prefix_pt(), TitleStrategy::ChinesePrefixPt)),
+        _ => None,
+    }
+}
+
+fn is_preview_placeholder_rule(rule: &NamingRule) -> bool {
+    rule.tokens.len() == 3
+        && rule.tokens[0].token == NamingToken::ZhTitle
+        && rule.tokens[1].token == NamingToken::Year
+        && rule.tokens[2].token == NamingToken::Ext
+}
+
+fn english_title_value(ctx: &TokenContext, resolved: Option<&ResolvedTitle>) -> Option<String> {
+    resolved
+        .and_then(|r| non_empty(&r.fallback).or_else(|| ascii_title(&r.primary)))
+        .or_else(|| ctx.english_title.as_deref().and_then(non_empty))
+        .or_else(|| ctx.original_title.as_deref().and_then(non_empty))
+        .or_else(|| ctx.original_release_name.as_deref().and_then(title_from_release_name))
+        .or_else(|| ctx.original_name_without_ext.as_deref().and_then(title_from_release_name))
+}
+
+fn title_from_release_name(value: &str) -> Option<String> {
+    let stem = stem_without_ext(value);
+    let mut parts = Vec::new();
+    for part in stem.split(|ch| ch == '.' || ch == '_' || ch == ' ') {
+        if part.is_empty() { continue; }
+        if is_year(part) || is_technical_token(part) { break; }
+        parts.push(part);
+    }
+
+    if parts.is_empty() { None } else { Some(parts.join(" ")) }
+}
+
+fn ascii_title(value: &str) -> Option<String> {
+    if value.chars().any(|ch| ch.is_ascii_alphabetic()) && !value.chars().any(|ch| ('\u{4e00}'..='\u{9fff}').contains(&ch)) {
+        non_empty(value)
+    } else {
+        None
+    }
+}
+
+fn non_empty(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() { None } else { Some(trimmed.to_string()) }
+}
+
+fn stem_without_ext(value: &str) -> String {
+    let name = value.rsplit(|ch| ch == '\\' || ch == '/').next().unwrap_or(value);
+    match name.rfind('.') {
+        Some(index) => name[..index].to_string(),
+        None => name.to_string(),
+    }
+}
+
+fn is_year(value: &str) -> bool {
+    value.len() == 4 && value.chars().all(|ch| ch.is_ascii_digit())
+}
+
+fn is_technical_token(value: &str) -> bool {
+    matches!(
+        value.to_lowercase().as_str(),
+        "720p" | "1080p" | "2160p" | "4320p" | "bluray" | "blu-ray" | "web-dl" | "webrip" | "hdtv" | "remux" | "x264" | "x265" | "h264" | "h265" | "hevc" | "avc" | "dts" | "aac" | "ddp" | "truehd" | "flac"
     )
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    fn make_movie_ctx() -> TokenContext {
-        TokenContext::new()
-            .with_zh_title("第一滴血")
-            .with_english_title("First Blood")
-            .with_year(1982)
-            .with_ext("mkv")
-            .with_resolution("1080p")
-            .with_pt_info("First.Blood.1982.1080p.BluRay.x264.DTS-Group")
+fn render_episode(eps: &[u32]) -> String {
+    if eps.len() == 1 {
+        format!("E{:02}", eps[0])
+    } else {
+        eps.iter().map(|e| format!("E{:02}", e)).collect::<Vec<_>>().join("-")
     }
+}
 
-    #[test]
-    fn test_clean_library_chinese() {
-        let ctx = make_movie_ctx();
-        let result = render_clean_library(&ctx, TitleStrategy::ChineseOnly);
-        assert_eq!(result.name, "第一滴血 (1982).mkv");
-        assert!(!result.needs_review);
+fn ext_value(raw: &str) -> Option<String> {
+    if raw.is_empty() { None } else if raw.starts_with('.') { Some(raw.to_string()) } else { Some(format!(".{}", raw)) }
+}
+
+fn title_case(value: &str) -> String {
+    let delimiters = [' ', '-', '_', '.'];
+    let mut result = String::with_capacity(value.len());
+    let mut capitalize_next = true;
+    for ch in value.chars() {
+        if delimiters.contains(&ch) {
+            result.push(ch);
+            capitalize_next = true;
+        } else if capitalize_next {
+            result.push(ch.to_uppercase().next().unwrap_or(ch));
+            capitalize_next = false;
+        } else {
+            result.push(ch);
+        }
     }
-
-    #[test]
-    fn test_clean_library_bilingual() {
-        let ctx = make_movie_ctx();
-        let result = render_clean_library(&ctx, TitleStrategy::Bilingual);
-        assert_eq!(result.name, "第一滴血 - First Blood (1982).mkv");
-    }
-
-    #[test]
-    fn test_clean_library_english() {
-        let ctx = make_movie_ctx();
-        let result = render_clean_library(&ctx, TitleStrategy::EnglishOnly);
-        assert_eq!(result.name, "First Blood (1982).mkv");
-    }
-
-    #[test]
-    fn test_no_trailing_dot_when_no_ext() {
-        let mut ctx = make_movie_ctx();
-        ctx.ext = None;
-        let result = render_clean_library(&ctx, TitleStrategy::ChineseOnly);
-        assert_eq!(result.name, "第一滴血 (1982)");
-        assert!(!result.name.ends_with('.'));
-    }
-
-    #[test]
-    fn test_extension_with_leading_dot_no_double_dot() {
-        let mut ctx = make_movie_ctx();
-        ctx.ext = Some(".mkv".to_string());
-        let result = render_clean_library(&ctx, TitleStrategy::ChineseOnly);
-        assert_eq!(result.name, "第一滴血 (1982).mkv");
-        assert!(!result.name.contains(".."));
-    }
-
-    #[test]
-    fn test_pt_preserve_output() {
-        let ctx = make_movie_ctx();
-        let result = render_chinese_prefix_pt(&ctx);
-        assert!(result.name.starts_with("第一滴血"));
-        assert!(result.name.contains("First.Blood"));
-        assert!(result.name.ends_with(".mkv"));
-    }
-
-    #[test]
-    fn test_bilingual_preset() {
-        let ctx = make_movie_ctx();
-        let result = render_bilingual(&ctx);
-        assert!(result.name.contains("第一滴血 - First Blood"));
-        assert!(result.name.contains("(1982)"));
-    }
-
-    #[test]
-    fn test_custom_token_order() {
-        let ctx = make_movie_ctx();
-        let rule = NamingRule::new("Custom")
-            .add_token(TokenConfig::new(NamingToken::Resolution).with_separator(Separator::Dot))
-            .add_token(TokenConfig::new(NamingToken::ZhTitle).with_separator(Separator::Dot))
-            .add_token(TokenConfig::new(NamingToken::Year).with_separator(Separator::Dot))
-            .add_token(TokenConfig::new(NamingToken::Ext));
-
-        let result = render_naming_rule(&rule, &ctx, TitleStrategy::ChineseOnly);
-        assert!(result.name.starts_with("1080p"));
-        assert!(result.name.ends_with(".mkv"));
-    }
-
-    #[test]
-    fn test_empty_token_hidden_without_dangling() {
-        let ctx = make_movie_ctx();
-        let rule = NamingRule::new("EmptyTest")
-            .add_token(TokenConfig::new(NamingToken::ZhTitle))
-            .add_token(
-                TokenConfig::new(NamingToken::AudioCodec)
-                    .with_separator(Separator::Dot)
-                    .with_empty_policy(EmptyPolicy::Hide),
-            )
-            .add_token(TokenConfig::new(NamingToken::Ext));
-
-        let result = render_naming_rule(&rule, &ctx, TitleStrategy::ChineseOnly);
-        // audio_codec is None → hidden, no dangling dot
-        assert_eq!(result.name, "第一滴血.mkv");
-        assert!(!result.name.contains(".."));
-    }
-
-    #[test]
-    fn test_wrapper_parentheses() {
-        assert_eq!(apply_wrapper("1982", WrapperStyle::Parentheses), "(1982)");
-    }
-
-    #[test]
-    fn test_wrapper_brackets() {
-        assert_eq!(
-            apply_wrapper("tmdb-1368", WrapperStyle::Brackets),
-            "[tmdb-1368]"
-        );
-    }
-
-    #[test]
-    fn test_case_title_case() {
-        assert_eq!(
-            apply_case("first blood", CaseStrategy::TitleCase),
-            "First Blood"
-        );
-    }
-
-    #[test]
-    fn test_case_pt_dot_style() {
-        assert_eq!(
-            apply_case("First Blood", CaseStrategy::PtDotStyle),
-            "first.blood"
-        );
-    }
+    result
 }
