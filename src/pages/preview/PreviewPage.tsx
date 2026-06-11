@@ -29,7 +29,7 @@ import { ExecutionResultPanel } from './ExecutionResultPanel';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from './naming/workbench';
 import { ScrapeWriteActions } from './scrape/ScrapeWriteActions';
-import { CandidateList, SearchTypeButton, TMDB_IMAGE_BASE } from './tmdb';
+import { CandidateList, SearchTypeButton, TMDB_IMAGE_BASE, TmdbErrorCard, TmdbLoadingCard } from './tmdb';
 import type { TmdbManualMediaType } from './tmdb';
 import { PreviewPlanTree } from './tree/PreviewPlanTree';
 
@@ -502,27 +502,10 @@ function TmdbInspector({
         />
       )}
 
-      {tmdbLoading && <LoadingCard />}
-      {tmdbError && <ErrorCard message={tmdbError} />}
+      {tmdbLoading && <TmdbLoadingCard />}
+      {tmdbError && <TmdbErrorCard message={tmdbError} />}
       {selectedCandidate && <ScrapePreviewCard selectedCandidate={selectedCandidate} selectedGroup={selectedGroup} />}
     </>
-  );
-}
-
-function LoadingCard() {
-  return (
-    <Card className="flex items-center justify-center gap-2 p-4">
-      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      <span className="text-xs text-text-secondary">搜索中...</span>
-    </Card>
-  );
-}
-
-function ErrorCard({ message }: { message: string }) {
-  return (
-    <Card className="border-danger/30 bg-danger/10 p-3">
-      <p className="text-xs text-danger">{message}</p>
-    </Card>
   );
 }
 
