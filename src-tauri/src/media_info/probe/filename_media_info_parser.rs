@@ -16,7 +16,7 @@ pub fn parse_filename_media_info(file_path: &str) -> NormalizedMediaInfo {
         },
         audio: NormalizedAudioInfo {
             codec: find_first(&tokens, is_audio_codec),
-            channels: find_first(&tokens, is_audio_channels),
+            channels: find_audio_channels(&tokens),
             language: find_first(&tokens, is_language),
         },
     }
@@ -40,6 +40,19 @@ fn split_release_tokens(value: &str) -> Vec<String> {
 
 fn find_first(tokens: &[String], matcher: fn(&str) -> bool) -> Option<String> {
     tokens.iter().find(|token| matcher(token)).cloned()
+}
+
+fn find_audio_channels(tokens: &[String]) -> Option<String> {
+    for window in tokens.windows(2) {
+        if window[0].chars().all(|ch| ch.is_ascii_digit()) && window[1].chars().all(|ch| ch.is_ascii_digit()) {
+            let value = format!("{}.{}", window[0], window[1]);
+            if is_audio_channels(&value) {
+                return Some(value);
+            }
+        }
+    }
+
+    find_first(tokens, is_audio_channels)
 }
 
 fn release_group(value: &str) -> Option<String> {
@@ -107,6 +120,7 @@ mod tests {
         assert_eq!(info.source.as_deref(), Some("BluRay"));
         assert_eq!(info.video.codec.as_deref(), Some("x265"));
         assert_eq!(info.audio.codec.as_deref(), Some("DTS"));
+        assert_eq!(info.audio.channels.as_deref(), Some("5.1"));
         assert_eq!(info.release_group.as_deref(), Some("PTer"));
     }
 }
