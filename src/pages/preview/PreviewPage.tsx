@@ -28,7 +28,7 @@ import { ExecutionResultPanel } from './ExecutionResultPanel';
 import { buildPreviewGroups } from './model/buildPreviewGroups';
 import { buildInitialNamingWorkbenchState, PreviewNamingWorkbenchPanel } from './naming/workbench';
 import { CandidateList, ScrapePreviewCard, TmdbEmptySelectionCard, TmdbErrorCard, TmdbLoadingCard, TmdbSearchCard } from './tmdb';
-import type { TmdbManualMediaType } from './tmdb';
+import type { TmdbInspectorPanelProps, TmdbManualMediaType } from './tmdb';
 import { PreviewPlanTree } from './tree/PreviewPlanTree';
 
 const INITIAL_NAMING_WORKBENCH = buildInitialNamingWorkbenchState();
@@ -420,22 +420,7 @@ function TmdbInspector({
   onCandidateSelect,
   onCandidateApply,
   onClearCandidates,
-}: {
-  selectedGroup: FolderGroup | null;
-  tmdbMediaType: TmdbManualMediaType;
-  tmdbQuery: string;
-  tmdbLoading: boolean;
-  tmdbError: string | null;
-  tmdbDisabled: boolean;
-  candidates: TmdbCandidate[];
-  selectedCandidate: TmdbCandidate | null;
-  onQueryChange: (value: string) => void;
-  onMediaTypeChange: (value: TmdbManualMediaType) => void;
-  onSearch: () => void;
-  onCandidateSelect: (candidate: TmdbCandidate) => void;
-  onCandidateApply: (candidate: TmdbCandidate) => void;
-  onClearCandidates: () => void;
-}) {
+}: TmdbInspectorPanelProps) {
   if (!selectedGroup) {
     return <TmdbEmptySelectionCard />;
   }
