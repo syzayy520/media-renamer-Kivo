@@ -7,15 +7,11 @@ import {
   type NamingWorkbenchStateSetters,
 } from './NamingWorkbenchBridge';
 
-interface PreviewNamingWorkbenchPanelProps {
+interface PreviewNamingWorkbenchPanelProps extends NamingWorkbenchStateSetters {
   selectedPreset: string;
   currentNamingRule: NamingRule;
   currentStrategy: TitleStrategy;
   folderPolicyConfig: FolderPolicyConfig;
-  setSelectedPreset: (presetId: string) => void;
-  setCurrentNamingRule: (rule: NamingRule) => void;
-  setCurrentStrategy: (strategy: TitleStrategy) => void;
-  triggerNamingApply: (rule: NamingRule, strategy: TitleStrategy) => void;
   onFolderPolicyChange: (config: FolderPolicyConfig) => void;
 }
 
