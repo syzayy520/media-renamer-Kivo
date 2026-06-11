@@ -1,6 +1,11 @@
 import type { FolderPolicyConfig, NamingRule, TitleStrategy } from '../../../../types';
 import { NamingWorkbench } from './NamingWorkbench';
-import { applyPresetToWorkbench, applyRuleToWorkbench, applyStrategyToWorkbench } from './NamingWorkbenchBridge';
+import {
+  applyPresetToWorkbench,
+  applyRuleToWorkbench,
+  applyStrategyToWorkbench,
+  type NamingWorkbenchStateSetters,
+} from './NamingWorkbenchBridge';
 
 interface PreviewNamingWorkbenchPanelProps {
   selectedPreset: string;
@@ -25,7 +30,7 @@ export function PreviewNamingWorkbenchPanel({
   triggerNamingApply,
   onFolderPolicyChange,
 }: PreviewNamingWorkbenchPanelProps) {
-  const workbenchSetters = {
+  const workbenchSetters: NamingWorkbenchStateSetters = {
     setSelectedPreset,
     setCurrentNamingRule,
     setCurrentStrategy,
